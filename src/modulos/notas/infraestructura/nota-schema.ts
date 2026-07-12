@@ -6,6 +6,7 @@ export interface INotaDocument {
   estudianteId: string;
   asignacionId: string;
   periodoId: string;
+  unidadDidacticaId?: string;
   tipo: TipoNota;
   etiqueta: string;
   valor: number;
@@ -20,6 +21,7 @@ const NotaSchema = new Schema<INotaDocument>(
     estudianteId: { type: String, required: true },
     asignacionId: { type: String, required: true },
     periodoId: { type: String, required: true },
+    unidadDidacticaId: { type: String },
     tipo: {
       type: String,
       enum: ["PRACTICA", "EXAMEN", "TRABAJO", "PARTICIPACION"],
@@ -35,6 +37,7 @@ const NotaSchema = new Schema<INotaDocument>(
 );
 
 NotaSchema.index({ estudianteId: 1, asignacionId: 1, periodoId: 1 });
+NotaSchema.index({ unidadDidacticaId: 1 });
 
 export const NotaModel =
   mongoose.models.Nota ||

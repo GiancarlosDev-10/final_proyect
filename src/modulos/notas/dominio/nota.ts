@@ -27,6 +27,7 @@ export interface NotaProps {
   estudianteId: string;
   asignacionId: string;
   periodoId: string;
+  unidadDidacticaId?: string;
   tipo: TipoNota;
   etiqueta: string;
   valor: number;
@@ -40,6 +41,7 @@ export class Nota {
   readonly estudianteId: string;
   readonly asignacionId: string;
   readonly periodoId: string;
+  readonly unidadDidacticaId?: string;
   readonly tipo: TipoNota;
   readonly etiqueta: string;
   readonly valor: number;
@@ -55,6 +57,7 @@ export class Nota {
     this.estudianteId = props.estudianteId;
     this.asignacionId = props.asignacionId;
     this.periodoId = props.periodoId;
+    this.unidadDidacticaId = props.unidadDidacticaId;
     this.tipo = props.tipo;
     this.etiqueta = props.etiqueta;
     this.valor = props.valor;
@@ -69,6 +72,7 @@ export class Nota {
       estudianteId: this.estudianteId,
       asignacionId: this.asignacionId,
       periodoId: this.periodoId,
+      unidadDidacticaId: this.unidadDidacticaId,
       tipo: this.tipo,
       etiqueta: this.etiqueta,
       valor: this.valor,

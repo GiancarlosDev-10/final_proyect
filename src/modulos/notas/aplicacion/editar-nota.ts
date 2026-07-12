@@ -48,6 +48,7 @@ export async function editarNota(
     estudianteId: nota.estudianteId,
     asignacionId: nota.asignacionId,
     periodoId: nota.periodoId,
+    unidadDidacticaId: nota.unidadDidacticaId,
     tipo: datos.tipo,
     etiqueta: datos.etiqueta,
     valor: datos.valor,

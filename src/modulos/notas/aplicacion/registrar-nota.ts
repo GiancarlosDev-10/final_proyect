@@ -12,6 +12,7 @@ export interface RegistrarNotaDTO {
   estudianteId: string;
   asignacionId: string;
   periodoId: string;
+  unidadDidacticaId?: string;
   tipo: TipoNota;
   etiqueta: string;
   valor: number;
@@ -45,6 +46,7 @@ export async function registrarNota(
     estudianteId: datos.estudianteId,
     asignacionId: datos.asignacionId,
     periodoId: datos.periodoId,
+    unidadDidacticaId: datos.unidadDidacticaId,
     tipo: datos.tipo,
     etiqueta: datos.etiqueta,
     valor: datos.valor,
