@@ -1,21 +1,19 @@
 import mongoose, { Schema } from "mongoose";
 
-export interface ICursoDocument {
+export interface IAreaDocument {
   _id: string;
   nombre: string;
   descripcion?: string;
-  areaId?: string;
   activo: boolean;
   creadoEn: string;
   actualizadoEn: string;
 }
 
-const CursoSchema = new Schema<ICursoDocument>(
+const AreaSchema = new Schema<IAreaDocument>(
   {
     _id: { type: String, required: true },
     nombre: { type: String, required: true },
     descripcion: { type: String },
-    areaId: { type: String },
     activo: { type: Boolean, default: true },
     creadoEn: { type: String, required: true },
     actualizadoEn: { type: String, required: true },
@@ -23,6 +21,6 @@ const CursoSchema = new Schema<ICursoDocument>(
   { _id: false }
 );
 
-export const CursoModel =
-  mongoose.models.Curso ||
-  mongoose.model<ICursoDocument>("Curso", CursoSchema, "cursos");
+export const AreaModel =
+  mongoose.models.Area ||
+  mongoose.model<IAreaDocument>("Area", AreaSchema, "areas");

@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { AreaProps } from "@/modulos/areas/dominio/area";
-import { accionCrearCurso, accionActualizarCurso, accionEliminarCurso } from "@/modulos/cursos/presentacion/acciones";
+import { accionCrearArea, accionActualizarArea, accionEliminarArea } from "@/modulos/areas/presentacion/acciones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,56 +13,45 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const SIN_AREA = "SIN_AREA";
 
 interface Props {
-  cursos: CursoProps[];
   areas: AreaProps[];
 }
 
-export function TablaCursos({ cursos, areas }: Props) {
+export function TablaAreas({ areas }: Props) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [editando, setEditando] = useState<CursoProps | null>(null);
-  const [form, setForm] = useState({ nombre: "", descripcion: "", areaId: SIN_AREA });
+  const [editando, setEditando] = useState<AreaProps | null>(null);
+  const [form, setForm] = useState({ nombre: "", descripcion: "" });
 
   function abrirCrear() {
     setEditando(null);
-    setForm({ nombre: "", descripcion: "", areaId: SIN_AREA });
+    setForm({ nombre: "", descripcion: "" });
     setAbierto(true);
   }
 
-  function abrirEditar(curso: CursoProps) {
-    setEditando(curso);
-    setForm({ nombre: curso.nombre, descripcion: curso.descripcion || "", areaId: curso.areaId || SIN_AREA });
+  function abrirEditar(area: AreaProps) {
+    setEditando(area);
+    setForm({ nombre: area.nombre, descripcion: area.descripcion || "" });
     setAbierto(true);
-  }
-
-  function nombreArea(id: string) {
-    return areas.find((a) => a.id === id)?.nombre || "(área eliminada)";
   }
 
   async function onSubmit() {
     setLoading(true);
     let resultado;
-    const areaId = form.areaId === SIN_AREA ? undefined : form.areaId;
 
     if (editando) {
-      resultado = await accionActualizarCurso({
+      resultado = await accionActualizarArea({
         id: editando.id,
         nombre: form.nombre,
         descripcion: form.descripcion || undefined,
-        areaId,
         activo: editando.activo,
       });
     } else {
-      resultado = await accionCrearCurso({
+      resultado = await accionCrearArea({
         nombre: form.nombre,
         descripcion: form.descripcion || undefined,
-        areaId,
       });
     }
 
@@ -78,7 +66,7 @@ export function TablaCursos({ cursos, areas }: Props) {
   }
 
   async function onEliminar(id: string) {
-    const resultado = await accionEliminarCurso(id);
+    const resultado = await accionEliminarArea(id);
     if (resultado.ok) {
       toast.success(resultado.mensaje);
       router.refresh();
@@ -91,12 +79,12 @@ export function TablaCursos({ cursos, areas }: Props) {
     <div className="space-y-6 p-6 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-semibold">Cursos</h1>
-          <p className="text-sm text-muted-foreground">Gestiona el catálogo de cursos del colegio.</p>
+          <h1 className="font-heading text-2xl font-semibold">Áreas</h1>
+          <p className="text-sm text-muted-foreground">Gestiona las áreas curriculares del colegio.</p>
         </div>
         <Button onClick={abrirCrear}>
           <Plus className="size-4" />
-          Nuevo curso
+          Nueva área
         </Button>
       </div>
 
@@ -107,19 +95,17 @@ export function TablaCursos({ cursos, areas }: Props) {
               <TableRow>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Descripción</TableHead>
-                <TableHead>Área</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cursos.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nombre}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.descripcion || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.areaId ? nombreArea(c.areaId) : "Sin asignar"}</TableCell>
+              {areas.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell className="font-medium">{a.nombre}</TableCell>
+                  <TableCell className="text-muted-foreground">{a.descripcion || "—"}</TableCell>
                   <TableCell>
-                    {c.activo ? (
+                    {a.activo ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
                     ) : (
                       <Badge variant="secondary">Inactivo</Badge>
@@ -127,11 +113,11 @@ export function TablaCursos({ cursos, areas }: Props) {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => abrirEditar(c)}>
+                      <Button variant="outline" size="sm" onClick={() => abrirEditar(a)}>
                         <Pencil className="size-3.5" />
                         Editar
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => onEliminar(c.id)}>
+                      <Button variant="destructive" size="sm" onClick={() => onEliminar(a.id)}>
                         <Trash2 className="size-3.5" />
                         Eliminar
                       </Button>
@@ -139,10 +125,10 @@ export function TablaCursos({ cursos, areas }: Props) {
                   </TableCell>
                 </TableRow>
               ))}
-              {cursos.length === 0 && (
+              {areas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No hay cursos registrados.
+                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                    No hay áreas registradas.
                   </TableCell>
                 </TableRow>
               )}
@@ -154,7 +140,7 @@ export function TablaCursos({ cursos, areas }: Props) {
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editando ? "Editar Curso" : "Nuevo Curso"}</DialogTitle>
+            <DialogTitle>{editando ? "Editar Área" : "Nueva Área"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -170,20 +156,6 @@ export function TablaCursos({ cursos, areas }: Props) {
                 value={form.descripcion}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Área (opcional)</Label>
-              <Select value={form.areaId} onValueChange={(v) => setForm({ ...form, areaId: v ?? SIN_AREA })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sin asignar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SIN_AREA}>Sin asignar</SelectItem>
-                  {areas.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>

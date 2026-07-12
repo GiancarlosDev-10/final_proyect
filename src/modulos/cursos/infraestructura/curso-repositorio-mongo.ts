@@ -12,6 +12,7 @@ export class CursoRepositorioMongo implements ICursoRepositorio {
       id: doc._id,
       nombre: doc.nombre,
       descripcion: doc.descripcion,
+      areaId: doc.areaId,
       activo: doc.activo,
       creadoEn: doc.creadoEn,
       actualizadoEn: doc.actualizadoEn,
@@ -27,6 +28,7 @@ export class CursoRepositorioMongo implements ICursoRepositorio {
           id: doc._id,
           nombre: doc.nombre,
           descripcion: doc.descripcion,
+          areaId: doc.areaId,
           activo: doc.activo,
           creadoEn: doc.creadoEn,
           actualizadoEn: doc.actualizadoEn,
@@ -40,6 +42,7 @@ export class CursoRepositorioMongo implements ICursoRepositorio {
       _id: curso.id,
       nombre: curso.nombre,
       descripcion: curso.descripcion,
+      areaId: curso.areaId,
       activo: curso.activo,
       creadoEn: curso.creadoEn,
       actualizadoEn: curso.actualizadoEn,
@@ -51,6 +54,7 @@ export class CursoRepositorioMongo implements ICursoRepositorio {
     await CursoModel.findByIdAndUpdate(curso.id, {
       nombre: curso.nombre,
       descripcion: curso.descripcion,
+      areaId: curso.areaId,
       activo: curso.activo,
       actualizadoEn: curso.actualizadoEn,
     });

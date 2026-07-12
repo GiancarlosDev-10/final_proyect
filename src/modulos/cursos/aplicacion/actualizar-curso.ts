@@ -6,6 +6,7 @@ export interface ActualizarCursoDTO {
   id: string;
   nombre: string;
   descripcion?: string;
+  areaId?: string;
   activo: boolean;
 }
 
@@ -22,6 +23,7 @@ export async function actualizarCurso(
     id: curso.id,
     nombre: datos.nombre,
     descripcion: datos.descripcion,
+    areaId: datos.areaId,
     activo: datos.activo,
     creadoEn: curso.creadoEn,
     actualizadoEn: ahora,
