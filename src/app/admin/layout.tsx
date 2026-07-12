@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { Users, GraduationCap, BookOpen, CalendarRange, LayoutGrid, ClipboardList, Link2, NotebookPen, Layers } from "lucide-react";
+import { Users, GraduationCap, BookOpen, CalendarRange, LayoutGrid, ClipboardList, Link2, NotebookPen, Layers, CalendarDays } from "lucide-react";
 import { DashboardShell } from "@/compartido/ui/dashboard-shell";
 import type { SidebarNavItem } from "@/compartido/ui/sidebar-nav";
 
@@ -12,6 +12,7 @@ const navItems: SidebarNavItem[] = [
   { href: "/admin/dashboard/areas", label: "Áreas", icon: <Layers className={iconClass} /> },
   { href: "/admin/dashboard/cursos", label: "Cursos", icon: <BookOpen className={iconClass} /> },
   { href: "/admin/dashboard/periodos", label: "Periodos", icon: <CalendarRange className={iconClass} /> },
+  { href: "/admin/dashboard/unidades-didacticas", label: "Unidades Didácticas", icon: <CalendarDays className={iconClass} /> },
   { href: "/admin/dashboard/secciones", label: "Secciones", icon: <LayoutGrid className={iconClass} /> },
   { href: "/admin/dashboard/matriculas", label: "Matrículas", icon: <ClipboardList className={iconClass} /> },
   { href: "/admin/dashboard/asignaciones", label: "Asignaciones", icon: <Link2 className={iconClass} /> },
