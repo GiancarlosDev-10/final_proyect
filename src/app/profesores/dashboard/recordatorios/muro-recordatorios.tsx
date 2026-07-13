@@ -152,9 +152,13 @@ export function MuroRecordatorios({ recordatorios }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: (v ?? "OTRO") as TipoRecordatorio })}>
+              <Select
+                value={form.tipo}
+                onValueChange={(v) => setForm({ ...form, tipo: (v ?? "OTRO") as TipoRecordatorio })}
+                itemToStringLabel={(t) => ETIQUETAS_TIPO_RECORDATORIO[t as TipoRecordatorio] ?? ""}
+              >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecciona un tipo" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(TIPOS_RECORDATORIO).map((t) => (

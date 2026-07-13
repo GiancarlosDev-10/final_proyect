@@ -75,6 +75,21 @@ function iniciarArrastre(e: DragEvent, tipo: "bloque" | "recordatorio", id: stri
   e.dataTransfer.setData("text/plain", id);
 }
 
+function TarjetaRecordatorio({ recordatorio }: { recordatorio: RecordatorioProps }) {
+  return (
+    <div
+      draggable
+      onDragStart={(e) => iniciarArrastre(e, "recordatorio", recordatorio.id)}
+      className={cn(
+        "flex w-full items-center justify-center cursor-grab rounded border p-1.5 text-center text-[11px] active:cursor-grabbing",
+        COLORES_TIPO_RECORDATORIO[recordatorio.tipo]
+      )}
+    >
+      <p className="w-full truncate font-medium">{recordatorio.titulo}</p>
+    </div>
+  );
+}
+
 export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, periodos, recordatorios }: Props) {
   const router = useRouter();
   const [lunesActual, setLunesActual] = useState(() => obtenerLunes(new Date()));
@@ -193,7 +208,7 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold">Mi Horario</h1>
-          <p className="text-sm text-muted-foreground">Arrastra una clase para cambiarla de día. Los recordatorios de la semana aparecen abajo.</p>
+          <p className="text-sm text-muted-foreground">Arrastra una clase para cambiarla de día. Arrastra un recordatorio a una casilla de hora para asignarle horario, o de vuelta a la fila de abajo para quitárselo.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setLunesActual(sumarDias(lunesActual, -7))}>
@@ -266,6 +281,21 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
                             <p className="w-full truncate text-xs text-muted-foreground">(asignación eliminada)</p>
                           )}
                         </div>
+                      ) : recordatoriosDeLaCelda.length > 0 ? (
+                        <div className="group relative w-full">
+                          <button
+                            onClick={() => abrirDialogoAgregar(dia, periodo)}
+                            className="absolute -right-1.5 -top-1.5 z-10 hidden rounded-full border bg-background p-0.5 text-muted-foreground shadow-sm hover:bg-muted group-hover:block"
+                            aria-label="Agregar clase"
+                          >
+                            <Plus className="size-3" />
+                          </button>
+                          <div className="flex w-full flex-col gap-1">
+                            {recordatoriosDeLaCelda.map((r) => (
+                              <TarjetaRecordatorio key={r.id} recordatorio={r} />
+                            ))}
+                          </div>
+                        </div>
                       ) : (
                         <button
                           onClick={() => abrirDialogoAgregar(dia, periodo)}
@@ -275,19 +305,8 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
                           <Plus className="pointer-events-none size-3.5" />
                         </button>
                       )}
-                      {recordatoriosDeLaCelda.map((r) => (
-                        <div
-                          key={r.id}
-                          draggable
-                          onDragStart={(e) => iniciarArrastre(e, "recordatorio", r.id)}
-                          className={cn(
-                            "w-full cursor-grab truncate rounded border p-1 text-center text-[10px] active:cursor-grabbing",
-                            COLORES_TIPO_RECORDATORIO[r.tipo]
-                          )}
-                        >
-                          {r.titulo}
-                        </div>
-                      ))}
+                      {bloque &&
+                        recordatoriosDeLaCelda.map((r) => <TarjetaRecordatorio key={r.id} recordatorio={r} />)}
                     </div>
                   );
                 })}
@@ -308,17 +327,7 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
                   onDrop={(e) => onSoltarEnFilaRecordatorios(e, fecha)}
                 >
                   {recordatoriosDelDia.map((r) => (
-                    <div
-                      key={r.id}
-                      draggable
-                      onDragStart={(e) => iniciarArrastre(e, "recordatorio", r.id)}
-                      className={cn(
-                        "w-full cursor-grab rounded border p-1.5 text-[11px] active:cursor-grabbing",
-                        COLORES_TIPO_RECORDATORIO[r.tipo]
-                      )}
-                    >
-                      <p className="font-medium">{r.titulo}</p>
-                    </div>
+                    <TarjetaRecordatorio key={r.id} recordatorio={r} />
                   ))}
                   {recordatoriosDelDia.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
                 </div>
