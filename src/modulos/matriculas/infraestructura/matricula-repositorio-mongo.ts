@@ -62,6 +62,21 @@ export class MatriculaRepositorioMongo implements IMatriculaRepositorio {
     }));
   }
 
+  async listarPorSecciones(seccionIds: string[]): Promise<Matricula[]> {
+    await conectarMongoDB();
+    if (seccionIds.length === 0) return [];
+    const docs = await MatriculaModel.find({ seccionId: { $in: seccionIds } }).lean();
+    return docs.map((doc) => new Matricula({
+      id: doc._id,
+      estudianteId: doc.estudianteId,
+      seccionId: doc.seccionId,
+      anio: doc.anio,
+      activo: doc.activo,
+      creadoEn: doc.creadoEn,
+      actualizadoEn: doc.actualizadoEn,
+    }));
+  }
+
   async crear(matricula: Matricula): Promise<void> {
     await conectarMongoDB();
     await MatriculaModel.create({

@@ -41,6 +41,25 @@ export class NotaRepositorioMongo implements INotaRepositorio {
     }));
   }
 
+  async listarPorAsignaciones(asignacionIds: string[]): Promise<Nota[]> {
+    await conectarMongoDB();
+    if (asignacionIds.length === 0) return [];
+    const docs = await NotaModel.find({ asignacionId: { $in: asignacionIds } }).lean();
+    return docs.map((doc) => new Nota({
+      id: doc._id,
+      estudianteId: doc.estudianteId,
+      asignacionId: doc.asignacionId,
+      periodoId: doc.periodoId,
+      unidadDidacticaId: doc.unidadDidacticaId,
+      tipo: doc.tipo,
+      etiqueta: doc.etiqueta,
+      valor: doc.valor,
+      fecha: doc.fecha,
+      creadoEn: doc.creadoEn,
+      actualizadoEn: doc.actualizadoEn,
+    }));
+  }
+
   async listarPorEstudiante(estudianteId: string): Promise<Nota[]> {
     await conectarMongoDB();
     const docs = await NotaModel.find({ estudianteId }).lean();

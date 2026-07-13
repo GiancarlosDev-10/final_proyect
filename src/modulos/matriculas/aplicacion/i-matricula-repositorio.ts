@@ -5,6 +5,7 @@ export interface IMatriculaRepositorio {
   buscarPorEstudianteYAnio(estudianteId: string, anio: number): Promise<Matricula | null>;
   listar(): Promise<Matricula[]>;
   listarPorSeccion(seccionId: string): Promise<Matricula[]>;
+  listarPorSecciones(seccionIds: string[]): Promise<Matricula[]>;
   crear(matricula: Matricula): Promise<void>;
   actualizar(matricula: Matricula): Promise<void>;
   eliminar(id: string): Promise<void>;

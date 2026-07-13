@@ -54,14 +54,12 @@ export default async function DetalleProfesorPage({ params }: { params: Promise<
   const periodoIds = new Set(asignaciones.map((a) => a.periodoId));
 
   const matriculaRepo = new MatriculaRepositorioMongo();
-  const matriculasPorSeccion = await Promise.all(seccionIds.map((sid) => matriculaRepo.listarPorSeccion(sid)));
-  const alumnosUnicos = new Set(
-    matriculasPorSeccion.flat().filter((m) => m.activo).map((m) => m.estudianteId)
-  );
-
   const notaRepo = new NotaRepositorioMongo();
-  const notasPorAsignacion = await Promise.all(asignaciones.map((a) => notaRepo.listarPorAsignacion(a.id)));
-  const notas = notasPorAsignacion.flat();
+  const [matriculas, notas] = await Promise.all([
+    matriculaRepo.listarPorSecciones(seccionIds),
+    notaRepo.listarPorAsignaciones(asignaciones.map((a) => a.id)),
+  ]);
+  const alumnosUnicos = new Set(matriculas.filter((m) => m.activo).map((m) => m.estudianteId));
   const promedio = notas.length > 0 ? notas.reduce((s, n) => s + n.valor, 0) / notas.length : null;
 
   function nombreCurso(cursoId: string) {
@@ -78,10 +76,7 @@ export default async function DetalleProfesorPage({ params }: { params: Promise<
 
   const alumnosPorSeccion = seccionIds.map((sid) => ({
     seccionId: sid,
-    total: matriculasPorSeccion
-      .flat()
-      .filter((m) => m.activo && m.seccionId === sid)
-      .length,
+    total: matriculas.filter((m) => m.activo && m.seccionId === sid).length,
   }));
 
   const estadisticas = [

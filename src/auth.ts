@@ -1,10 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { cache } from "react";
 import { authConfig } from "@/auth.config";
 import { UsuarioRepositorioMongo } from "@/modulos/usuarios/infraestructura/usuario-repositorio-mongo";
 import { iniciarSesion } from "@/modulos/auth/aplicacion/iniciar-sesion";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const { handlers, signIn, signOut, auth: authSinCache } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
@@ -54,3 +55,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 });
+
+// auth() dispara el callback jwt (y su consulta a Mongo) en cada llamada; se
+// cachea por request para que layout + Server Actions de una misma página no
+// repitan la misma consulta de "usuario activo" varias veces.
+const auth = cache(authSinCache);
+
+export { handlers, signIn, signOut, auth };

@@ -69,9 +69,8 @@ export default async function DetalleEstudiantePage({ params }: { params: Promis
 
   // Solo puede ver el detalle si el estudiante está matriculado en una de sus secciones.
   const seccionIds = [...new Set(asignaciones.map((a) => a.seccionId))];
-  const matriculasPorSeccion = await Promise.all(seccionIds.map((sid) => matriculaRepo.listarPorSeccion(sid)));
-  const matricula = matriculasPorSeccion
-    .flat()
+  const matriculasDeSecciones = await matriculaRepo.listarPorSecciones(seccionIds);
+  const matricula = matriculasDeSecciones
     .filter((m) => m.estudianteId === id)
     .sort((a, b) => b.anio - a.anio)[0];
   if (!matricula) notFound();

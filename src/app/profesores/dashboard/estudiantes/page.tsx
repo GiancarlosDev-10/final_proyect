@@ -23,16 +23,10 @@ export default async function EstudiantesProfesorPage() {
   const asignaciones = await asignacionRepo.listarPorProfesor(profesorId);
   const seccionIds = [...new Set(asignaciones.map((a) => a.seccionId))];
 
-  const todasMatriculas = await Promise.all(
-    seccionIds.map((id) => matriculaRepo.listarPorSeccion(id))
-  );
-  const matriculas = todasMatriculas.flat();
+  const matriculas = await matriculaRepo.listarPorSecciones(seccionIds);
   const estudianteIds = [...new Set(matriculas.map((m) => m.estudianteId))];
 
-  const estudiantes = await Promise.all(
-    estudianteIds.map((id) => estudianteRepo.buscarPorId(id))
-  );
-  const estudiantesFiltrados = estudiantes.filter(Boolean);
+  const estudiantesFiltrados = await estudianteRepo.buscarPorIds(estudianteIds);
 
   return (
     <div className="space-y-6 p-6 md:p-8">

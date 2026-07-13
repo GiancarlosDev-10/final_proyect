@@ -21,7 +21,11 @@ export async function conectarMongoDB(): Promise<mongoose.Connection> {
 
   if (!cached.promise) {
     cached.promise = mongoose
-      .connect(MONGODB_URI)
+      .connect(MONGODB_URI, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        bufferCommands: false,
+      })
       .then((m) => m.connection);
   }
 

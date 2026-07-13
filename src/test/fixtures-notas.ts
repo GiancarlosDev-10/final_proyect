@@ -310,6 +310,10 @@ export class FakeNotaRepositorio implements INotaRepositorio {
     return this.notas.filter((n) => n.asignacionId === asignacionId);
   }
 
+  async listarPorAsignaciones(asignacionIds: string[]): Promise<Nota[]> {
+    return this.notas.filter((n) => asignacionIds.includes(n.asignacionId));
+  }
+
   async listarPorEstudiante(estudianteId: string): Promise<Nota[]> {
     return this.notas.filter((n) => n.estudianteId === estudianteId);
   }
@@ -431,6 +435,10 @@ export class FakeEstudianteRepositorio implements IEstudianteRepositorio {
     return this.estudiantes.find((e) => e.id === id) ?? null;
   }
 
+  async buscarPorIds(ids: string[]): Promise<Estudiante[]> {
+    return this.estudiantes.filter((e) => ids.includes(e.id));
+  }
+
   async listar(): Promise<Estudiante[]> {
     return this.estudiantes;
   }
@@ -478,6 +486,10 @@ export class FakeMatriculaRepositorio implements IMatriculaRepositorio {
 
   async listarPorSeccion(seccionId: string): Promise<Matricula[]> {
     return this.matriculas.filter((m) => m.seccionId === seccionId);
+  }
+
+  async listarPorSecciones(seccionIds: string[]): Promise<Matricula[]> {
+    return this.matriculas.filter((m) => seccionIds.includes(m.seccionId));
   }
 
   async crear(matricula: Matricula): Promise<void> {

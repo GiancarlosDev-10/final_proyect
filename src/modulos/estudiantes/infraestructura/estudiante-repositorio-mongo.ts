@@ -20,6 +20,25 @@ export class EstudianteRepositorioMongo implements IEstudianteRepositorio {
     });
   }
 
+  async buscarPorIds(ids: string[]): Promise<Estudiante[]> {
+    await conectarMongoDB();
+    if (ids.length === 0) return [];
+    const docs = await EstudianteModel.find({ _id: { $in: ids } }).lean();
+    return docs.map(
+      (doc) =>
+        new Estudiante({
+          id: doc._id,
+          documento: doc.documento,
+          nombreCompleto: doc.nombreCompleto,
+          fechaNacimiento: doc.fechaNacimiento,
+          apoderado: doc.apoderado,
+          activo: doc.activo,
+          creadoEn: doc.creadoEn,
+          actualizadoEn: doc.actualizadoEn,
+        })
+    );
+  }
+
   async listar(): Promise<Estudiante[]> {
     await conectarMongoDB();
     const docs = await EstudianteModel.find().lean();
