@@ -59,7 +59,7 @@ export function LoginForm() {
           <GraduationCap className="size-6" />
         </div>
         <div className="space-y-1">
-          <h1 className="font-heading text-xl font-semibold">Dashboard Colegio</h1>
+          <h1 className="font-heading text-xl font-semibold">Colegio Juan Velasco Alvarado</h1>
           <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
         </div>
       </CardHeader>
