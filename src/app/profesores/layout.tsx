@@ -8,9 +8,9 @@ const iconClass = "size-4 shrink-0";
 
 const navItems: SidebarNavItem[] = [
   { href: "/profesores/dashboard/notas", label: "Mis Notas", icon: <NotebookPen className={iconClass} /> },
-  { href: "/profesores/dashboard/asignaciones", label: "Mis Asignaciones", icon: <Link2 className={iconClass} /> },
-  { href: "/profesores/dashboard/estudiantes", label: "Mis Estudiantes", icon: <Users className={iconClass} /> },
   { href: "/profesores/dashboard/horarios", label: "Mis Horarios", icon: <CalendarClock className={iconClass} /> },
+  { href: "/profesores/dashboard/estudiantes", label: "Mis Estudiantes", icon: <Users className={iconClass} /> },
+  { href: "/profesores/dashboard/asignaciones", label: "Mis Asignaciones", icon: <Link2 className={iconClass} /> },
   { href: "/profesores/dashboard/recordatorios", label: "Mis Recordatorios", icon: <StickyNote className={iconClass} /> },
   { href: "/profesores/dashboard/perfil", label: "Mi Perfil", icon: <UserCircle className={iconClass} /> },
 ];

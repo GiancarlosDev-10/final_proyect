@@ -147,3 +147,15 @@
     @apply font-sans;
   }
 }
+
+/* Oculta toda barra de scroll visualmente sin desactivar el scroll
+   (rueda, arrastre y teclado siguen funcionando). Aplica a todos los
+   elementos, incluida la ventana del navegador (html). */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}

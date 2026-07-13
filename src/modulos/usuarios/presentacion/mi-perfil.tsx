@@ -123,7 +123,7 @@ export function MiPerfil({ perfil }: Props) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="flex-row items-center gap-2 space-y-0">
+          <CardHeader className="flex items-center gap-2 space-y-0">
             <User className="size-4 text-muted-foreground" />
             <CardTitle className="text-base">Información</CardTitle>
           </CardHeader>
@@ -162,7 +162,7 @@ export function MiPerfil({ perfil }: Props) {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader className="flex-row items-center gap-2 space-y-0">
+            <CardHeader className="flex items-center gap-2 space-y-0">
               <KeyRound className="size-4 text-muted-foreground" />
               <CardTitle className="text-base">Cambiar contraseña</CardTitle>
             </CardHeader>
@@ -199,7 +199,7 @@ export function MiPerfil({ perfil }: Props) {
           </Card>
 
           <Card>
-            <CardHeader className="flex-row items-center gap-2 space-y-0">
+            <CardHeader className="flex items-center gap-2 space-y-0">
               <MessageCircle className="size-4 text-muted-foreground" />
               <CardTitle className="text-base">PIN de Telegram</CardTitle>
             </CardHeader>
