@@ -27,3 +27,12 @@ export const TIPOS_NOTA = {
 } as const;
 
 export type TipoNota = (typeof TIPOS_NOTA)[keyof typeof TIPOS_NOTA];
+
+export const TIPOS_RECORDATORIO = {
+  REUNION_PADRE: "REUNION_PADRE",
+  REUNION_PROFESOR: "REUNION_PROFESOR",
+  REUNION_DIRECTOR: "REUNION_DIRECTOR",
+  OTRO: "OTRO",
+} as const;
+
+export type TipoRecordatorio = (typeof TIPOS_RECORDATORIO)[keyof typeof TIPOS_RECORDATORIO];
