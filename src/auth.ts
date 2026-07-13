@@ -31,4 +31,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    // Se re-ejecuta en cada auth()/getSession(), no solo al iniciar sesión: si un
+    // admin desactiva a un profesor con la sesión ya abierta, esto lo desconecta
+    // en el siguiente request en vez de esperar a que la cookie expire.
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.rol = (user as any).rol;
+        return token;
+      }
+      if (token.id) {
+        const repositorio = new UsuarioRepositorioMongo();
+        const usuarioActual = await repositorio.buscarPorId(token.id as string);
+        if (!usuarioActual || !usuarioActual.activo) {
+          return null;
+        }
+        token.rol = usuarioActual.rol;
+      }
+      return token;
+    },
+  },
 });

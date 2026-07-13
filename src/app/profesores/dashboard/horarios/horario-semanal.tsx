@@ -229,17 +229,17 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
       <Card className="p-0">
         <CardContent className="overflow-x-auto p-2">
           <div className="grid min-w-[720px] grid-cols-[6rem_repeat(5,minmax(0,1fr))] text-sm">
-            <div className="border-b p-2 text-left text-xs font-medium text-sidebar">Hora</div>
+            <div className="border-b border-sidebar-border bg-sidebar p-2 text-left text-xs font-medium text-sidebar-foreground">Hora</div>
             {dias.map(({ dia, fecha }) => (
-              <div key={dia} className="border-b p-2 text-center">
-                <div className="font-medium text-sidebar">{ETIQUETAS_DIA[dia]}</div>
-                <div className="text-xs font-normal text-sidebar/70">{formatearEtiqueta(fecha)}</div>
+              <div key={dia} className="border-b border-sidebar-border bg-sidebar p-2 text-center">
+                <div className="font-medium text-sidebar-foreground">{ETIQUETAS_DIA[dia]}</div>
+                <div className="text-xs font-normal text-sidebar-foreground/70">{formatearEtiqueta(fecha)}</div>
               </div>
             ))}
 
             {PERIODOS_HORARIO.map((periodo) => (
               <Fragment key={periodo.horaInicio}>
-                <div className="border-b p-2 text-xs font-medium text-sidebar">
+                <div className="border-b border-sidebar-border bg-sidebar p-2 text-xs font-medium text-sidebar-foreground">
                   {periodo.horaInicio} - {periodo.horaFin}
                 </div>
                 {dias.map(({ dia, fecha }) => {

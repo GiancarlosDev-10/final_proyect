@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, UserX } from "lucide-react";
+import { Plus, Pencil, UserX, UserCheck } from "lucide-react";
 import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { validarPassword, PASSWORD_MIN_LENGTH } from "@/modulos/usuarios/dominio/politica-password";
-import { accionCrearUsuario, accionActualizarUsuario, accionDesactivarUsuario } from "@/modulos/usuarios/presentacion/acciones";
+import { accionCrearUsuario, accionActualizarUsuario, accionDesactivarUsuario, accionActivarUsuario } from "@/modulos/usuarios/presentacion/acciones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -101,6 +101,16 @@ export function TablaUsuarios({ usuarios }: Props) {
     }
   }
 
+  async function onActivar(id: string) {
+    const resultado = await accionActivarUsuario(id);
+    if (resultado.ok) {
+      toast.success(resultado.mensaje);
+      router.refresh();
+    } else {
+      toast.error(resultado.mensaje);
+    }
+  }
+
   return (
     <div className="space-y-6 p-6 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -147,10 +157,15 @@ export function TablaUsuarios({ usuarios }: Props) {
                         <Pencil className="size-3.5" />
                         Editar
                       </Button>
-                      {u.activo && (
+                      {u.activo ? (
                         <Button variant="destructive" size="sm" onClick={() => onDesactivar(u.id)}>
                           <UserX className="size-3.5" />
                           Desactivar
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => onActivar(u.id)}>
+                          <UserCheck className="size-3.5" />
+                          Activar
                         </Button>
                       )}
                     </div>

@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { GraduationCap, LogOut } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { SidebarNav, type SidebarNavItem } from "@/compartido/ui/sidebar-nav";
+import { BotonCerrarSesion } from "@/compartido/ui/boton-cerrar-sesion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 
@@ -48,14 +48,7 @@ export function DashboardShell({ subtitulo, navItems, usuario, children }: Props
             <p className="truncate text-sm font-medium">{usuario.nombre}</p>
             <p className="truncate text-xs text-sidebar-foreground/60">{usuario.email}</p>
           </div>
-          <Link
-            href="/api/auth/signout"
-            title="Cerrar sesión"
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-destructive"
-          >
-            <LogOut className="size-4" />
-            <span className="sr-only">Cerrar sesión</span>
-          </Link>
+          <BotonCerrarSesion />
         </div>
       </aside>
       <main className="flex-1 overflow-auto bg-muted/30">{children}</main>

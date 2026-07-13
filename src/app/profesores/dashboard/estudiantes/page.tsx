@@ -1,8 +1,11 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructura/estudiante-repositorio-mongo";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -46,6 +49,7 @@ export default async function EstudiantesProfesorPage() {
                 <TableHead>Nombre</TableHead>
                 <TableHead>Documento</TableHead>
                 <TableHead>Apoderado</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -54,11 +58,22 @@ export default async function EstudiantesProfesorPage() {
                   <TableCell className="font-medium">{e.nombreCompleto}</TableCell>
                   <TableCell className="text-muted-foreground">{e.documento}</TableCell>
                   <TableCell className="text-muted-foreground">{e.apoderado.nombre}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-end">
+                      <Link
+                        href={`/profesores/dashboard/estudiantes/${e.id}`}
+                        className={buttonVariants({ variant: "outline", size: "sm" })}
+                      >
+                        <Eye className="size-3.5" />
+                        Ver detalles
+                      </Link>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
               {estudiantesFiltrados.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                     No tienes estudiantes asignados.
                   </TableCell>
                 </TableRow>
