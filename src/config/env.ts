@@ -4,6 +4,7 @@ const envSchema = z.object({
   MONGODB_URI: z.string().min(1),
   NEXTAUTH_SECRET: z.string().min(1),
   NEXTAUTH_URL: z.string().url(),
+  TELEGRAM_API_SECRET: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -43,3 +43,6 @@ next-env.d.ts
 
 # claude code local config
 .claude/
+
+# workflow local de n8n (contiene la URL/secreto del bot; no se sube al repo)
+/n8n/
