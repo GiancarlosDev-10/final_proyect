@@ -15,6 +15,8 @@ export class UsuarioRepositorioMongo implements IUsuarioRepositorio {
       rol: doc.rol,
       nombreCompleto: doc.nombreCompleto,
       activo: doc.activo,
+      pinTelegramHash: doc.pinTelegramHash,
+      notasPersonales: doc.notasPersonales,
       creadoEn: doc.creadoEn,
       actualizadoEn: doc.actualizadoEn,
     });
@@ -31,6 +33,8 @@ export class UsuarioRepositorioMongo implements IUsuarioRepositorio {
       rol: doc.rol,
       nombreCompleto: doc.nombreCompleto,
       activo: doc.activo,
+      pinTelegramHash: doc.pinTelegramHash,
+      notasPersonales: doc.notasPersonales,
       creadoEn: doc.creadoEn,
       actualizadoEn: doc.actualizadoEn,
     });
@@ -48,6 +52,8 @@ export class UsuarioRepositorioMongo implements IUsuarioRepositorio {
           rol: doc.rol,
           nombreCompleto: doc.nombreCompleto,
           activo: doc.activo,
+          pinTelegramHash: doc.pinTelegramHash,
+          notasPersonales: doc.notasPersonales,
           creadoEn: doc.creadoEn,
           actualizadoEn: doc.actualizadoEn,
         })
@@ -70,13 +76,29 @@ export class UsuarioRepositorioMongo implements IUsuarioRepositorio {
 
   async actualizar(usuario: Usuario): Promise<void> {
     await conectarMongoDB();
-    await UsuarioModel.findByIdAndUpdate(usuario.id, {
+
+    // $set con undefined no borra un campo en Mongo — pinTelegramHash y
+    // notasPersonales son opcionales, así que cuando el usuario los "quita"
+    // (undefined) hay que limpiarlos explícitamente con $unset.
+    const camposDefinidos: Record<string, string | boolean> = {
       email: usuario.email,
       passwordHash: usuario.passwordHash,
       rol: usuario.rol,
       nombreCompleto: usuario.nombreCompleto,
       activo: usuario.activo,
       actualizadoEn: usuario.actualizadoEn,
+    };
+    const camposAEliminar: string[] = [];
+
+    if (usuario.pinTelegramHash !== undefined) camposDefinidos.pinTelegramHash = usuario.pinTelegramHash;
+    else camposAEliminar.push("pinTelegramHash");
+
+    if (usuario.notasPersonales !== undefined) camposDefinidos.notasPersonales = usuario.notasPersonales;
+    else camposAEliminar.push("notasPersonales");
+
+    await UsuarioModel.findByIdAndUpdate(usuario.id, {
+      $set: camposDefinidos,
+      ...(camposAEliminar.length > 0 ? { $unset: Object.fromEntries(camposAEliminar.map((c) => [c, ""])) } : {}),
     });
   }
 }

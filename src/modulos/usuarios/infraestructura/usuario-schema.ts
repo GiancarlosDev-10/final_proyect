@@ -8,6 +8,8 @@ export interface IUsuarioDocument {
   rol: Rol;
   nombreCompleto: string;
   activo: boolean;
+  pinTelegramHash?: string;
+  notasPersonales?: string;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -20,6 +22,8 @@ const UsuarioSchema = new Schema<IUsuarioDocument>(
     rol: { type: String, enum: ["ADMIN", "PROFESOR"], required: true },
     nombreCompleto: { type: String, required: true },
     activo: { type: Boolean, default: true },
+    pinTelegramHash: { type: String },
+    notasPersonales: { type: String },
     creadoEn: { type: String, required: true },
     actualizadoEn: { type: String, required: true },
   },

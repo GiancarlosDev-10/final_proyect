@@ -22,6 +22,20 @@ export class PasswordDebilError extends ErrorDominio {
   }
 }
 
+export class PasswordActualIncorrectaError extends ErrorDominio {
+  readonly codigo = "PASSWORD_ACTUAL_INCORRECTA";
+  constructor() {
+    super("La contraseña actual no es correcta.");
+  }
+}
+
+export class PinTelegramInvalidoError extends ErrorDominio {
+  readonly codigo = "PIN_TELEGRAM_INVALIDO";
+  constructor(errores: string[]) {
+    super(`El PIN no es válido: ${errores.join(" ")}`);
+  }
+}
+
 export interface UsuarioProps {
   id: string;
   email: string;
@@ -29,11 +43,23 @@ export interface UsuarioProps {
   rol: Rol;
   nombreCompleto: string;
   activo: boolean;
+  /** Hash del PIN usado para identificarse en el bot de Telegram; independiente de passwordHash. */
+  pinTelegramHash?: string;
+  /** Bloc de notas libres, privado: solo el propio usuario lo ve. */
+  notasPersonales?: string;
   creadoEn: string;
   actualizadoEn: string;
 }
 
-export type UsuarioPublico = Omit<UsuarioProps, "passwordHash">;
+/** Vista para administración: nunca expone hashes ni las notas privadas del usuario. */
+export type UsuarioPublico = Omit<UsuarioProps, "passwordHash" | "pinTelegramHash" | "notasPersonales"> & {
+  tienePinTelegram: boolean;
+};
+
+/** Vista de "Mi perfil": la ve únicamente el dueño de la cuenta, incluye sus notas privadas. */
+export type UsuarioPerfilPropio = Omit<UsuarioProps, "passwordHash" | "pinTelegramHash"> & {
+  tienePinTelegram: boolean;
+};
 
 export class Usuario {
   readonly id: string;
@@ -42,6 +68,8 @@ export class Usuario {
   readonly rol: Rol;
   readonly nombreCompleto: string;
   readonly activo: boolean;
+  readonly pinTelegramHash?: string;
+  readonly notasPersonales?: string;
   readonly creadoEn: string;
   readonly actualizadoEn: string;
 
@@ -52,6 +80,8 @@ export class Usuario {
     this.rol = props.rol;
     this.nombreCompleto = props.nombreCompleto;
     this.activo = props.activo;
+    this.pinTelegramHash = props.pinTelegramHash;
+    this.notasPersonales = props.notasPersonales;
     this.creadoEn = props.creadoEn;
     this.actualizadoEn = props.actualizadoEn;
   }
@@ -72,6 +102,8 @@ export class Usuario {
       rol: this.rol,
       nombreCompleto: this.nombreCompleto,
       activo: this.activo,
+      pinTelegramHash: this.pinTelegramHash,
+      notasPersonales: this.notasPersonales,
       creadoEn: this.creadoEn,
       actualizadoEn: this.actualizadoEn,
     };
@@ -84,6 +116,21 @@ export class Usuario {
       rol: this.rol,
       nombreCompleto: this.nombreCompleto,
       activo: this.activo,
+      tienePinTelegram: Boolean(this.pinTelegramHash),
+      creadoEn: this.creadoEn,
+      actualizadoEn: this.actualizadoEn,
+    };
+  }
+
+  toPlainObjectPerfilPropio(): UsuarioPerfilPropio {
+    return {
+      id: this.id,
+      email: this.email,
+      rol: this.rol,
+      nombreCompleto: this.nombreCompleto,
+      activo: this.activo,
+      notasPersonales: this.notasPersonales,
+      tienePinTelegram: Boolean(this.pinTelegramHash),
       creadoEn: this.creadoEn,
       actualizadoEn: this.actualizadoEn,
     };

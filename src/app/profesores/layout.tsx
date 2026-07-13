@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { NotebookPen, Link2, Users, StickyNote, CalendarClock } from "lucide-react";
+import { NotebookPen, Link2, Users, StickyNote, CalendarClock, UserCircle } from "lucide-react";
 import { DashboardShell } from "@/compartido/ui/dashboard-shell";
 import type { SidebarNavItem } from "@/compartido/ui/sidebar-nav";
 
@@ -12,6 +12,7 @@ const navItems: SidebarNavItem[] = [
   { href: "/profesores/dashboard/estudiantes", label: "Mis Estudiantes", icon: <Users className={iconClass} /> },
   { href: "/profesores/dashboard/horarios", label: "Mis Horarios", icon: <CalendarClock className={iconClass} /> },
   { href: "/profesores/dashboard/recordatorios", label: "Mis Recordatorios", icon: <StickyNote className={iconClass} /> },
+  { href: "/profesores/dashboard/perfil", label: "Mi Perfil", icon: <UserCircle className={iconClass} /> },
 ];
 
 export default async function ProfesoresLayout({
