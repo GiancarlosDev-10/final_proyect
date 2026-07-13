@@ -1,18 +1,21 @@
 import { INotaRepositorio } from "@/modulos/notas/aplicacion/i-nota-repositorio";
 import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asignacion-repositorio";
-import { IPeriodoRepositorio } from "@/modulos/periodos/aplicacion/i-periodo-repositorio";
+import { IUnidadDidacticaRepositorio } from "@/modulos/unidades-didacticas/aplicacion/i-unidad-didactica-repositorio";
 import { Nota } from "@/modulos/notas/dominio/nota";
 import { AsignacionInactivaError } from "@/modulos/asignaciones/dominio/asignacion";
-import { PeriodoCerradoError } from "@/modulos/periodos/dominio/periodo";
+import {
+  UnidadDidacticaCerradaError,
+  UnidadDidacticaNoEncontradaError,
+} from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { generarId } from "@/compartido/lib/uuid";
+import { ErrorDominio } from "@/compartido/dominio/errores";
 import { TipoNota } from "@/config/constantes";
 
 export interface RegistrarNotaDTO {
   estudianteId: string;
   asignacionId: string;
-  periodoId: string;
-  unidadDidacticaId?: string;
+  unidadDidacticaId: string;
   tipo: TipoNota;
   etiqueta: string;
   valor: number;
@@ -26,35 +29,41 @@ export async function registrarNota(
   datos: RegistrarNotaDTO,
   notaRepositorio: INotaRepositorio,
   asignacionRepositorio: IAsignacionRepositorio,
-  periodoRepositorio: IPeriodoRepositorio
+  unidadDidacticaRepositorio: IUnidadDidacticaRepositorio
 ): Promise<Result<Nota>> {
+  const unidadDidactica = await unidadDidacticaRepositorio.buscarPorId(datos.unidadDidacticaId);
+  if (!unidadDidactica) return err(new UnidadDidacticaNoEncontradaError(datos.unidadDidacticaId));
+
   const asignacion = await asignacionRepositorio.buscarActiva(
     datos.profesorId,
     datos.cursoId,
     datos.seccionId,
-    datos.periodoId
+    unidadDidactica.periodoId
   );
   if (!asignacion) return err(new AsignacionInactivaError());
 
-  const periodo = await periodoRepositorio.buscarPorId(datos.periodoId);
-  if (!periodo || !periodo.estaAbierto()) return err(new PeriodoCerradoError());
+  if (!unidadDidactica.estaAbierta()) return err(new UnidadDidacticaCerradaError());
 
-  const ahora = new Date().toISOString();
+  try {
+    const ahora = new Date().toISOString();
 
-  const nota = new Nota({
-    id: generarId("NOT"),
-    estudianteId: datos.estudianteId,
-    asignacionId: datos.asignacionId,
-    periodoId: datos.periodoId,
-    unidadDidacticaId: datos.unidadDidacticaId,
-    tipo: datos.tipo,
-    etiqueta: datos.etiqueta,
-    valor: datos.valor,
-    fecha: datos.fecha,
-    creadoEn: ahora,
-    actualizadoEn: ahora,
-  });
+    const nota = new Nota({
+      id: generarId("NOT"),
+      estudianteId: datos.estudianteId,
+      asignacionId: datos.asignacionId,
+      periodoId: unidadDidactica.periodoId,
+      unidadDidacticaId: unidadDidactica.id,
+      tipo: datos.tipo,
+      etiqueta: datos.etiqueta,
+      valor: datos.valor,
+      fecha: datos.fecha,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    });
 
-  await notaRepositorio.crear(nota);
-  return ok(nota);
+    await notaRepositorio.crear(nota);
+    return ok(nota);
+  } catch (e) {
+    return err(e as ErrorDominio);
+  }
 }

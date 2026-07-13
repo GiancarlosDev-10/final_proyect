@@ -50,7 +50,7 @@ export class Nota {
   readonly actualizadoEn: string;
 
   constructor(props: NotaProps) {
-    if (props.valor < 0 || props.valor > 20) {
+    if (!Number.isFinite(props.valor) || props.valor < 0 || props.valor > 20) {
       throw new NotaFueraDeRangoError();
     }
     this.id = props.id;

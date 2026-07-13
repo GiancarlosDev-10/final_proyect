@@ -7,6 +7,7 @@ import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructur
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
 import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/seccion-repositorio-mongo";
+import { UnidadDidacticaRepositorioMongo } from "@/modulos/unidades-didacticas/infraestructura/unidad-didactica-repositorio-mongo";
 import { registrarNota, RegistrarNotaDTO } from "@/modulos/notas/aplicacion/registrar-nota";
 import { editarNota, EditarNotaDTO } from "@/modulos/notas/aplicacion/editar-nota";
 import { eliminarNota } from "@/modulos/notas/aplicacion/eliminar-nota";
@@ -16,6 +17,7 @@ import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
+import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 
 export async function accionListarMisAsignaciones(): Promise<AsignacionProps[]> {
   const session = await auth();
@@ -56,6 +58,12 @@ export async function accionListarSeccionesProfesor(): Promise<SeccionProps[]> {
   return todas.map((s) => s.toPlainObject());
 }
 
+export async function accionListarUnidadesDidacticasProfesor(): Promise<UnidadDidacticaProps[]> {
+  const repositorio = new UnidadDidacticaRepositorioMongo();
+  const todas = await repositorio.listar();
+  return todas.map((u) => u.toPlainObject());
+}
+
 export async function accionRegistrarNota(datos: RegistrarNotaDTO): Promise<{ ok: boolean; mensaje: string }> {
   const session = await auth();
   const profesorId = session?.user?.id;
@@ -63,9 +71,9 @@ export async function accionRegistrarNota(datos: RegistrarNotaDTO): Promise<{ ok
 
   const notaRepo = new NotaRepositorioMongo();
   const asignacionRepo = new AsignacionRepositorioMongo();
-  const periodoRepo = new PeriodoRepositorioMongo();
+  const unidadDidacticaRepo = new UnidadDidacticaRepositorioMongo();
 
-  const resultado = await registrarNota({ ...datos, profesorId }, notaRepo, asignacionRepo, periodoRepo);
+  const resultado = await registrarNota({ ...datos, profesorId }, notaRepo, asignacionRepo, unidadDidacticaRepo);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Nota registrada correctamente" };
 }
@@ -77,23 +85,23 @@ export async function accionEditarNota(datos: EditarNotaDTO): Promise<{ ok: bool
 
   const notaRepo = new NotaRepositorioMongo();
   const asignacionRepo = new AsignacionRepositorioMongo();
-  const periodoRepo = new PeriodoRepositorioMongo();
+  const unidadDidacticaRepo = new UnidadDidacticaRepositorioMongo();
 
-  const resultado = await editarNota({ ...datos, profesorId }, notaRepo, asignacionRepo, periodoRepo);
+  const resultado = await editarNota({ ...datos, profesorId }, notaRepo, asignacionRepo, unidadDidacticaRepo);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Nota actualizada correctamente" };
 }
 
-export async function accionEliminarNotaProfesor(datos: { id: string; cursoId: string; seccionId: string; periodoId: string }): Promise<{ ok: boolean; mensaje: string }> {
+export async function accionEliminarNotaProfesor(datos: { id: string; cursoId: string; seccionId: string; unidadDidacticaId: string }): Promise<{ ok: boolean; mensaje: string }> {
   const session = await auth();
   const profesorId = session?.user?.id;
   if (!profesorId) return { ok: false, mensaje: "No autorizado" };
 
   const notaRepo = new NotaRepositorioMongo();
   const asignacionRepo = new AsignacionRepositorioMongo();
-  const periodoRepo = new PeriodoRepositorioMongo();
+  const unidadDidacticaRepo = new UnidadDidacticaRepositorioMongo();
 
-  const resultado = await eliminarNota({ ...datos, profesorId }, notaRepo, asignacionRepo, periodoRepo);
+  const resultado = await eliminarNota({ ...datos, profesorId }, notaRepo, asignacionRepo, unidadDidacticaRepo);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Nota eliminada correctamente" };
 }

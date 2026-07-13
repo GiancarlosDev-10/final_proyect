@@ -1,6 +1,7 @@
 "use server";
 
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
+import { UnidadDidacticaRepositorioMongo } from "@/modulos/unidades-didacticas/infraestructura/unidad-didactica-repositorio-mongo";
 import { listarPeriodos } from "@/modulos/periodos/aplicacion/listar-periodos";
 import { crearPeriodo, CrearPeriodoDTO } from "@/modulos/periodos/aplicacion/crear-periodo";
 import { actualizarPeriodo, ActualizarPeriodoDTO } from "@/modulos/periodos/aplicacion/actualizar-periodo";
@@ -45,7 +46,8 @@ export async function accionAbrirPeriodo(id: string): Promise<{ ok: boolean; men
 export async function accionCerrarPeriodo(id: string): Promise<{ ok: boolean; mensaje: string }> {
   if (!(await requerirRol(ROLES.ADMIN))) return { ok: false, mensaje: "No autorizado" };
   const repositorio = new PeriodoRepositorioMongo();
-  const resultado = await cerrarPeriodo(id, repositorio);
+  const unidadDidacticaRepositorio = new UnidadDidacticaRepositorioMongo();
+  const resultado = await cerrarPeriodo(id, repositorio, unidadDidacticaRepositorio);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Periodo cerrado correctamente" };
 }

@@ -8,6 +8,20 @@ export class UnidadDidacticaNoEncontradaError extends ErrorDominio {
   }
 }
 
+export class UnidadDidacticaCerradaError extends ErrorDominio {
+  readonly codigo = "UNIDAD_DIDACTICA_CERRADA";
+  constructor() {
+    super("No se pueden modificar notas en una unidad didáctica cerrada.");
+  }
+}
+
+export class UnidadDidacticaAbiertaError extends ErrorDominio {
+  readonly codigo = "UNIDAD_DIDACTICA_ABIERTA";
+  constructor() {
+    super("No se puede cerrar el periodo mientras tenga unidades didácticas abiertas.");
+  }
+}
+
 export interface UnidadDidacticaProps {
   id: string;
   nombre: string;

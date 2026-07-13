@@ -36,6 +36,23 @@ export class CursoRepositorioMongo implements ICursoRepositorio {
     );
   }
 
+  async listarPorArea(areaId: string): Promise<Curso[]> {
+    await conectarMongoDB();
+    const docs = await CursoModel.find({ areaId }).lean();
+    return docs.map(
+      (doc) =>
+        new Curso({
+          id: doc._id,
+          nombre: doc.nombre,
+          descripcion: doc.descripcion,
+          areaId: doc.areaId,
+          activo: doc.activo,
+          creadoEn: doc.creadoEn,
+          actualizadoEn: doc.actualizadoEn,
+        })
+    );
+  }
+
   async crear(curso: Curso): Promise<void> {
     await conectarMongoDB();
     await CursoModel.create({
