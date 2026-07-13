@@ -44,12 +44,9 @@ export function LoginForm() {
       return;
     }
 
-    const session = await fetch("/api/auth/session").then((r) => r.json());
-    const rol = session?.user?.rol;
-
-    if (rol === "ADMIN") router.push("/admin/dashboard/usuarios");
-    else if (rol === "PROFESOR") router.push("/profesores/dashboard/notas");
-    else router.push("/");
+    // La raíz ("/") ya resuelve el rol de la sesión y redirige al dashboard
+    // correspondiente en el servidor — evita un fetch de sesión extra en el cliente.
+    router.push("/");
   }
 
   return (
