@@ -15,6 +15,8 @@ export class RecordatorioRepositorioMongo implements IRecordatorioRepositorio {
       titulo: doc.titulo,
       descripcion: doc.descripcion,
       tipo: doc.tipo,
+      horaInicio: doc.horaInicio,
+      horaFin: doc.horaFin,
       creadoEn: doc.creadoEn,
       actualizadoEn: doc.actualizadoEn,
     });
@@ -32,6 +34,8 @@ export class RecordatorioRepositorioMongo implements IRecordatorioRepositorio {
           titulo: doc.titulo,
           descripcion: doc.descripcion,
           tipo: doc.tipo,
+          horaInicio: doc.horaInicio,
+          horaFin: doc.horaFin,
           creadoEn: doc.creadoEn,
           actualizadoEn: doc.actualizadoEn,
         })
@@ -47,6 +51,8 @@ export class RecordatorioRepositorioMongo implements IRecordatorioRepositorio {
       titulo: recordatorio.titulo,
       descripcion: recordatorio.descripcion,
       tipo: recordatorio.tipo,
+      horaInicio: recordatorio.horaInicio,
+      horaFin: recordatorio.horaFin,
       creadoEn: recordatorio.creadoEn,
       actualizadoEn: recordatorio.actualizadoEn,
     });
@@ -54,12 +60,31 @@ export class RecordatorioRepositorioMongo implements IRecordatorioRepositorio {
 
   async actualizar(recordatorio: Recordatorio): Promise<void> {
     await conectarMongoDB();
-    await RecordatorioModel.findByIdAndUpdate(recordatorio.id, {
+
+    // $set con undefined no borra un campo en Mongo — los campos opcionales que
+    // ya no aplican (descripcion, horaInicio/horaFin al "desprogramar" la hora)
+    // se limpian explícitamente con $unset.
+    const camposDefinidos: Record<string, string> = {
       fecha: recordatorio.fecha,
       titulo: recordatorio.titulo,
-      descripcion: recordatorio.descripcion,
       tipo: recordatorio.tipo,
       actualizadoEn: recordatorio.actualizadoEn,
+    };
+    const camposAEliminar: string[] = [];
+
+    if (recordatorio.descripcion !== undefined) camposDefinidos.descripcion = recordatorio.descripcion;
+    else camposAEliminar.push("descripcion");
+
+    if (recordatorio.horaInicio !== undefined && recordatorio.horaFin !== undefined) {
+      camposDefinidos.horaInicio = recordatorio.horaInicio;
+      camposDefinidos.horaFin = recordatorio.horaFin;
+    } else {
+      camposAEliminar.push("horaInicio", "horaFin");
+    }
+
+    await RecordatorioModel.findByIdAndUpdate(recordatorio.id, {
+      $set: camposDefinidos,
+      ...(camposAEliminar.length > 0 ? { $unset: Object.fromEntries(camposAEliminar.map((c) => [c, ""])) } : {}),
     });
   }
 

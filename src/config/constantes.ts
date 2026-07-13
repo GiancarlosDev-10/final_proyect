@@ -36,3 +36,36 @@ export const TIPOS_RECORDATORIO = {
 } as const;
 
 export type TipoRecordatorio = (typeof TIPOS_RECORDATORIO)[keyof typeof TIPOS_RECORDATORIO];
+
+export const DIAS_SEMANA = {
+  LUNES: "LUNES",
+  MARTES: "MARTES",
+  MIERCOLES: "MIERCOLES",
+  JUEVES: "JUEVES",
+  VIERNES: "VIERNES",
+} as const;
+
+export type DiaSemana = (typeof DIAS_SEMANA)[keyof typeof DIAS_SEMANA];
+
+export const ORDEN_DIAS_SEMANA: DiaSemana[] = [
+  DIAS_SEMANA.LUNES,
+  DIAS_SEMANA.MARTES,
+  DIAS_SEMANA.MIERCOLES,
+  DIAS_SEMANA.JUEVES,
+  DIAS_SEMANA.VIERNES,
+];
+
+export interface PeriodoHorario {
+  horaInicio: string;
+  horaFin: string;
+}
+
+export const PERIODOS_HORARIO: PeriodoHorario[] = [
+  { horaInicio: "08:00", horaFin: "08:45" },
+  { horaInicio: "08:45", horaFin: "09:30" },
+  { horaInicio: "09:30", horaFin: "10:15" },
+  { horaInicio: "10:30", horaFin: "11:15" },
+  { horaInicio: "11:15", horaFin: "12:00" },
+  { horaInicio: "12:00", horaFin: "12:45" },
+  { horaInicio: "13:30", horaFin: "14:15" },
+];

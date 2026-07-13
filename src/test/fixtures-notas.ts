@@ -8,7 +8,17 @@ import { UnidadDidactica, UnidadDidacticaProps } from "@/modulos/unidades-didact
 import { IUnidadDidacticaRepositorio } from "@/modulos/unidades-didacticas/aplicacion/i-unidad-didactica-repositorio";
 import { Curso, CursoProps } from "@/modulos/cursos/dominio/curso";
 import { ICursoRepositorio } from "@/modulos/cursos/aplicacion/i-curso-repositorio";
-import { ESTADOS_PERIODO, ESTADOS_UNIDAD_DIDACTICA, TIPOS_NOTA } from "@/config/constantes";
+import { BloqueHorario, BloqueHorarioProps } from "@/modulos/horarios/dominio/bloque-horario";
+import { IBloqueHorarioRepositorio } from "@/modulos/horarios/aplicacion/i-bloque-horario-repositorio";
+import { Recordatorio, RecordatorioProps } from "@/modulos/recordatorios/dominio/recordatorio";
+import { IRecordatorioRepositorio } from "@/modulos/recordatorios/aplicacion/i-recordatorio-repositorio";
+import {
+  ESTADOS_PERIODO,
+  ESTADOS_UNIDAD_DIDACTICA,
+  TIPOS_NOTA,
+  TIPOS_RECORDATORIO,
+  DIAS_SEMANA,
+} from "@/config/constantes";
 
 const AHORA = "2026-01-01T00:00:00.000Z";
 
@@ -142,6 +152,81 @@ export class FakePeriodoRepositorio implements IPeriodoRepositorio {
 
   async eliminar(id: string): Promise<void> {
     this.periodos = this.periodos.filter((p) => p.id !== id);
+  }
+}
+
+export function crearBloqueHorario(overrides: Partial<BloqueHorarioProps> = {}): BloqueHorario {
+  return new BloqueHorario({
+    id: "BLH-1",
+    asignacionId: "AS-1",
+    profesorId: "PROF-1",
+    diaSemana: DIAS_SEMANA.LUNES,
+    horaInicio: "08:00",
+    horaFin: "08:45",
+    creadoEn: AHORA,
+    actualizadoEn: AHORA,
+    ...overrides,
+  });
+}
+
+export class FakeBloqueHorarioRepositorio implements IBloqueHorarioRepositorio {
+  constructor(private bloques: BloqueHorario[] = []) {}
+
+  async buscarPorId(id: string): Promise<BloqueHorario | null> {
+    return this.bloques.find((b) => b.id === id) ?? null;
+  }
+
+  async listarPorProfesor(profesorId: string): Promise<BloqueHorario[]> {
+    return this.bloques.filter((b) => b.profesorId === profesorId);
+  }
+
+  async crear(bloque: BloqueHorario): Promise<void> {
+    this.bloques.push(bloque);
+  }
+
+  async actualizar(bloque: BloqueHorario): Promise<void> {
+    this.bloques = this.bloques.map((b) => (b.id === bloque.id ? bloque : b));
+  }
+
+  async eliminar(id: string): Promise<void> {
+    this.bloques = this.bloques.filter((b) => b.id !== id);
+  }
+}
+
+export function crearRecordatorio(overrides: Partial<RecordatorioProps> = {}): Recordatorio {
+  return new Recordatorio({
+    id: "REC-1",
+    profesorId: "PROF-1",
+    fecha: "2026-07-13",
+    titulo: "Reunión con el padre de Giancarlos",
+    tipo: TIPOS_RECORDATORIO.REUNION_PADRE,
+    creadoEn: AHORA,
+    actualizadoEn: AHORA,
+    ...overrides,
+  });
+}
+
+export class FakeRecordatorioRepositorio implements IRecordatorioRepositorio {
+  constructor(private recordatorios: Recordatorio[] = []) {}
+
+  async buscarPorId(id: string): Promise<Recordatorio | null> {
+    return this.recordatorios.find((r) => r.id === id) ?? null;
+  }
+
+  async listarPorProfesor(profesorId: string): Promise<Recordatorio[]> {
+    return this.recordatorios.filter((r) => r.profesorId === profesorId);
+  }
+
+  async crear(recordatorio: Recordatorio): Promise<void> {
+    this.recordatorios.push(recordatorio);
+  }
+
+  async actualizar(recordatorio: Recordatorio): Promise<void> {
+    this.recordatorios = this.recordatorios.map((r) => (r.id === recordatorio.id ? recordatorio : r));
+  }
+
+  async eliminar(id: string): Promise<void> {
+    this.recordatorios = this.recordatorios.filter((r) => r.id !== id);
   }
 }
 

@@ -17,25 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TIPOS_RECORDATORIO, TipoRecordatorio } from "@/config/constantes";
+import { ETIQUETAS_TIPO_RECORDATORIO, COLORES_TIPO_RECORDATORIO } from "@/modulos/recordatorios/presentacion/estilos";
 import { cn } from "@/lib/utils";
 
 interface Props {
   recordatorios: RecordatorioProps[];
 }
-
-const ETIQUETAS_TIPO: Record<TipoRecordatorio, string> = {
-  REUNION_PADRE: "Reunión con padre",
-  REUNION_PROFESOR: "Reunión con profesor",
-  REUNION_DIRECTOR: "Reunión con director",
-  OTRO: "Otro",
-};
-
-const COLORES_TIPO: Record<TipoRecordatorio, string> = {
-  REUNION_PADRE: "bg-amber-100 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800",
-  REUNION_PROFESOR: "bg-sky-100 border-sky-300 dark:bg-sky-950/40 dark:border-sky-800",
-  REUNION_DIRECTOR: "bg-rose-100 border-rose-300 dark:bg-rose-950/40 dark:border-rose-800",
-  OTRO: "bg-slate-100 border-slate-300 dark:bg-slate-800/40 dark:border-slate-700",
-};
 
 const FORM_VACIO = { fecha: "", titulo: "", descripcion: "", tipo: TIPOS_RECORDATORIO.OTRO as TipoRecordatorio };
 
@@ -119,10 +106,13 @@ export function MuroRecordatorios({ recordatorios }: Props) {
           {recordatoriosOrdenados.map((r) => (
             <div
               key={r.id}
-              className={cn("flex flex-col gap-2 rounded-lg border p-4 shadow-sm", COLORES_TIPO[r.tipo])}
+              className={cn("flex flex-col gap-2 rounded-lg border p-4 shadow-sm", COLORES_TIPO_RECORDATORIO[r.tipo])}
             >
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-medium text-muted-foreground">{r.fecha}</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {r.fecha}
+                  {r.horaInicio && r.horaFin ? ` · ${r.horaInicio}-${r.horaFin}` : ""}
+                </span>
                 <div className="flex gap-1">
                   <button
                     onClick={() => abrirEditar(r)}
@@ -141,7 +131,7 @@ export function MuroRecordatorios({ recordatorios }: Props) {
                 </div>
               </div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {ETIQUETAS_TIPO[r.tipo]}
+                {ETIQUETAS_TIPO_RECORDATORIO[r.tipo]}
               </p>
               <p className="font-medium">{r.titulo}</p>
               {r.descripcion && <p className="text-sm text-muted-foreground">{r.descripcion}</p>}
@@ -168,7 +158,7 @@ export function MuroRecordatorios({ recordatorios }: Props) {
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(TIPOS_RECORDATORIO).map((t) => (
-                    <SelectItem key={t} value={t}>{ETIQUETAS_TIPO[t]}</SelectItem>
+                    <SelectItem key={t} value={t}>{ETIQUETAS_TIPO_RECORDATORIO[t]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

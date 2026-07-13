@@ -31,6 +31,10 @@ export async function actualizarRecordatorio(
     titulo: datos.titulo,
     descripcion: datos.descripcion,
     tipo: datos.tipo,
+    // horaInicio/horaFin no se editan desde este formulario — se preservan tal cual
+    // (arrastrar el recordatorio en el horario es lo único que los cambia, ver moverRecordatorio).
+    horaInicio: recordatorio.horaInicio,
+    horaFin: recordatorio.horaFin,
     creadoEn: recordatorio.creadoEn,
     actualizadoEn: ahora,
   });

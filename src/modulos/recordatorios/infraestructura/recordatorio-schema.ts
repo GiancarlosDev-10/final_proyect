@@ -8,6 +8,8 @@ export interface IRecordatorioDocument {
   titulo: string;
   descripcion?: string;
   tipo: TipoRecordatorio;
+  horaInicio?: string;
+  horaFin?: string;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -24,6 +26,8 @@ const RecordatorioSchema = new Schema<IRecordatorioDocument>(
       enum: ["REUNION_PADRE", "REUNION_PROFESOR", "REUNION_DIRECTOR", "OTRO"],
       required: true,
     },
+    horaInicio: { type: String },
+    horaFin: { type: String },
     creadoEn: { type: String, required: true },
     actualizadoEn: { type: String, required: true },
   },
