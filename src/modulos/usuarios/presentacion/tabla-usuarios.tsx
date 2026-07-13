@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Plus, Pencil, UserX, UserCheck } from "lucide-react";
+import { Plus, Pencil, UserX, UserCheck, Eye } from "lucide-react";
 import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { validarPassword, PASSWORD_MIN_LENGTH } from "@/modulos/usuarios/dominio/politica-password";
 import { accionCrearUsuario, accionActualizarUsuario, accionDesactivarUsuario, accionActivarUsuario } from "@/modulos/usuarios/presentacion/acciones";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -153,6 +154,15 @@ export function TablaUsuarios({ usuarios }: Props) {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-2">
+                      {u.rol === "PROFESOR" && (
+                        <Link
+                          href={`/admin/dashboard/usuarios/${u.id}`}
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                        >
+                          <Eye className="size-3.5" />
+                          Ver detalles
+                        </Link>
+                      )}
                       <Button variant="outline" size="sm" onClick={() => abrirEditar(u)}>
                         <Pencil className="size-3.5" />
                         Editar
