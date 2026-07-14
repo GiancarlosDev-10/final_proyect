@@ -11,7 +11,7 @@ export interface SidebarNavItem {
   icon: ReactNode;
 }
 
-export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
+export function SidebarNav({ items, onNavigate }: { items: SidebarNavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -22,6 +22,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
               "flex items-center gap-2.5 rounded-r-lg border-l-[3px] px-3 py-2 text-sm font-medium transition-colors",
               activo
