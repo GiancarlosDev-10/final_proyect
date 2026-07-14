@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Plus, Pencil, UserX, UserCheck, Eye } from "lucide-react";
+import { Plus, Pencil, UserX, UserCheck, Eye, MoreVertical } from "lucide-react";
 import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { validarPassword, PASSWORD_MIN_LENGTH } from "@/modulos/usuarios/dominio/politica-password";
 import { accionCrearUsuario, accionActualizarUsuario, accionDesactivarUsuario, accionActivarUsuario } from "@/modulos/usuarios/presentacion/acciones";
@@ -17,9 +17,74 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   usuarios: UsuarioPublico[];
+}
+
+function TarjetaUsuario({
+  usuario,
+  onEditar,
+  onDesactivar,
+  onActivar,
+}: {
+  usuario: UsuarioPublico;
+  onEditar: (usuario: UsuarioPublico) => void;
+  onDesactivar: (id: string) => void;
+  onActivar: (id: string) => void;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{usuario.nombreCompleto}</p>
+          <p className="truncate text-sm text-muted-foreground">{usuario.email}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
+            <MoreVertical className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {usuario.rol === "PROFESOR" && (
+              <DropdownMenuItem render={<Link href={`/admin/dashboard/usuarios/${usuario.id}`} />}>
+                <Eye className="size-4" />
+                Ver detalles
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => onEditar(usuario)}>
+              <Pencil className="size-4" />
+              Editar
+            </DropdownMenuItem>
+            {usuario.activo ? (
+              <DropdownMenuItem variant="destructive" onClick={() => onDesactivar(usuario.id)}>
+                <UserX className="size-4" />
+                Desactivar
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onActivar(usuario.id)}>
+                <UserCheck className="size-4" />
+                Activar
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <Badge variant="outline">{usuario.rol}</Badge>
+        {usuario.activo ? (
+          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
+        ) : (
+          <Badge variant="secondary">Inactivo</Badge>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function TablaUsuarios({ usuarios }: Props) {
@@ -125,7 +190,22 @@ export function TablaUsuarios({ usuarios }: Props) {
         </Button>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {usuarios.map((u) => (
+          <TarjetaUsuario
+            key={u.id}
+            usuario={u}
+            onEditar={abrirEditar}
+            onDesactivar={onDesactivar}
+            onActivar={onActivar}
+          />
+        ))}
+        {usuarios.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No hay usuarios registrados.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
