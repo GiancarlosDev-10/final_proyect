@@ -44,7 +44,30 @@ export default async function AsignacionesProfesorPage() {
         <p className="text-sm text-muted-foreground">Cursos y secciones que tienes a cargo.</p>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {asignaciones.map((a) => (
+          <Card key={a.id} className="p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{nombreCurso(a.cursoId)}</p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {nombreSeccion(a.seccionId)} · {nombrePeriodo(a.periodoId)}
+                </p>
+              </div>
+              {a.activo ? (
+                <Badge className="shrink-0 border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
+              ) : (
+                <Badge variant="secondary" className="shrink-0">Inactivo</Badge>
+              )}
+            </div>
+          </Card>
+        ))}
+        {asignaciones.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No tienes asignaciones activas.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

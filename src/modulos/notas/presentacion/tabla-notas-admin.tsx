@@ -24,6 +24,23 @@ interface Props {
   periodos: PeriodoProps[];
 }
 
+function TarjetaNota({ nota, nombreEstudiante }: { nota: NotaProps; nombreEstudiante: (id: string) => string }) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{nombreEstudiante(nota.estudianteId)}</p>
+          <p className="truncate text-sm text-muted-foreground">{nota.etiqueta}</p>
+          <p className="truncate text-sm text-muted-foreground">{nota.tipo} · {nota.fecha}</p>
+        </div>
+        <span className={`shrink-0 text-lg font-semibold ${nota.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+          {nota.valor}
+        </span>
+      </div>
+    </Card>
+  );
+}
+
 export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, periodos }: Props) {
   const [asignacionId, setAsignacionId] = useState("");
   const [notas, setNotas] = useState<NotaProps[]>([]);
@@ -91,7 +108,17 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
       </Card>
 
       {buscado && (
-        <Card className="p-0">
+        <>
+          <div className="space-y-3 md:hidden">
+            {notas.map((n) => (
+              <TarjetaNota key={n.id} nota={n} nombreEstudiante={nombreEstudiante} />
+            ))}
+            {notas.length === 0 && (
+              <p className="p-6 text-center text-sm text-muted-foreground">No hay notas para esta asignación.</p>
+            )}
+          </div>
+
+          <Card className="hidden p-0 md:block">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -127,7 +154,8 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
               </TableBody>
             </Table>
           </CardContent>
-        </Card>
+          </Card>
+        </>
       )}
     </div>
   );

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
 import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
@@ -17,6 +17,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   asignaciones: AsignacionProps[];
@@ -24,6 +30,60 @@ interface Props {
   cursos: CursoProps[];
   secciones: SeccionProps[];
   periodos: PeriodoProps[];
+}
+
+function TarjetaAsignacion({
+  asignacion,
+  nombreProfesor,
+  nombreCurso,
+  nombreSeccion,
+  nombrePeriodo,
+  onEditar,
+  onEliminar,
+}: {
+  asignacion: AsignacionProps;
+  nombreProfesor: (id: string) => string;
+  nombreCurso: (id: string) => string;
+  nombreSeccion: (id: string) => string;
+  nombrePeriodo: (id: string) => string;
+  onEditar: (asignacion: AsignacionProps) => void;
+  onEliminar: (id: string) => void;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{nombreProfesor(asignacion.profesorId)}</p>
+          <p className="truncate text-sm text-muted-foreground">{nombreCurso(asignacion.cursoId)}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {nombreSeccion(asignacion.seccionId)} · {nombrePeriodo(asignacion.periodoId)}
+          </p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
+            <MoreVertical className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEditar(asignacion)}>
+              <Pencil className="size-4" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => onEliminar(asignacion.id)}>
+              <Trash2 className="size-4" />
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3">
+        {asignacion.activo ? (
+          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
+        ) : (
+          <Badge variant="secondary">Inactivo</Badge>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones, periodos }: Props) {
@@ -119,7 +179,25 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
         </Button>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {asignaciones.map((a) => (
+          <TarjetaAsignacion
+            key={a.id}
+            asignacion={a}
+            nombreProfesor={nombreProfesor}
+            nombreCurso={nombreCurso}
+            nombreSeccion={nombreSeccion}
+            nombrePeriodo={nombrePeriodo}
+            onEditar={abrirEditar}
+            onEliminar={onEliminar}
+          />
+        ))}
+        {asignaciones.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No hay asignaciones registradas.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

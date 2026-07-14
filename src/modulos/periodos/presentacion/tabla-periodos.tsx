@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, LockOpen, Lock } from "lucide-react";
+import { Plus, Pencil, LockOpen, Lock, MoreVertical } from "lucide-react";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { accionCrearPeriodo, accionActualizarPeriodo, accionAbrirPeriodo, accionCerrarPeriodo } from "@/modulos/periodos/presentacion/acciones";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,69 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   periodos: PeriodoProps[];
+}
+
+function TarjetaPeriodo({
+  periodo,
+  onEditar,
+  onAbrir,
+  onCerrar,
+}: {
+  periodo: PeriodoProps;
+  onEditar: (periodo: PeriodoProps) => void;
+  onAbrir: (id: string) => void;
+  onCerrar: (id: string) => void;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{periodo.nombre}</p>
+          <p className="truncate text-sm text-muted-foreground">Año {periodo.anio}</p>
+          <p className="truncate text-sm text-muted-foreground">{periodo.fechaInicio} — {periodo.fechaFin}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
+            <MoreVertical className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEditar(periodo)}>
+              <Pencil className="size-4" />
+              Editar
+            </DropdownMenuItem>
+            {periodo.estado === "CERRADO" && (
+              <DropdownMenuItem onClick={() => onAbrir(periodo.id)}>
+                <LockOpen className="size-4" />
+                Abrir
+              </DropdownMenuItem>
+            )}
+            {periodo.estado === "ABIERTO" && (
+              <DropdownMenuItem variant="destructive" onClick={() => onCerrar(periodo.id)}>
+                <Lock className="size-4" />
+                Cerrar
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3">
+        {periodo.estado === "ABIERTO" ? (
+          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Abierto</Badge>
+        ) : (
+          <Badge variant="secondary">Cerrado</Badge>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function TablaPeriodos({ periodos }: Props) {
@@ -93,7 +153,16 @@ export function TablaPeriodos({ periodos }: Props) {
         </Button>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {periodos.map((p) => (
+          <TarjetaPeriodo key={p.id} periodo={p} onEditar={abrirEditar} onAbrir={onAbrir} onCerrar={onCerrar} />
+        ))}
+        {periodos.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No hay periodos registrados.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, LockOpen, Lock } from "lucide-react";
+import { Plus, Pencil, LockOpen, Lock, MoreVertical } from "lucide-react";
 import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import {
@@ -20,10 +20,71 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   unidadesDidacticas: UnidadDidacticaProps[];
   periodos: PeriodoProps[];
+}
+
+function TarjetaUnidadDidactica({
+  unidad,
+  nombrePeriodo,
+  onEditar,
+  onAbrir,
+  onCerrar,
+}: {
+  unidad: UnidadDidacticaProps;
+  nombrePeriodo: (id: string) => string;
+  onEditar: (unidad: UnidadDidacticaProps) => void;
+  onAbrir: (id: string) => void;
+  onCerrar: (id: string) => void;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{unidad.nombre}</p>
+          <p className="truncate text-sm text-muted-foreground">{nombrePeriodo(unidad.periodoId)}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
+            <MoreVertical className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEditar(unidad)}>
+              <Pencil className="size-4" />
+              Editar
+            </DropdownMenuItem>
+            {unidad.estado === "CERRADO" && (
+              <DropdownMenuItem onClick={() => onAbrir(unidad.id)}>
+                <LockOpen className="size-4" />
+                Abrir
+              </DropdownMenuItem>
+            )}
+            {unidad.estado === "ABIERTO" && (
+              <DropdownMenuItem variant="destructive" onClick={() => onCerrar(unidad.id)}>
+                <Lock className="size-4" />
+                Cerrar
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3">
+        {unidad.estado === "ABIERTO" ? (
+          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Abierto</Badge>
+        ) : (
+          <Badge variant="secondary">Cerrado</Badge>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos }: Props) {
@@ -102,7 +163,23 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos }: Props)
         </Button>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {unidadesDidacticas.map((u) => (
+          <TarjetaUnidadDidactica
+            key={u.id}
+            unidad={u}
+            nombrePeriodo={nombrePeriodo}
+            onEditar={abrirEditar}
+            onAbrir={onAbrir}
+            onCerrar={onCerrar}
+          />
+        ))}
+        {unidadesDidacticas.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No hay unidades didácticas registradas.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

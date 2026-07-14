@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { MatriculaProps } from "@/modulos/matriculas/dominio/matricula";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
@@ -16,11 +16,65 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   matriculas: MatriculaProps[];
   estudiantes: EstudianteProps[];
   secciones: SeccionProps[];
+}
+
+function TarjetaMatricula({
+  matricula,
+  nombreEstudiante,
+  nombreSeccion,
+  onEditar,
+  onEliminar,
+}: {
+  matricula: MatriculaProps;
+  nombreEstudiante: (id: string) => string;
+  nombreSeccion: (id: string) => string;
+  onEditar: (matricula: MatriculaProps) => void;
+  onEliminar: (id: string) => void;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{nombreEstudiante(matricula.estudianteId)}</p>
+          <p className="truncate text-sm text-muted-foreground">{nombreSeccion(matricula.seccionId)}</p>
+          <p className="truncate text-sm text-muted-foreground">Año {matricula.anio}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
+            <MoreVertical className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEditar(matricula)}>
+              <Pencil className="size-4" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => onEliminar(matricula.id)}>
+              <Trash2 className="size-4" />
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3">
+        {matricula.activo ? (
+          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
+        ) : (
+          <Badge variant="secondary">Inactivo</Badge>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
@@ -103,7 +157,23 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
         </Button>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {matriculas.map((m) => (
+          <TarjetaMatricula
+            key={m.id}
+            matricula={m}
+            nombreEstudiante={nombreEstudiante}
+            nombreSeccion={nombreSeccion}
+            onEditar={abrirEditar}
+            onEliminar={onEliminar}
+          />
+        ))}
+        {matriculas.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No hay matrículas registradas.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

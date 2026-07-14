@@ -205,7 +205,30 @@ export default async function DetalleEstudiantePage({ params }: { params: Promis
             Notas registradas en tus cursos. Escala de 0 a 20; aprobatoria desde {NOTA_APROBATORIA}.
           </p>
         </CardHeader>
-        <CardContent className="p-0 pt-2">
+        <CardContent className="space-y-3 p-4 pt-2 md:hidden">
+          {notas.map((n) => (
+            <Card key={n.id} className="p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{nombreCurso(n.asignacionId)}</p>
+                  <p className="truncate text-sm text-muted-foreground">{n.etiqueta}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {ETIQUETAS_TIPO_NOTA[n.tipo]} · {nombrePeriodo(n.periodoId)} · {formatearFecha(n.fecha)}
+                  </p>
+                </div>
+                <StatusBadge variant={n.valor >= NOTA_APROBATORIA ? "success" : "error"} className="shrink-0">
+                  {n.valor}
+                </StatusBadge>
+              </div>
+            </Card>
+          ))}
+          {notas.length === 0 && (
+            <p className="p-6 text-center text-sm text-muted-foreground">
+              Aún no hay notas registradas para este estudiante en tus cursos.
+            </p>
+          )}
+        </CardContent>
+        <CardContent className="hidden p-0 pt-2 md:block">
           <Table>
             <TableHeader>
               <TableRow>

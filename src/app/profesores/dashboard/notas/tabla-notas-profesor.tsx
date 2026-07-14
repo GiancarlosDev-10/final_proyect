@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, MoreVertical } from "lucide-react";
 import { NotaProps } from "@/modulos/notas/dominio/nota";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
@@ -24,6 +24,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TIPOS_NOTA, TipoNota } from "@/config/constantes";
 
 interface Props {
@@ -33,6 +39,50 @@ interface Props {
   cursos: CursoProps[];
   secciones: SeccionProps[];
   unidadesDidacticas: UnidadDidacticaProps[];
+}
+
+function TarjetaNotaProfesor({
+  nota,
+  nombreEstudiante,
+  onEditar,
+  onEliminar,
+}: {
+  nota: NotaProps;
+  nombreEstudiante: (id: string) => string;
+  onEditar: (nota: NotaProps) => void;
+  onEliminar: (nota: NotaProps) => void;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{nombreEstudiante(nota.estudianteId)}</p>
+          <p className="truncate text-sm text-muted-foreground">{nota.etiqueta}</p>
+          <p className="truncate text-sm text-muted-foreground">{nota.tipo} · {nota.fecha}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className={`text-lg font-semibold ${nota.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+            {nota.valor}
+          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
+              <MoreVertical className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEditar(nota)}>
+                <Pencil className="size-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={() => onEliminar(nota)}>
+                <Trash2 className="size-4" />
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos, secciones, unidadesDidacticas }: Props) {
@@ -272,7 +322,17 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
       )}
 
       {!loadingNotas && asignacionSeleccionada && (
-        <Card className="p-0">
+        <>
+          <div className="space-y-3 md:hidden">
+            {notas.map((n) => (
+              <TarjetaNotaProfesor key={n.id} nota={n} nombreEstudiante={nombreEstudiante} onEditar={abrirEditar} onEliminar={onEliminar} />
+            ))}
+            {notas.length === 0 && (
+              <p className="p-6 text-center text-sm text-muted-foreground">No hay notas para esta asignación.</p>
+            )}
+          </div>
+
+          <Card className="hidden p-0 md:block">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -323,7 +383,8 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
               </TableBody>
             </Table>
           </CardContent>
-        </Card>
+          </Card>
+        </>
       )}
 
       <Dialog open={abierto} onOpenChange={setAbierto}>

@@ -35,7 +35,29 @@ export default async function EstudiantesProfesorPage() {
         <p className="text-sm text-muted-foreground">Estudiantes matriculados en tus secciones asignadas.</p>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {estudiantesFiltrados.map((e) => (
+          <Card key={e.id} className="p-3">
+            <div className="min-w-0">
+              <p className="truncate font-medium">{e.nombreCompleto}</p>
+              <p className="truncate text-sm text-muted-foreground">Documento: {e.documento}</p>
+              <p className="truncate text-sm text-muted-foreground">Apoderado: {e.apoderado.nombre}</p>
+            </div>
+            <Link
+              href={`/profesores/dashboard/estudiantes/${e.id}`}
+              className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3 w-full" })}
+            >
+              <Eye className="size-3.5" />
+              Ver detalles
+            </Link>
+          </Card>
+        ))}
+        {estudiantesFiltrados.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No tienes estudiantes asignados.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

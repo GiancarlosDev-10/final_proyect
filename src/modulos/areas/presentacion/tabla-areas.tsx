@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { AreaProps } from "@/modulos/areas/dominio/area";
 import { accionCrearArea, accionActualizarArea, accionEliminarArea } from "@/modulos/areas/presentacion/acciones";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,58 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   areas: AreaProps[];
+}
+
+function TarjetaArea({
+  area,
+  onEditar,
+  onEliminar,
+}: {
+  area: AreaProps;
+  onEditar: (area: AreaProps) => void;
+  onEliminar: (id: string) => void;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{area.nombre}</p>
+          <p className="truncate text-sm text-muted-foreground">{area.descripcion || "Sin descripción"}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
+            <MoreVertical className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEditar(area)}>
+              <Pencil className="size-4" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => onEliminar(area.id)}>
+              <Trash2 className="size-4" />
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3">
+        {area.activo ? (
+          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
+        ) : (
+          <Badge variant="secondary">Inactivo</Badge>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function TablaAreas({ areas }: Props) {
@@ -88,7 +137,16 @@ export function TablaAreas({ areas }: Props) {
         </Button>
       </div>
 
-      <Card className="p-0">
+      <div className="space-y-3 md:hidden">
+        {areas.map((a) => (
+          <TarjetaArea key={a.id} area={a} onEditar={abrirEditar} onEliminar={onEliminar} />
+        ))}
+        {areas.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No hay áreas registradas.</p>
+        )}
+      </div>
+
+      <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

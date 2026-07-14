@@ -182,7 +182,29 @@ export default async function DetalleProfesorPage({ params }: { params: Promise<
           <CardTitle className="text-base">Detalle de asignaciones</CardTitle>
           <p className="text-sm font-normal text-muted-foreground">Cursos y secciones que tiene a cargo.</p>
         </CardHeader>
-        <CardContent className="p-0 pt-2">
+        <CardContent className="space-y-3 p-4 pt-2 md:hidden">
+          {asignaciones.map((a) => (
+            <Card key={a.id} className="p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{nombreCurso(a.cursoId)}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {nombreSeccion(a.seccionId)} · {nombrePeriodo(a.periodoId)}
+                  </p>
+                </div>
+                {a.activo ? (
+                  <StatusBadge variant="success" className="shrink-0">Activo</StatusBadge>
+                ) : (
+                  <StatusBadge variant="neutral" className="shrink-0">Inactivo</StatusBadge>
+                )}
+              </div>
+            </Card>
+          ))}
+          {asignaciones.length === 0 && (
+            <p className="p-6 text-center text-sm text-muted-foreground">No tiene asignaciones registradas.</p>
+          )}
+        </CardContent>
+        <CardContent className="hidden p-0 pt-2 md:block">
           <Table>
             <TableHeader>
               <TableRow>
