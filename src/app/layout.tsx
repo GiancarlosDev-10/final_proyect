@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ProveedorSesion } from "@/compartido/ui/proveedor-sesion";
 import "./globals.css";
 
 const fuenteDisplay = Bricolage_Grotesque({
@@ -30,7 +31,7 @@ export default function RootLayout({
       className={`${fuenteDisplay.variable} ${fuenteSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {children}
+        <ProveedorSesion>{children}</ProveedorSesion>
         <Toaster />
       </body>
     </html>

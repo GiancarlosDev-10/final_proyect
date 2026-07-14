@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
+import { requerirSesion } from "@/compartido/lib/autorizacion";
 import { RecordatorioRepositorioMongo } from "@/modulos/recordatorios/infraestructura/recordatorio-repositorio-mongo";
 import { listarRecordatoriosPorProfesor } from "@/modulos/recordatorios/aplicacion/listar-recordatorios-por-profesor";
 import { crearRecordatorio } from "@/modulos/recordatorios/aplicacion/crear-recordatorio";
@@ -29,9 +29,9 @@ export interface MoverRecordatorioInput {
 }
 
 export async function accionListarMisRecordatorios(): Promise<RecordatorioProps[]> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return [];
+  const sesion = await requerirSesion();
+  if (!sesion) return [];
+  const profesorId = sesion.id;
   const repositorio = new RecordatorioRepositorioMongo();
   const resultado = await listarRecordatoriosPorProfesor(profesorId, repositorio);
   if (!resultado.ok) return [];
@@ -39,9 +39,9 @@ export async function accionListarMisRecordatorios(): Promise<RecordatorioProps[
 }
 
 export async function accionCrearRecordatorio(datos: CrearRecordatorioInput): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const repositorio = new RecordatorioRepositorioMongo();
   const resultado = await crearRecordatorio({ ...datos, profesorId }, repositorio);
@@ -50,9 +50,9 @@ export async function accionCrearRecordatorio(datos: CrearRecordatorioInput): Pr
 }
 
 export async function accionActualizarRecordatorio(datos: ActualizarRecordatorioInput): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const repositorio = new RecordatorioRepositorioMongo();
   const resultado = await actualizarRecordatorio({ ...datos, profesorId }, repositorio);
@@ -61,9 +61,9 @@ export async function accionActualizarRecordatorio(datos: ActualizarRecordatorio
 }
 
 export async function accionMoverRecordatorio(datos: MoverRecordatorioInput): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const repositorio = new RecordatorioRepositorioMongo();
   const resultado = await moverRecordatorio({ ...datos, profesorId }, repositorio);
@@ -72,9 +72,9 @@ export async function accionMoverRecordatorio(datos: MoverRecordatorioInput): Pr
 }
 
 export async function accionEliminarRecordatorio(id: string): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const repositorio = new RecordatorioRepositorioMongo();
   const resultado = await eliminarRecordatorio(id, profesorId, repositorio);

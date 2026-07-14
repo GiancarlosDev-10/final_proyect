@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
+import { requerirSesion } from "@/compartido/lib/autorizacion";
 import { UsuarioRepositorioMongo } from "@/modulos/usuarios/infraestructura/usuario-repositorio-mongo";
 import { actualizarPerfilPropio } from "@/modulos/usuarios/aplicacion/actualizar-perfil-propio";
 import { cambiarPasswordPropio } from "@/modulos/usuarios/aplicacion/cambiar-password-propio";
@@ -19,9 +19,9 @@ export interface CambiarMiPasswordInput {
 }
 
 export async function accionObtenerMiPerfil(): Promise<UsuarioPerfilPropio | null> {
-  const session = await auth();
-  const usuarioId = session?.user?.id;
-  if (!usuarioId) return null;
+  const sesion = await requerirSesion();
+  if (!sesion) return null;
+  const usuarioId = sesion.id;
 
   const repositorio = new UsuarioRepositorioMongo();
   const usuario = await repositorio.buscarPorId(usuarioId);
@@ -30,9 +30,9 @@ export async function accionObtenerMiPerfil(): Promise<UsuarioPerfilPropio | nul
 }
 
 export async function accionActualizarMiPerfil(datos: ActualizarMiPerfilInput): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const usuarioId = session?.user?.id;
-  if (!usuarioId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const usuarioId = sesion.id;
 
   const repositorio = new UsuarioRepositorioMongo();
   const resultado = await actualizarPerfilPropio({ id: usuarioId, ...datos }, repositorio);
@@ -41,9 +41,9 @@ export async function accionActualizarMiPerfil(datos: ActualizarMiPerfilInput): 
 }
 
 export async function accionCambiarMiPassword(datos: CambiarMiPasswordInput): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const usuarioId = session?.user?.id;
-  if (!usuarioId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const usuarioId = sesion.id;
 
   const repositorio = new UsuarioRepositorioMongo();
   const resultado = await cambiarPasswordPropio({ id: usuarioId, ...datos }, repositorio);
@@ -52,9 +52,9 @@ export async function accionCambiarMiPassword(datos: CambiarMiPasswordInput): Pr
 }
 
 export async function accionConfigurarPinTelegram(pin: string): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const usuarioId = session?.user?.id;
-  if (!usuarioId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const usuarioId = sesion.id;
 
   const repositorio = new UsuarioRepositorioMongo();
   const resultado = await configurarPinTelegram({ id: usuarioId, pin }, repositorio);
@@ -63,9 +63,9 @@ export async function accionConfigurarPinTelegram(pin: string): Promise<{ ok: bo
 }
 
 export async function accionQuitarPinTelegram(): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const usuarioId = session?.user?.id;
-  if (!usuarioId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const usuarioId = sesion.id;
 
   const repositorio = new UsuarioRepositorioMongo();
   const resultado = await quitarPinTelegram(usuarioId, repositorio);

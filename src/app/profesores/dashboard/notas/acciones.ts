@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
+import { requerirSesion } from "@/compartido/lib/autorizacion";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
 import { NotaRepositorioMongo } from "@/modulos/notas/infraestructura/nota-repositorio-mongo";
 import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructura/estudiante-repositorio-mongo";
@@ -20,10 +20,10 @@ import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
 import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 
 export async function accionListarMisAsignaciones(): Promise<AsignacionProps[]> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return [];
+  const sesion = await requerirSesion();
+  if (!sesion) return [];
   const repositorio = new AsignacionRepositorioMongo();
+  const profesorId = sesion.id;
   const todas = await repositorio.listarPorProfesor(profesorId);
   return todas.map((a) => a.toPlainObject());
 }
@@ -65,9 +65,9 @@ export async function accionListarUnidadesDidacticasProfesor(): Promise<UnidadDi
 }
 
 export async function accionRegistrarNota(datos: RegistrarNotaDTO): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const notaRepo = new NotaRepositorioMongo();
   const asignacionRepo = new AsignacionRepositorioMongo();
@@ -79,9 +79,9 @@ export async function accionRegistrarNota(datos: RegistrarNotaDTO): Promise<{ ok
 }
 
 export async function accionEditarNota(datos: EditarNotaDTO): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const notaRepo = new NotaRepositorioMongo();
   const asignacionRepo = new AsignacionRepositorioMongo();
@@ -93,9 +93,9 @@ export async function accionEditarNota(datos: EditarNotaDTO): Promise<{ ok: bool
 }
 
 export async function accionEliminarNotaProfesor(datos: { id: string; cursoId: string; seccionId: string; unidadDidacticaId: string }): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const notaRepo = new NotaRepositorioMongo();
   const asignacionRepo = new AsignacionRepositorioMongo();

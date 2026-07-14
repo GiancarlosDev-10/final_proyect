@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { GraduationCap, Menu } from "lucide-react";
 import { SidebarNav, type SidebarNavItem } from "@/compartido/ui/sidebar-nav";
 import { MobileSidebar } from "@/compartido/ui/mobile-sidebar";
@@ -60,6 +62,18 @@ function SidebarFooter({ usuario }: { usuario: Props["usuario"] }) {
 
 export function DashboardShell({ subtitulo, navItems, usuario, children }: Props) {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const router = useRouter();
+
+  // Vigilante de sesión: si expira por inactividad (30 min, ver auth.config.ts)
+  // o el usuario nunca estuvo logueado, esto lo manda al login sin que tenga
+  // que navegar o hacer clic en algo primero — el refetchInterval del
+  // ProveedorSesion es lo que dispara la revalidación periódica.
+  useSession({
+    required: true,
+    onUnauthenticated() {
+      router.push("/auth/login");
+    },
+  });
 
   return (
     <div className="flex min-h-screen">

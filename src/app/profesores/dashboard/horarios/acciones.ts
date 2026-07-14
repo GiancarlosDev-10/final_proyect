@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
+import { requerirSesion } from "@/compartido/lib/autorizacion";
 import { BloqueHorarioRepositorioMongo } from "@/modulos/horarios/infraestructura/bloque-horario-repositorio-mongo";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
 import { listarBloquesHorarioPorProfesor } from "@/modulos/horarios/aplicacion/listar-bloques-horario-por-profesor";
@@ -25,9 +25,9 @@ export interface MoverBloqueHorarioInput {
 }
 
 export async function accionListarMiHorario(): Promise<BloqueHorarioProps[]> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return [];
+  const sesion = await requerirSesion();
+  if (!sesion) return [];
+  const profesorId = sesion.id;
   const repositorio = new BloqueHorarioRepositorioMongo();
   const resultado = await listarBloquesHorarioPorProfesor(profesorId, repositorio);
   if (!resultado.ok) return [];
@@ -35,9 +35,9 @@ export async function accionListarMiHorario(): Promise<BloqueHorarioProps[]> {
 }
 
 export async function accionCrearBloqueHorario(datos: CrearBloqueHorarioInput): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const repositorio = new BloqueHorarioRepositorioMongo();
   const asignacionRepo = new AsignacionRepositorioMongo();
@@ -47,9 +47,9 @@ export async function accionCrearBloqueHorario(datos: CrearBloqueHorarioInput): 
 }
 
 export async function accionMoverBloqueHorario(datos: MoverBloqueHorarioInput): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const repositorio = new BloqueHorarioRepositorioMongo();
   const resultado = await moverBloqueHorario({ ...datos, profesorId }, repositorio);
@@ -58,9 +58,9 @@ export async function accionMoverBloqueHorario(datos: MoverBloqueHorarioInput): 
 }
 
 export async function accionEliminarBloqueHorario(id: string): Promise<{ ok: boolean; mensaje: string }> {
-  const session = await auth();
-  const profesorId = session?.user?.id;
-  if (!profesorId) return { ok: false, mensaje: "No autorizado" };
+  const sesion = await requerirSesion();
+  if (!sesion) return { ok: false, mensaje: "No autorizado" };
+  const profesorId = sesion.id;
 
   const repositorio = new BloqueHorarioRepositorioMongo();
   const resultado = await eliminarBloqueHorario(id, profesorId, repositorio);
