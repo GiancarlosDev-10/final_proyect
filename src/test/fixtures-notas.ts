@@ -78,8 +78,12 @@ export function crearCurso(overrides: Partial<CursoProps> = {}): Curso {
 export function crearUnidadDidactica(overrides: Partial<UnidadDidacticaProps> = {}): UnidadDidactica {
   return new UnidadDidactica({
     id: "UDI-1",
-    nombre: "Mes 1",
+    nombre: "Unidad 1",
+    cursoId: "CUR-1",
     periodoId: "PER-1",
+    orden: 1,
+    fechaInicio: "2026-03-01",
+    fechaFin: "2026-03-31",
     estado: ESTADOS_UNIDAD_DIDACTICA.ABIERTO,
     creadoEn: AHORA,
     actualizadoEn: AHORA,
@@ -284,6 +288,12 @@ export class FakeUnidadDidacticaRepositorio implements IUnidadDidacticaRepositor
 
   async listarPorPeriodo(periodoId: string): Promise<UnidadDidactica[]> {
     return this.unidades.filter((u) => u.periodoId === periodoId);
+  }
+
+  async listarPorCursoYPeriodo(cursoId: string, periodoId: string): Promise<UnidadDidactica[]> {
+    return this.unidades
+      .filter((u) => u.cursoId === cursoId && u.periodoId === periodoId)
+      .sort((a, b) => a.orden - b.orden);
   }
 
   async crear(unidadDidactica: UnidadDidactica): Promise<void> {

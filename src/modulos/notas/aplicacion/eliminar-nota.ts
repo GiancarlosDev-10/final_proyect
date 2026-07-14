@@ -27,7 +27,9 @@ export async function eliminarNota(
   if (!nota) return err(new NotaNoEncontradaError(datos.id));
 
   const unidadDidactica = await unidadDidacticaRepositorio.buscarPorId(datos.unidadDidacticaId);
-  if (!unidadDidactica) return err(new UnidadDidacticaNoEncontradaError(datos.unidadDidacticaId));
+  if (!unidadDidactica || unidadDidactica.cursoId !== datos.cursoId) {
+    return err(new UnidadDidacticaNoEncontradaError(datos.unidadDidacticaId));
+  }
 
   const asignacion = await asignacionRepositorio.buscarActiva(
     datos.profesorId,

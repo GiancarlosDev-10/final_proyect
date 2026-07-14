@@ -25,7 +25,11 @@ export class UnidadDidacticaAbiertaError extends ErrorDominio {
 export interface UnidadDidacticaProps {
   id: string;
   nombre: string;
+  cursoId: string;
   periodoId: string;
+  orden: number;
+  fechaInicio: string;
+  fechaFin: string;
   estado: EstadoUnidadDidactica;
   creadoEn: string;
   actualizadoEn: string;
@@ -34,7 +38,11 @@ export interface UnidadDidacticaProps {
 export class UnidadDidactica {
   readonly id: string;
   readonly nombre: string;
+  readonly cursoId: string;
   readonly periodoId: string;
+  readonly orden: number;
+  readonly fechaInicio: string;
+  readonly fechaFin: string;
   readonly estado: EstadoUnidadDidactica;
   readonly creadoEn: string;
   readonly actualizadoEn: string;
@@ -42,7 +50,11 @@ export class UnidadDidactica {
   constructor(props: UnidadDidacticaProps) {
     this.id = props.id;
     this.nombre = props.nombre;
+    this.cursoId = props.cursoId;
     this.periodoId = props.periodoId;
+    this.orden = props.orden;
+    this.fechaInicio = props.fechaInicio;
+    this.fechaFin = props.fechaFin;
     this.estado = props.estado;
     this.creadoEn = props.creadoEn;
     this.actualizadoEn = props.actualizadoEn;
@@ -56,7 +68,11 @@ export class UnidadDidactica {
     return {
       id: this.id,
       nombre: this.nombre,
+      cursoId: this.cursoId,
       periodoId: this.periodoId,
+      orden: this.orden,
+      fechaInicio: this.fechaInicio,
+      fechaFin: this.fechaFin,
       estado: this.estado,
       creadoEn: this.creadoEn,
       actualizadoEn: this.actualizadoEn,

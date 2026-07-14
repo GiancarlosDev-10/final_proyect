@@ -8,6 +8,7 @@ import { ErrorDominio } from "@/compartido/dominio/errores";
 
 export interface PromedioPorUnidad {
   unidadDidacticaId: string;
+  orden: number;
   promedio: number | null;
 }
 
@@ -52,11 +53,11 @@ export async function calcularPromedioCurso(
       }
     }
 
-    const unidades = await unidadDidacticaRepositorio.listarPorPeriodo(datos.periodoId);
+    const unidades = await unidadDidacticaRepositorio.listarPorCursoYPeriodo(datos.cursoId, datos.periodoId);
 
     const promediosPorUnidad: PromedioPorUnidad[] = unidades.map((unidad) => {
       const notasUnidad = notasDelCurso.filter((n) => n.unidadDidacticaId === unidad.id);
-      return { unidadDidacticaId: unidad.id, promedio: promedio(notasUnidad.map((n) => n.valor)) };
+      return { unidadDidacticaId: unidad.id, orden: unidad.orden, promedio: promedio(notasUnidad.map((n) => n.valor)) };
     });
 
     const promedioBimestral = promedio(

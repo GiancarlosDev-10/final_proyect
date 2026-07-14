@@ -12,7 +12,6 @@ import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { AreaProps } from "@/modulos/areas/dominio/area";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
-import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 import { requerirRol } from "@/compartido/lib/autorizacion";
 import { ROLES } from "@/config/constantes";
 
@@ -42,13 +41,6 @@ export async function accionListarCursosParaReportes(): Promise<CursoProps[]> {
   const repositorio = new CursoRepositorioMongo();
   const todos = await repositorio.listar();
   return todos.map((c) => c.toPlainObject());
-}
-
-export async function accionListarUnidadesDidacticasParaReportes(): Promise<UnidadDidacticaProps[]> {
-  if (!(await requerirRol(ROLES.ADMIN))) return [];
-  const repositorio = new UnidadDidacticaRepositorioMongo();
-  const todas = await repositorio.listar();
-  return todas.map((u) => u.toPlainObject());
 }
 
 export async function accionCalcularPromedioArea(datos: CalcularPromedioAreaDTO): Promise<PromedioArea | null> {

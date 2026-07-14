@@ -32,7 +32,9 @@ export async function registrarNota(
   unidadDidacticaRepositorio: IUnidadDidacticaRepositorio
 ): Promise<Result<Nota>> {
   const unidadDidactica = await unidadDidacticaRepositorio.buscarPorId(datos.unidadDidacticaId);
-  if (!unidadDidactica) return err(new UnidadDidacticaNoEncontradaError(datos.unidadDidacticaId));
+  if (!unidadDidactica || unidadDidactica.cursoId !== datos.cursoId) {
+    return err(new UnidadDidacticaNoEncontradaError(datos.unidadDidacticaId));
+  }
 
   const asignacion = await asignacionRepositorio.buscarActiva(
     datos.profesorId,

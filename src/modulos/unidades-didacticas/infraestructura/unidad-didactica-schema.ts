@@ -4,7 +4,11 @@ import { EstadoUnidadDidactica } from "@/config/constantes";
 export interface IUnidadDidacticaDocument {
   _id: string;
   nombre: string;
+  cursoId: string;
   periodoId: string;
+  orden: number;
+  fechaInicio: string;
+  fechaFin: string;
   estado: EstadoUnidadDidactica;
   creadoEn: string;
   actualizadoEn: string;
@@ -14,7 +18,11 @@ const UnidadDidacticaSchema = new Schema<IUnidadDidacticaDocument>(
   {
     _id: { type: String, required: true },
     nombre: { type: String, required: true },
+    cursoId: { type: String, required: true },
     periodoId: { type: String, required: true },
+    orden: { type: Number, required: true },
+    fechaInicio: { type: String, required: true },
+    fechaFin: { type: String, required: true },
     estado: { type: String, enum: ["ABIERTO", "CERRADO"], required: true },
     creadoEn: { type: String, required: true },
     actualizadoEn: { type: String, required: true },
@@ -23,6 +31,7 @@ const UnidadDidacticaSchema = new Schema<IUnidadDidacticaDocument>(
 );
 
 UnidadDidacticaSchema.index({ periodoId: 1 });
+UnidadDidacticaSchema.index({ cursoId: 1, periodoId: 1 });
 
 export const UnidadDidacticaModel =
   mongoose.models.UnidadDidactica ||

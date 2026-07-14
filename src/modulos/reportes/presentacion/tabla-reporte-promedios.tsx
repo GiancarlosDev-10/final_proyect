@@ -6,7 +6,6 @@ import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { AreaProps } from "@/modulos/areas/dominio/area";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
-import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 import { PromedioArea } from "@/modulos/reportes/aplicacion/calcular-promedio-area";
 import { accionCalcularPromedioArea } from "@/modulos/reportes/presentacion/acciones";
 import { Button } from "@/components/ui/button";
@@ -21,22 +20,19 @@ interface Props {
   areas: AreaProps[];
   periodos: PeriodoProps[];
   cursos: CursoProps[];
-  unidadesDidacticas: UnidadDidacticaProps[];
 }
 
 function formatearPromedio(valor: number | null): string {
   return valor === null ? "—" : valor.toFixed(1);
 }
 
-export function TablaReportePromedios({ estudiantes, areas, periodos, cursos, unidadesDidacticas }: Props) {
+export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: Props) {
   const [estudianteId, setEstudianteId] = useState("");
   const [areaId, setAreaId] = useState("");
   const [periodoId, setPeriodoId] = useState("");
   const [reporte, setReporte] = useState<PromedioArea | null>(null);
   const [loading, setLoading] = useState(false);
   const [buscado, setBuscado] = useState(false);
-
-  const unidadesDelPeriodo = periodoId ? unidadesDidacticas.filter((u) => u.periodoId === periodoId) : [];
 
   async function onBuscar() {
     if (!estudianteId || !areaId || !periodoId) return;
@@ -139,9 +135,8 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos, un
               <TableHeader>
                 <TableRow>
                   <TableHead>Curso</TableHead>
-                  {unidadesDelPeriodo.map((u) => (
-                    <TableHead key={u.id}>{u.nombre}</TableHead>
-                  ))}
+                  <TableHead>Unidad 1</TableHead>
+                  <TableHead>Unidad 2</TableHead>
                   <TableHead>Promedio Bimestral</TableHead>
                 </TableRow>
               </TableHeader>
@@ -149,9 +144,9 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos, un
                 {reporte.cursos.map((c) => (
                   <TableRow key={c.cursoId}>
                     <TableCell className="font-medium">{nombreCurso(c.cursoId)}</TableCell>
-                    {unidadesDelPeriodo.map((u) => (
-                      <TableCell key={u.id} className="text-muted-foreground">
-                        {formatearPromedio(c.promediosPorUnidad.find((p) => p.unidadDidacticaId === u.id)?.promedio ?? null)}
+                    {[1, 2].map((orden) => (
+                      <TableCell key={orden} className="text-muted-foreground">
+                        {formatearPromedio(c.promediosPorUnidad.find((p) => p.orden === orden)?.promedio ?? null)}
                       </TableCell>
                     ))}
                     <TableCell className="font-semibold">{formatearPromedio(c.promedioBimestral)}</TableCell>
@@ -159,16 +154,16 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos, un
                 ))}
                 {reporte.cursos.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={unidadesDelPeriodo.length + 2} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                       No hay cursos registrados en esta área.
                     </TableCell>
                   </TableRow>
                 )}
                 <TableRow className="bg-muted/40">
                   <TableCell className="font-semibold">Promedio del Área</TableCell>
-                  {unidadesDelPeriodo.map((u) => (
-                    <TableCell key={u.id} className="font-semibold">
-                      {formatearPromedio(reporte.promediosPorUnidad.find((p) => p.unidadDidacticaId === u.id)?.promedio ?? null)}
+                  {[1, 2].map((orden) => (
+                    <TableCell key={orden} className="font-semibold">
+                      {formatearPromedio(reporte.promediosPorUnidad.find((p) => p.orden === orden)?.promedio ?? null)}
                     </TableCell>
                   ))}
                   <TableCell className="font-bold">{formatearPromedio(reporte.promedioBimestral)}</TableCell>

@@ -5,7 +5,8 @@ import { Result, ok, err } from "@/compartido/lib/result";
 export interface ActualizarUnidadDidacticaDTO {
   id: string;
   nombre: string;
-  periodoId: string;
+  fechaInicio: string;
+  fechaFin: string;
 }
 
 export async function actualizarUnidadDidactica(
@@ -18,11 +19,10 @@ export async function actualizarUnidadDidactica(
   const ahora = new Date().toISOString();
 
   const unidadDidacticaActualizada = new UnidadDidactica({
-    id: unidadDidactica.id,
+    ...unidadDidactica.toPlainObject(),
     nombre: datos.nombre,
-    periodoId: datos.periodoId,
-    estado: unidadDidactica.estado,
-    creadoEn: unidadDidactica.creadoEn,
+    fechaInicio: datos.fechaInicio,
+    fechaFin: datos.fechaFin,
     actualizadoEn: ahora,
   });
 

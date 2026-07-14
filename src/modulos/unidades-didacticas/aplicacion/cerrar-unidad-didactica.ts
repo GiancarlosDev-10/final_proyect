@@ -13,11 +13,8 @@ export async function cerrarUnidadDidactica(
   const ahora = new Date().toISOString();
 
   const unidadDidacticaCerrada = new UnidadDidactica({
-    id: unidadDidactica.id,
-    nombre: unidadDidactica.nombre,
-    periodoId: unidadDidactica.periodoId,
+    ...unidadDidactica.toPlainObject(),
     estado: ESTADOS_UNIDAD_DIDACTICA.CERRADO,
-    creadoEn: unidadDidactica.creadoEn,
     actualizadoEn: ahora,
   });
 

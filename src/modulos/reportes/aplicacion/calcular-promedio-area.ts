@@ -2,18 +2,24 @@ import { ICursoRepositorio } from "@/modulos/cursos/aplicacion/i-curso-repositor
 import { INotaRepositorio } from "@/modulos/notas/aplicacion/i-nota-repositorio";
 import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asignacion-repositorio";
 import { IUnidadDidacticaRepositorio } from "@/modulos/unidades-didacticas/aplicacion/i-unidad-didactica-repositorio";
-import {
-  calcularPromedioCurso,
-  PromedioCurso,
-  PromedioPorUnidad,
-} from "@/modulos/reportes/aplicacion/calcular-promedio-curso";
+import { calcularPromedioCurso, PromedioCurso } from "@/modulos/reportes/aplicacion/calcular-promedio-curso";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { ErrorDominio } from "@/compartido/dominio/errores";
+
+// Cada curso genera sus propias Unidad 1 / Unidad 2 (con su propio id), así
+// que a nivel área no se puede agregar por unidadDidacticaId: se agrega por
+// "orden" (1 y 2), que es el mismo para todos los cursos de un bimestre.
+const ORDENES_DE_UNIDAD = [1, 2] as const;
+
+export interface PromedioPorOrdenDeUnidad {
+  orden: number;
+  promedio: number | null;
+}
 
 export interface PromedioArea {
   areaId: string;
   cursos: PromedioCurso[];
-  promediosPorUnidad: PromedioPorUnidad[];
+  promediosPorUnidad: PromedioPorOrdenDeUnidad[];
   promedioBimestral: number | null;
 }
 
@@ -48,13 +54,11 @@ export async function calcularPromedioArea(
       if (resultado.ok) cursos.push(resultado.value);
     }
 
-    const unidades = await unidadDidacticaRepositorio.listarPorPeriodo(datos.periodoId);
-
-    const promediosPorUnidad: PromedioPorUnidad[] = unidades.map((unidad) => {
+    const promediosPorUnidad: PromedioPorOrdenDeUnidad[] = ORDENES_DE_UNIDAD.map((orden) => {
       const valoresDeLosCursos = cursos
-        .map((c) => c.promediosPorUnidad.find((p) => p.unidadDidacticaId === unidad.id)?.promedio ?? null)
+        .map((c) => c.promediosPorUnidad.find((p) => p.orden === orden)?.promedio ?? null)
         .filter((v): v is number => v !== null);
-      return { unidadDidacticaId: unidad.id, promedio: promedio(valoresDeLosCursos) };
+      return { orden, promedio: promedio(valoresDeLosCursos) };
     });
 
     const promedioBimestral = promedio(

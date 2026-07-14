@@ -13,11 +13,8 @@ export async function abrirUnidadDidactica(
   const ahora = new Date().toISOString();
 
   const unidadDidacticaAbierta = new UnidadDidactica({
-    id: unidadDidactica.id,
-    nombre: unidadDidactica.nombre,
-    periodoId: unidadDidactica.periodoId,
+    ...unidadDidactica.toPlainObject(),
     estado: ESTADOS_UNIDAD_DIDACTICA.ABIERTO,
-    creadoEn: unidadDidactica.creadoEn,
     actualizadoEn: ahora,
   });
 

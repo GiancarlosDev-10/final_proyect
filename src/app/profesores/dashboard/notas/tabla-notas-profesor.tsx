@@ -102,7 +102,9 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   });
 
   const unidadesDelPeriodo = asignacionSeleccionada
-    ? unidadesDidacticas.filter((u) => u.periodoId === asignacionSeleccionada.periodoId)
+    ? unidadesDidacticas.filter(
+        (u) => u.periodoId === asignacionSeleccionada.periodoId && u.cursoId === asignacionSeleccionada.cursoId
+      )
     : [];
 
   async function onSeleccionarAsignacion(id: string) {

@@ -18,8 +18,8 @@ describe("calcularPromedioCurso", () => {
       crearAsignacion({ id: "AS-2", cursoId: "CUR-2", periodoId: "PER-1" }),
     ]);
     const unidadRepo = new FakeUnidadDidacticaRepositorio([
-      crearUnidadDidactica({ id: "UDI-1", periodoId: "PER-1" }),
-      crearUnidadDidactica({ id: "UDI-2", periodoId: "PER-1" }),
+      crearUnidadDidactica({ id: "UDI-1", cursoId: "CUR-1", periodoId: "PER-1", orden: 1 }),
+      crearUnidadDidactica({ id: "UDI-2", cursoId: "CUR-1", periodoId: "PER-1", orden: 2 }),
     ]);
     const notaRepo = new FakeNotaRepositorio([
       crearNota({ id: "NOT-1", asignacionId: "AS-1", unidadDidacticaId: "UDI-1", valor: 14 }),
@@ -33,8 +33,8 @@ describe("calcularPromedioCurso", () => {
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
     expect(resultado.value.promediosPorUnidad).toEqual([
-      { unidadDidacticaId: "UDI-1", promedio: 15 },
-      { unidadDidacticaId: "UDI-2", promedio: 18 },
+      { unidadDidacticaId: "UDI-1", orden: 1, promedio: 15 },
+      { unidadDidacticaId: "UDI-2", orden: 2, promedio: 18 },
     ]);
     expect(resultado.value.promedioBimestral).toBe(16.5);
   });
@@ -42,8 +42,8 @@ describe("calcularPromedioCurso", () => {
   it("marca como null la unidad sin notas y la excluye del promedio bimestral", async () => {
     const asignacionRepo = new FakeAsignacionRepositorio([crearAsignacion({ id: "AS-1", cursoId: "CUR-1", periodoId: "PER-1" })]);
     const unidadRepo = new FakeUnidadDidacticaRepositorio([
-      crearUnidadDidactica({ id: "UDI-1", periodoId: "PER-1" }),
-      crearUnidadDidactica({ id: "UDI-2", periodoId: "PER-1" }),
+      crearUnidadDidactica({ id: "UDI-1", cursoId: "CUR-1", periodoId: "PER-1", orden: 1 }),
+      crearUnidadDidactica({ id: "UDI-2", cursoId: "CUR-1", periodoId: "PER-1", orden: 2 }),
     ]);
     const notaRepo = new FakeNotaRepositorio([
       crearNota({ id: "NOT-1", asignacionId: "AS-1", unidadDidacticaId: "UDI-1", valor: 12 }),
@@ -54,22 +54,22 @@ describe("calcularPromedioCurso", () => {
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
     expect(resultado.value.promediosPorUnidad).toEqual([
-      { unidadDidacticaId: "UDI-1", promedio: 12 },
-      { unidadDidacticaId: "UDI-2", promedio: null },
+      { unidadDidacticaId: "UDI-1", orden: 1, promedio: 12 },
+      { unidadDidacticaId: "UDI-2", orden: 2, promedio: null },
     ]);
     expect(resultado.value.promedioBimestral).toBe(12);
   });
 
   it("retorna promedios null si el estudiante no tiene notas en ese curso/periodo", async () => {
     const asignacionRepo = new FakeAsignacionRepositorio([crearAsignacion({ id: "AS-1", cursoId: "CUR-1", periodoId: "PER-1" })]);
-    const unidadRepo = new FakeUnidadDidacticaRepositorio([crearUnidadDidactica({ id: "UDI-1", periodoId: "PER-1" })]);
+    const unidadRepo = new FakeUnidadDidacticaRepositorio([crearUnidadDidactica({ id: "UDI-1", cursoId: "CUR-1", periodoId: "PER-1", orden: 1 })]);
     const notaRepo = new FakeNotaRepositorio([]);
 
     const resultado = await calcularPromedioCurso(DATOS_BASE, notaRepo, asignacionRepo, unidadRepo);
 
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
-    expect(resultado.value.promediosPorUnidad).toEqual([{ unidadDidacticaId: "UDI-1", promedio: null }]);
+    expect(resultado.value.promediosPorUnidad).toEqual([{ unidadDidacticaId: "UDI-1", orden: 1, promedio: null }]);
     expect(resultado.value.promedioBimestral).toBeNull();
   });
 });
