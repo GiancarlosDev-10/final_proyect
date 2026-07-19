@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical, Search } from "lucide-react";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { accionCrearEstudiante, accionActualizarEstudiante, accionEliminarEstudiante } from "@/modulos/estudiantes/presentacion/acciones";
 import { Button } from "@/components/ui/button";
@@ -23,14 +23,17 @@ import {
 
 interface Props {
   estudiantes: EstudianteProps[];
+  seccionPorEstudiante?: Record<string, string>;
 }
 
 function TarjetaEstudiante({
   estudiante,
+  seccionLabel,
   onEditar,
   onEliminar,
 }: {
   estudiante: EstudianteProps;
+  seccionLabel?: string;
   onEditar: (estudiante: EstudianteProps) => void;
   onEliminar: (id: string) => void;
 }) {
@@ -39,6 +42,7 @@ function TarjetaEstudiante({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{estudiante.nombreCompleto}</p>
+          {seccionLabel && <p className="truncate text-sm text-muted-foreground">Sección: {seccionLabel}</p>}
           <p className="truncate text-sm text-muted-foreground">Documento: {estudiante.documento}</p>
           <p className="truncate text-sm text-muted-foreground">Apoderado: {estudiante.apoderado.nombre}</p>
         </div>
@@ -69,11 +73,12 @@ function TarjetaEstudiante({
   );
 }
 
-export function TablaEstudiantes({ estudiantes }: Props) {
+export function TablaEstudiantes({ estudiantes, seccionPorEstudiante = {} }: Props) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState<EstudianteProps | null>(null);
+  const [busqueda, setBusqueda] = useState("");
   const [form, setForm] = useState({
     documento: "",
     nombreCompleto: "",
@@ -141,6 +146,19 @@ export function TablaEstudiantes({ estudiantes }: Props) {
     else toast.error(resultado.mensaje);
   }
 
+  const estudiantesFiltrados = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase();
+    if (!termino) return estudiantes;
+    return estudiantes.filter((e) => {
+      const seccionLabel = seccionPorEstudiante[e.id] ?? "";
+      return (
+        e.nombreCompleto.toLowerCase().includes(termino) ||
+        e.documento.toLowerCase().includes(termino) ||
+        seccionLabel.toLowerCase().includes(termino)
+      );
+    });
+  }, [estudiantes, seccionPorEstudiante, busqueda]);
+
   return (
     <div className="space-y-6 p-6 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -154,12 +172,22 @@ export function TablaEstudiantes({ estudiantes }: Props) {
         </Button>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre, documento o sección..."
+          className="pl-8"
+        />
+      </div>
+
       <div className="space-y-3 md:hidden">
-        {estudiantes.map((e) => (
-          <TarjetaEstudiante key={e.id} estudiante={e} onEditar={abrirEditar} onEliminar={onEliminar} />
+        {estudiantesFiltrados.map((e) => (
+          <TarjetaEstudiante key={e.id} estudiante={e} seccionLabel={seccionPorEstudiante[e.id]} onEditar={abrirEditar} onEliminar={onEliminar} />
         ))}
-        {estudiantes.length === 0 && (
-          <p className="p-6 text-center text-sm text-muted-foreground">No hay estudiantes registrados.</p>
+        {estudiantesFiltrados.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No se encontraron estudiantes.</p>
         )}
       </div>
 
@@ -169,6 +197,7 @@ export function TablaEstudiantes({ estudiantes }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
+                <TableHead>Sección</TableHead>
                 <TableHead>Documento</TableHead>
                 <TableHead>Apoderado</TableHead>
                 <TableHead>Estado</TableHead>
@@ -176,9 +205,10 @@ export function TablaEstudiantes({ estudiantes }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {estudiantes.map((e) => (
+              {estudiantesFiltrados.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">{e.nombreCompleto}</TableCell>
+                  <TableCell className="text-muted-foreground">{seccionPorEstudiante[e.id] ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.documento}</TableCell>
                   <TableCell className="text-muted-foreground">{e.apoderado.nombre}</TableCell>
                   <TableCell>
@@ -202,10 +232,10 @@ export function TablaEstudiantes({ estudiantes }: Props) {
                   </TableCell>
                 </TableRow>
               ))}
-              {estudiantes.length === 0 && (
+              {estudiantesFiltrados.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No hay estudiantes registrados.
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    No se encontraron estudiantes.
                   </TableCell>
                 </TableRow>
               )}
