@@ -217,7 +217,7 @@ export function MiPerfil({ perfil }: Props) {
               </p>
               <div className="space-y-2">
                 <Label>{perfil.tienePinTelegram ? "Nuevo PIN" : "Crear PIN"} ({PIN_TELEGRAM_LENGTH} dígitos)</Label>
-                <Input
+                <PasswordInput
                   inputMode="numeric"
                   maxLength={PIN_TELEGRAM_LENGTH}
                   value={pin}

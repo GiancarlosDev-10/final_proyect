@@ -3,25 +3,16 @@
 import { Fragment, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BloqueHorarioProps } from "@/modulos/horarios/dominio/bloque-horario";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
-import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { RecordatorioProps } from "@/modulos/recordatorios/dominio/recordatorio";
 import { COLORES_TIPO_RECORDATORIO } from "@/modulos/recordatorios/presentacion/estilos";
-import {
-  accionCrearBloqueHorario,
-  accionMoverBloqueHorario,
-  accionEliminarBloqueHorario,
-} from "@/app/profesores/dashboard/horarios/acciones";
 import { accionMoverRecordatorio } from "@/app/profesores/dashboard/recordatorios/acciones";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ORDEN_DIAS_SEMANA, PERIODOS_HORARIO, DiaSemana, PeriodoHorario } from "@/config/constantes";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +21,6 @@ interface Props {
   asignaciones: AsignacionProps[];
   cursos: CursoProps[];
   secciones: SeccionProps[];
-  periodos: PeriodoProps[];
   recordatorios: RecordatorioProps[];
 }
 
@@ -68,10 +58,7 @@ function formatearEtiqueta(fecha: Date): string {
   return fecha.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
 }
 
-const TIPO_ARRASTRE = "application/x-tipo-arrastre";
-
-function iniciarArrastre(e: DragEvent, tipo: "bloque" | "recordatorio", id: string) {
-  e.dataTransfer.setData(TIPO_ARRASTRE, tipo);
+function iniciarArrastreRecordatorio(e: DragEvent, id: string) {
   e.dataTransfer.setData("text/plain", id);
 }
 
@@ -79,7 +66,7 @@ function TarjetaRecordatorio({ recordatorio }: { recordatorio: RecordatorioProps
   return (
     <div
       draggable
-      onDragStart={(e) => iniciarArrastre(e, "recordatorio", recordatorio.id)}
+      onDragStart={(e) => iniciarArrastreRecordatorio(e, recordatorio.id)}
       className={cn(
         "flex w-full items-center justify-center cursor-grab rounded border p-1.5 text-center text-[11px] active:cursor-grabbing",
         COLORES_TIPO_RECORDATORIO[recordatorio.tipo]
@@ -90,13 +77,9 @@ function TarjetaRecordatorio({ recordatorio }: { recordatorio: RecordatorioProps
   );
 }
 
-export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, periodos, recordatorios }: Props) {
+export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, recordatorios }: Props) {
   const router = useRouter();
   const [lunesActual, setLunesActual] = useState(() => obtenerLunes(new Date()));
-  const [dialogoAbierto, setDialogoAbierto] = useState(false);
-  const [celdaSeleccionada, setCeldaSeleccionada] = useState<{ dia: DiaSemana; periodo: PeriodoHorario } | null>(null);
-  const [asignacionSeleccionada, setAsignacionSeleccionada] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const dias = ORDEN_DIAS_SEMANA.map((dia, indice) => ({ dia, fecha: sumarDias(lunesActual, indice) }));
 
@@ -107,67 +90,6 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
   function nombreSeccion(id: string) {
     const s = secciones.find((s) => s.id === id);
     return s ? `${s.grado} ${s.nombre}` : "(sección eliminada)";
-  }
-
-  function nombreAsignacion(a: AsignacionProps) {
-    const p = periodos.find((p) => p.id === a.periodoId);
-    return `${nombreCurso(a.cursoId)} — ${nombreSeccion(a.seccionId)}${p ? ` (${p.nombre})` : ""}`;
-  }
-
-  function abrirDialogoAgregar(dia: DiaSemana, periodo: PeriodoHorario) {
-    setCeldaSeleccionada({ dia, periodo });
-    setAsignacionSeleccionada("");
-    setDialogoAbierto(true);
-  }
-
-  async function onConfirmarAgregar() {
-    if (!celdaSeleccionada || !asignacionSeleccionada) {
-      toast.error("Selecciona una asignación.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const resultado = await accionCrearBloqueHorario({
-        asignacionId: asignacionSeleccionada,
-        diaSemana: celdaSeleccionada.dia,
-        horaInicio: celdaSeleccionada.periodo.horaInicio,
-        horaFin: celdaSeleccionada.periodo.horaFin,
-      });
-      if (resultado.ok) {
-        toast.success(resultado.mensaje);
-        setDialogoAbierto(false);
-        router.refresh();
-      } else {
-        toast.error(resultado.mensaje);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function onMover(bloqueId: string, dia: DiaSemana, periodo: PeriodoHorario) {
-    const resultado = await accionMoverBloqueHorario({
-      id: bloqueId,
-      diaSemana: dia,
-      horaInicio: periodo.horaInicio,
-      horaFin: periodo.horaFin,
-    });
-    if (resultado.ok) {
-      toast.success(resultado.mensaje);
-      router.refresh();
-    } else {
-      toast.error(resultado.mensaje);
-    }
-  }
-
-  async function onEliminar(id: string) {
-    const resultado = await accionEliminarBloqueHorario(id);
-    if (resultado.ok) {
-      toast.success(resultado.mensaje);
-      router.refresh();
-    } else {
-      toast.error(resultado.mensaje);
-    }
   }
 
   async function onMoverRecordatorio(recordatorioId: string, fecha: Date, periodo: PeriodoHorario | null) {
@@ -185,22 +107,20 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
     }
   }
 
-  function onSoltarEnCeldaHora(e: DragEvent<HTMLElement>, dia: DiaSemana, fecha: Date, periodo: PeriodoHorario) {
+  // El horario de clases lo define el área académica; el profesor solo puede
+  // arrastrar sus propios recordatorios sobre él, nunca mover ni crear clases.
+  function onSoltarEnCeldaHora(e: DragEvent<HTMLElement>, fecha: Date, periodo: PeriodoHorario) {
     e.preventDefault();
-    const tipo = e.dataTransfer.getData(TIPO_ARRASTRE);
     const id = e.dataTransfer.getData("text/plain");
     if (!id) return;
-    if (tipo === "recordatorio") onMoverRecordatorio(id, fecha, periodo);
-    else onMover(id, dia, periodo);
+    onMoverRecordatorio(id, fecha, periodo);
   }
 
   function onSoltarEnFilaRecordatorios(e: DragEvent<HTMLElement>, fecha: Date) {
     e.preventDefault();
-    const tipo = e.dataTransfer.getData(TIPO_ARRASTRE);
     const id = e.dataTransfer.getData("text/plain");
     if (!id) return;
-    if (tipo === "recordatorio") onMoverRecordatorio(id, fecha, null);
-    else toast.error("Las clases no se pueden mover a la fila de recordatorios.");
+    onMoverRecordatorio(id, fecha, null);
   }
 
   return (
@@ -208,7 +128,7 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold">Mi Horario</h1>
-          <p className="text-sm text-muted-foreground">Arrastra una clase para cambiarla de día. Arrastra un recordatorio a una casilla de hora para asignarle horario, o de vuelta a la fila de abajo para quitárselo.</p>
+          <p className="text-sm text-muted-foreground">Tu horario de clases lo define el área académica. Arrastra un recordatorio a una casilla de hora para asignarle horario, o de vuelta a la fila de abajo para quitárselo.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setLunesActual(sumarDias(lunesActual, -7))}>
@@ -257,21 +177,10 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
                       key={dia}
                       className="flex flex-col items-center gap-1 border-b p-1"
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => onSoltarEnCeldaHora(e, dia, fecha, periodo)}
+                      onDrop={(e) => onSoltarEnCeldaHora(e, fecha, periodo)}
                     >
                       {bloque ? (
-                        <div
-                          draggable
-                          onDragStart={(e) => iniciarArrastre(e, "bloque", bloque.id)}
-                          className="group relative flex min-h-12 w-full flex-col items-center justify-center overflow-hidden rounded-md border border-primary/30 bg-primary/10 px-4 py-2 text-center cursor-grab active:cursor-grabbing"
-                        >
-                          <button
-                            onClick={() => onEliminar(bloque.id)}
-                            className="absolute right-1 top-1 hidden rounded p-0.5 text-muted-foreground hover:bg-black/10 group-hover:block dark:hover:bg-white/10"
-                            aria-label="Quitar del horario"
-                          >
-                            <X className="size-3" />
-                          </button>
+                        <div className="flex min-h-12 w-full flex-col items-center justify-center overflow-hidden rounded-md border border-primary/30 bg-primary/10 px-4 py-2 text-center">
                           {asignacion ? (
                             <>
                               <p className="w-full truncate text-xs font-medium">{nombreCurso(asignacion.cursoId)}</p>
@@ -281,32 +190,12 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
                             <p className="w-full truncate text-xs text-muted-foreground">(asignación eliminada)</p>
                           )}
                         </div>
-                      ) : recordatoriosDeLaCelda.length > 0 ? (
-                        <div className="group relative w-full">
-                          <button
-                            onClick={() => abrirDialogoAgregar(dia, periodo)}
-                            className="absolute -right-1.5 -top-1.5 z-10 hidden rounded-full border bg-background p-0.5 text-muted-foreground shadow-sm hover:bg-muted group-hover:block"
-                            aria-label="Agregar clase"
-                          >
-                            <Plus className="size-3" />
-                          </button>
-                          <div className="flex w-full flex-col gap-1">
-                            {recordatoriosDeLaCelda.map((r) => (
-                              <TarjetaRecordatorio key={r.id} recordatorio={r} />
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => abrirDialogoAgregar(dia, periodo)}
-                          className="flex min-h-12 w-full items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40"
-                          aria-label="Agregar clase"
-                        >
-                          <Plus className="pointer-events-none size-3.5" />
-                        </button>
-                      )}
-                      {bloque &&
-                        recordatoriosDeLaCelda.map((r) => <TarjetaRecordatorio key={r.id} recordatorio={r} />)}
+                      ) : recordatoriosDeLaCelda.length === 0 ? (
+                        <div className="min-h-12 w-full rounded-md border border-dashed" />
+                      ) : null}
+                      {recordatoriosDeLaCelda.map((r) => (
+                        <TarjetaRecordatorio key={r.id} recordatorio={r} />
+                      ))}
                     </div>
                   );
                 })}
@@ -336,45 +225,6 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, perio
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={dialogoAbierto} onOpenChange={setDialogoAbierto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Agregar clase al horario</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {celdaSeleccionada && (
-              <p className="text-sm text-muted-foreground">
-                {ETIQUETAS_DIA[celdaSeleccionada.dia]}, {celdaSeleccionada.periodo.horaInicio} - {celdaSeleccionada.periodo.horaFin}
-              </p>
-            )}
-            <div className="space-y-2">
-              <Label>Asignación</Label>
-              <Select value={asignacionSeleccionada} onValueChange={(v) => setAsignacionSeleccionada(v ?? "")} itemToStringLabel={(id) => {
-                const a = asignaciones.find((a) => a.id === id);
-                return a ? nombreAsignacion(a) : "";
-              }}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar asignación" />
-                </SelectTrigger>
-                <SelectContent>
-                  {asignaciones.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{nombreAsignacion(a)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogoAbierto(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={onConfirmarAgregar} disabled={loading}>
-              {loading ? "Guardando..." : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
