@@ -55,6 +55,15 @@ export const ORDEN_DIAS_SEMANA: DiaSemana[] = [
   DIAS_SEMANA.VIERNES,
 ];
 
+export const ESTADOS_ASISTENCIA = {
+  PRESENTE: "PRESENTE",
+  TARDANZA: "TARDANZA",
+  AUSENTE: "AUSENTE",
+  JUSTIFICADO: "JUSTIFICADO",
+} as const;
+
+export type EstadoAsistencia = (typeof ESTADOS_ASISTENCIA)[keyof typeof ESTADOS_ASISTENCIA];
+
 export interface PeriodoHorario {
   horaInicio: string;
   horaFin: string;

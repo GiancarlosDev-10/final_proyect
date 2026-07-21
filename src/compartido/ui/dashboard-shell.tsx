@@ -76,7 +76,7 @@ export function DashboardShell({ subtitulo, navItems, usuario, children }: Props
   });
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen">
       <aside className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
         <SidebarBrand subtitulo={subtitulo} />
         <Separator className="bg-sidebar-border" />

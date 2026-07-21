@@ -1,14 +1,27 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { ScanFace } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import { accionListarBloquesDeHoy, accionAbrirSesion, accionListarRoster } from "@/app/profesores/dashboard/asistencia/acciones";
+import { AsistenciaHoy } from "@/app/profesores/dashboard/asistencia/asistencia-hoy";
+import { SesionAsistenciaProps } from "@/modulos/asistencia/dominio/sesion-asistencia";
+import { FilaRoster } from "@/modulos/asistencia/aplicacion/listar-roster";
 
 export default async function AsistenciaProfesorPage() {
   const session = await auth();
   if (!session || session.user.rol !== "PROFESOR") {
     redirect("/auth/login");
+  }
+
+  const bloques = await accionListarBloquesDeHoy();
+
+  // Al entrar, se abre directo la primera clase del día en vez de una pantalla vacía.
+  let sesionInicial: SesionAsistenciaProps | null = null;
+  let rosterInicial: FilaRoster[] = [];
+  if (bloques.length > 0) {
+    const resultado = await accionAbrirSesion(bloques[0].bloqueHorarioId);
+    if (resultado.ok) {
+      sesionInicial = resultado.sesion;
+      rosterInicial = await accionListarRoster(resultado.sesion.id, bloques[0].seccionId);
+    }
   }
 
   return (
@@ -20,26 +33,7 @@ export default async function AsistenciaProfesorPage() {
         </p>
       </div>
 
-      <Card className="max-w-xl">
-        <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ScanFace className="size-6" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-medium">La vista en vivo de asistencia está en construcción</p>
-            <p className="text-sm text-muted-foreground">
-              Aquí verás, por bloque de hoy, la lista de tus alumnos con su estado de asistencia
-              actualizándose en tiempo real.
-            </p>
-          </div>
-          <Link
-            href="/profesores/dashboard/asistencia/camara"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            Conectar cámara
-          </Link>
-        </CardContent>
-      </Card>
+      <AsistenciaHoy bloques={bloques} sesionInicial={sesionInicial} rosterInicial={rosterInicial} />
     </div>
   );
 }
