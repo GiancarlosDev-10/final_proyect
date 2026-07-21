@@ -1,11 +1,13 @@
 import { ISeccionRepositorio } from "@/modulos/secciones/aplicacion/i-seccion-repositorio";
 import { Seccion, SeccionNoEncontradaError } from "@/modulos/secciones/dominio/seccion";
+import { NivelEducativo } from "@/config/constantes";
 import { Result, ok, err } from "@/compartido/lib/result";
 
 export interface ActualizarSeccionDTO {
   id: string;
   nombre: string;
   grado: string;
+  nivel: NivelEducativo;
   anio: number;
   activo: boolean;
 }
@@ -23,6 +25,7 @@ export async function actualizarSeccion(
     id: seccion.id,
     nombre: datos.nombre,
     grado: datos.grado,
+    nivel: datos.nivel,
     anio: datos.anio,
     activo: datos.activo,
     creadoEn: seccion.creadoEn,

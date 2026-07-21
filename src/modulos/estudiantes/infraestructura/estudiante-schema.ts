@@ -11,6 +11,10 @@ export interface IEstudianteDocument {
     parentesco: string;
   };
   activo: boolean;
+  fotoBase64: string | null;
+  fotoContentType: string | null;
+  encodingFacial: number[] | null;
+  encodingActualizadoEn: string | null;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -27,6 +31,10 @@ const EstudianteSchema = new Schema<IEstudianteDocument>(
       parentesco: { type: String, required: true },
     },
     activo: { type: Boolean, default: true },
+    fotoBase64: { type: String, default: null },
+    fotoContentType: { type: String, default: null },
+    encodingFacial: { type: [Number], default: null },
+    encodingActualizadoEn: { type: String, default: null },
     creadoEn: { type: String, required: true },
     actualizadoEn: { type: String, required: true },
   },

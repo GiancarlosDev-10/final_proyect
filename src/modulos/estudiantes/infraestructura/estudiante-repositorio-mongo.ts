@@ -15,6 +15,10 @@ export class EstudianteRepositorioMongo implements IEstudianteRepositorio {
       fechaNacimiento: doc.fechaNacimiento,
       apoderado: doc.apoderado,
       activo: doc.activo,
+      fotoBase64: doc.fotoBase64 ?? null,
+      fotoContentType: doc.fotoContentType ?? null,
+      encodingFacial: doc.encodingFacial ?? null,
+      encodingActualizadoEn: doc.encodingActualizadoEn ?? null,
       creadoEn: doc.creadoEn,
       actualizadoEn: doc.actualizadoEn,
     });
@@ -33,6 +37,10 @@ export class EstudianteRepositorioMongo implements IEstudianteRepositorio {
           fechaNacimiento: doc.fechaNacimiento,
           apoderado: doc.apoderado,
           activo: doc.activo,
+          fotoBase64: doc.fotoBase64 ?? null,
+          fotoContentType: doc.fotoContentType ?? null,
+          encodingFacial: doc.encodingFacial ?? null,
+          encodingActualizadoEn: doc.encodingActualizadoEn ?? null,
           creadoEn: doc.creadoEn,
           actualizadoEn: doc.actualizadoEn,
         })
@@ -51,6 +59,10 @@ export class EstudianteRepositorioMongo implements IEstudianteRepositorio {
           fechaNacimiento: doc.fechaNacimiento,
           apoderado: doc.apoderado,
           activo: doc.activo,
+          fotoBase64: doc.fotoBase64 ?? null,
+          fotoContentType: doc.fotoContentType ?? null,
+          encodingFacial: doc.encodingFacial ?? null,
+          encodingActualizadoEn: doc.encodingActualizadoEn ?? null,
           creadoEn: doc.creadoEn,
           actualizadoEn: doc.actualizadoEn,
         })
@@ -66,6 +78,10 @@ export class EstudianteRepositorioMongo implements IEstudianteRepositorio {
       fechaNacimiento: estudiante.fechaNacimiento,
       apoderado: estudiante.apoderado,
       activo: estudiante.activo,
+      fotoBase64: estudiante.fotoBase64,
+      fotoContentType: estudiante.fotoContentType,
+      encodingFacial: estudiante.encodingFacial,
+      encodingActualizadoEn: estudiante.encodingActualizadoEn,
       creadoEn: estudiante.creadoEn,
       actualizadoEn: estudiante.actualizadoEn,
     });
@@ -79,6 +95,10 @@ export class EstudianteRepositorioMongo implements IEstudianteRepositorio {
       fechaNacimiento: estudiante.fechaNacimiento,
       apoderado: estudiante.apoderado,
       activo: estudiante.activo,
+      fotoBase64: estudiante.fotoBase64,
+      fotoContentType: estudiante.fotoContentType,
+      encodingFacial: estudiante.encodingFacial,
+      encodingActualizadoEn: estudiante.encodingActualizadoEn,
       actualizadoEn: estudiante.actualizadoEn,
     });
   }

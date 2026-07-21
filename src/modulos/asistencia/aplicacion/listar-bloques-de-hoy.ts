@@ -3,6 +3,7 @@ import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asig
 import { ISeccionRepositorio } from "@/modulos/secciones/aplicacion/i-seccion-repositorio";
 import { ICursoRepositorio } from "@/modulos/cursos/aplicacion/i-curso-repositorio";
 import { diaSemanaDeHoy } from "@/modulos/asistencia/dominio/tiempo";
+import { NIVELES_EDUCATIVOS } from "@/config/constantes";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { ErrorDominio } from "@/compartido/dominio/errores";
 
@@ -13,11 +14,6 @@ export interface BloqueDeHoy {
   seccionNombre: string;
   horaInicio: string;
   horaFin: string;
-}
-
-/** Inicial no participa de la asistencia por cámara — sus secciones usan grados tipo "3 años". */
-function esNivelConAsistencia(grado: string): boolean {
-  return !grado.includes("años");
 }
 
 export async function listarBloquesDeHoy(
@@ -50,7 +46,7 @@ export async function listarBloquesDeHoy(
       const asignacion = asignacionPorId.get(bloque.asignacionId);
       if (!asignacion) continue;
       const seccion = seccionPorId.get(asignacion.seccionId);
-      if (!seccion || !esNivelConAsistencia(seccion.grado)) continue;
+      if (!seccion || seccion.nivel === NIVELES_EDUCATIVOS.INICIAL) continue;
       const curso = cursoPorId.get(asignacion.cursoId);
       if (!curso) continue;
 

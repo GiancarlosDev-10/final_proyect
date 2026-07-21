@@ -197,6 +197,10 @@ export class FakeBloqueHorarioRepositorio implements IBloqueHorarioRepositorio {
     return this.bloques.filter((b) => b.profesorId === profesorId);
   }
 
+  async listarPorAsignaciones(asignacionIds: string[]): Promise<BloqueHorario[]> {
+    return this.bloques.filter((b) => asignacionIds.includes(b.asignacionId));
+  }
+
   async crear(bloque: BloqueHorario): Promise<void> {
     this.bloques.push(bloque);
   }
@@ -392,6 +396,7 @@ export function crearSeccion(overrides: Partial<SeccionProps> = {}): Seccion {
     id: "SEC-1",
     nombre: "A",
     grado: "1°",
+    nivel: "PRIMARIA",
     anio: 2026,
     activo: true,
     creadoEn: AHORA,
@@ -432,6 +437,10 @@ export function crearEstudiante(overrides: Partial<EstudianteProps> = {}): Estud
     fechaNacimiento: "2013-05-10",
     apoderado: { nombre: "José Flores", telefono: "999999999", parentesco: "Padre" },
     activo: true,
+    fotoBase64: null,
+    fotoContentType: null,
+    encodingFacial: null,
+    encodingActualizadoEn: null,
     creadoEn: AHORA,
     actualizadoEn: AHORA,
     ...overrides,

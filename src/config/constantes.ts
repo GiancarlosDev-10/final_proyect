@@ -55,6 +55,26 @@ export const ORDEN_DIAS_SEMANA: DiaSemana[] = [
   DIAS_SEMANA.VIERNES,
 ];
 
+export const NIVELES_EDUCATIVOS = {
+  INICIAL: "INICIAL",
+  PRIMARIA: "PRIMARIA",
+  SECUNDARIA: "SECUNDARIA",
+} as const;
+
+export type NivelEducativo = (typeof NIVELES_EDUCATIVOS)[keyof typeof NIVELES_EDUCATIVOS];
+
+export const ORDEN_NIVELES_EDUCATIVOS: NivelEducativo[] = [
+  NIVELES_EDUCATIVOS.INICIAL,
+  NIVELES_EDUCATIVOS.PRIMARIA,
+  NIVELES_EDUCATIVOS.SECUNDARIA,
+];
+
+export const ETIQUETAS_NIVEL_EDUCATIVO: Record<NivelEducativo, string> = {
+  INICIAL: "Inicial",
+  PRIMARIA: "Primaria",
+  SECUNDARIA: "Secundaria",
+};
+
 export const ESTADOS_ASISTENCIA = {
   PRESENTE: "PRESENTE",
   TARDANZA: "TARDANZA",

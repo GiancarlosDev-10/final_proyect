@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
 import { accionCrearSeccion, accionActualizarSeccion, accionEliminarSeccion } from "@/modulos/secciones/presentacion/acciones";
+import { NIVELES_EDUCATIVOS, ETIQUETAS_NIVEL_EDUCATIVO, NivelEducativo } from "@/config/constantes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +40,7 @@ function TarjetaSeccion({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{seccion.grado} {seccion.nombre}</p>
-          <p className="truncate text-sm text-muted-foreground">Año {seccion.anio}</p>
+          <p className="truncate text-sm text-muted-foreground">{ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]} · Año {seccion.anio}</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
@@ -75,18 +77,19 @@ export function TablaSecciones({ secciones }: Props) {
   const [form, setForm] = useState({
     nombre: "",
     grado: "",
+    nivel: NIVELES_EDUCATIVOS.PRIMARIA as NivelEducativo,
     anio: new Date().getFullYear().toString(),
   });
 
   function abrirCrear() {
     setEditando(null);
-    setForm({ nombre: "", grado: "", anio: new Date().getFullYear().toString() });
+    setForm({ nombre: "", grado: "", nivel: NIVELES_EDUCATIVOS.PRIMARIA, anio: new Date().getFullYear().toString() });
     setAbierto(true);
   }
 
   function abrirEditar(seccion: SeccionProps) {
     setEditando(seccion);
-    setForm({ nombre: seccion.nombre, grado: seccion.grado, anio: seccion.anio.toString() });
+    setForm({ nombre: seccion.nombre, grado: seccion.grado, nivel: seccion.nivel, anio: seccion.anio.toString() });
     setAbierto(true);
   }
 
@@ -99,6 +102,7 @@ export function TablaSecciones({ secciones }: Props) {
         id: editando.id,
         nombre: form.nombre,
         grado: form.grado,
+        nivel: form.nivel,
         anio: parseInt(form.anio),
         activo: editando.activo,
       });
@@ -106,6 +110,7 @@ export function TablaSecciones({ secciones }: Props) {
       resultado = await accionCrearSeccion({
         nombre: form.nombre,
         grado: form.grado,
+        nivel: form.nivel,
         anio: parseInt(form.anio),
       });
     }
@@ -155,6 +160,7 @@ export function TablaSecciones({ secciones }: Props) {
               <TableRow>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Grado</TableHead>
+                <TableHead>Nivel</TableHead>
                 <TableHead>Año</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
@@ -165,6 +171,7 @@ export function TablaSecciones({ secciones }: Props) {
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">{s.nombre}</TableCell>
                   <TableCell className="text-muted-foreground">{s.grado}</TableCell>
+                  <TableCell className="text-muted-foreground">{ETIQUETAS_NIVEL_EDUCATIVO[s.nivel]}</TableCell>
                   <TableCell className="text-muted-foreground">{s.anio}</TableCell>
                   <TableCell>
                     {s.activo ? (
@@ -189,7 +196,7 @@ export function TablaSecciones({ secciones }: Props) {
               ))}
               {secciones.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     No hay secciones registradas.
                   </TableCell>
                 </TableRow>
@@ -220,6 +227,21 @@ export function TablaSecciones({ secciones }: Props) {
                 onChange={(e) => setForm({ ...form, grado: e.target.value })}
                 placeholder="Ej: 1°"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Nivel</Label>
+              <Select value={form.nivel} onValueChange={(v) => v && setForm({ ...form, nivel: v as NivelEducativo })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar nivel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(NIVELES_EDUCATIVOS).map((nivel) => (
+                    <SelectItem key={nivel} value={nivel}>
+                      {ETIQUETAS_NIVEL_EDUCATIVO[nivel]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Año</Label>

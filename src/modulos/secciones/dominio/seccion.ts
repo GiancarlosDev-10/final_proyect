@@ -1,4 +1,5 @@
 import { ErrorDominio } from "@/compartido/dominio/errores";
+import { NivelEducativo } from "@/config/constantes";
 
 export class SeccionNoEncontradaError extends ErrorDominio {
   readonly codigo = "SECCION_NO_ENCONTRADA";
@@ -11,6 +12,7 @@ export interface SeccionProps {
   id: string;
   nombre: string;
   grado: string;
+  nivel: NivelEducativo;
   anio: number;
   activo: boolean;
   creadoEn: string;
@@ -21,6 +23,7 @@ export class Seccion {
   readonly id: string;
   readonly nombre: string;
   readonly grado: string;
+  readonly nivel: NivelEducativo;
   readonly anio: number;
   readonly activo: boolean;
   readonly creadoEn: string;
@@ -30,6 +33,7 @@ export class Seccion {
     this.id = props.id;
     this.nombre = props.nombre;
     this.grado = props.grado;
+    this.nivel = props.nivel;
     this.anio = props.anio;
     this.activo = props.activo;
     this.creadoEn = props.creadoEn;
@@ -41,6 +45,7 @@ export class Seccion {
       id: this.id,
       nombre: this.nombre,
       grado: this.grado,
+      nivel: this.nivel,
       anio: this.anio,
       activo: this.activo,
       creadoEn: this.creadoEn,

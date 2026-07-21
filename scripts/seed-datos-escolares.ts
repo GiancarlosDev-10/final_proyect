@@ -248,20 +248,20 @@ async function main() {
   const seccionesInicial: SeccionInfo[] = [];
   const seccionesPrimaria: SeccionInfo[] = [];
   const seccionesSecundaria: SeccionInfo[] = [];
-  const seccionesDocs: Array<{ _id: string; nombre: string; grado: string; anio: number; activo: boolean; creadoEn: string; actualizadoEn: string }> = [];
+  const seccionesDocs: Array<{ _id: string; nombre: string; grado: string; nivel: string; anio: number; activo: boolean; creadoEn: string; actualizadoEn: string }> = [];
 
-  function crearSecciones(grados: string[], destino: SeccionInfo[]) {
+  function crearSecciones(grados: string[], nivel: "INICIAL" | "PRIMARIA" | "SECUNDARIA", destino: SeccionInfo[]) {
     for (const grado of grados) {
       for (const nombreSeccion of NOMBRES_SECCION) {
         const id = generarId("SEC");
         destino.push({ id, grado, nombreSeccion });
-        seccionesDocs.push({ _id: id, nombre: nombreSeccion, grado, anio: ANIO, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
+        seccionesDocs.push({ _id: id, nombre: nombreSeccion, grado, nivel, anio: ANIO, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
       }
     }
   }
-  crearSecciones(GRADOS_INICIAL, seccionesInicial);
-  crearSecciones(GRADOS_PRIMARIA, seccionesPrimaria);
-  crearSecciones(GRADOS_SECUNDARIA, seccionesSecundaria);
+  crearSecciones(GRADOS_INICIAL, "INICIAL", seccionesInicial);
+  crearSecciones(GRADOS_PRIMARIA, "PRIMARIA", seccionesPrimaria);
+  crearSecciones(GRADOS_SECUNDARIA, "SECUNDARIA", seccionesSecundaria);
   await SeccionModel.insertMany(seccionesDocs);
   console.log(`${seccionesDocs.length} secciones creadas (${seccionesInicial.length} inicial, ${seccionesPrimaria.length} primaria, ${seccionesSecundaria.length} secundaria).`);
 

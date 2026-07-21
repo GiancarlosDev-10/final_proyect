@@ -27,6 +27,10 @@ export async function actualizarEstudiante(
     fechaNacimiento: datos.fechaNacimiento,
     apoderado: datos.apoderado,
     activo: datos.activo,
+    fotoBase64: estudiante.fotoBase64,
+    fotoContentType: estudiante.fotoContentType,
+    encodingFacial: estudiante.encodingFacial,
+    encodingActualizadoEn: estudiante.encodingActualizadoEn,
     creadoEn: estudiante.creadoEn,
     actualizadoEn: ahora,
   });

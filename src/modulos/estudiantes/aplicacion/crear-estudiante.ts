@@ -25,6 +25,10 @@ export async function crearEstudiante(
       fechaNacimiento: datos.fechaNacimiento,
       apoderado: datos.apoderado,
       activo: true,
+      fotoBase64: null,
+      fotoContentType: null,
+      encodingFacial: null,
+      encodingActualizadoEn: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });

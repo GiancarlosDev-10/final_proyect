@@ -38,6 +38,25 @@ export class BloqueHorarioRepositorioMongo implements IBloqueHorarioRepositorio 
     );
   }
 
+  async listarPorAsignaciones(asignacionIds: string[]): Promise<BloqueHorario[]> {
+    await conectarMongoDB();
+    if (asignacionIds.length === 0) return [];
+    const docs = await BloqueHorarioModel.find({ asignacionId: { $in: asignacionIds } }).lean();
+    return docs.map(
+      (doc) =>
+        new BloqueHorario({
+          id: doc._id,
+          asignacionId: doc.asignacionId,
+          profesorId: doc.profesorId,
+          diaSemana: doc.diaSemana,
+          horaInicio: doc.horaInicio,
+          horaFin: doc.horaFin,
+          creadoEn: doc.creadoEn,
+          actualizadoEn: doc.actualizadoEn,
+        })
+    );
+  }
+
   async crear(bloque: BloqueHorario): Promise<void> {
     await conectarMongoDB();
     await BloqueHorarioModel.create({
