@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, MoreVertical, Search, Upload } from "lucide-react
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { EstudianteResumen } from "@/modulos/estudiantes/aplicacion/listar-estudiantes-por-seccion";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
+import { compararSecciones } from "@/modulos/secciones/dominio/orden-secciones";
 import {
   accionCrearEstudianteEnSeccion,
   accionActualizarEstudiante,
@@ -22,7 +23,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,23 +33,12 @@ import {
 
 interface Props {
   secciones: SeccionProps[];
+  seccionInicialId: string;
+  estudiantesIniciales: EstudianteResumen[];
 }
 
 const LADO_MAXIMO_FOTO = 480;
 const CALIDAD_JPEG_FOTO = 0.85;
-
-function numeroDeGrado(grado: string): number {
-  const match = grado.match(/\d+/);
-  return match ? Number(match[0]) : 0;
-}
-
-function compararSecciones(a: SeccionProps, b: SeccionProps): number {
-  const nivelDiff = ORDEN_NIVELES_EDUCATIVOS.indexOf(a.nivel) - ORDEN_NIVELES_EDUCATIVOS.indexOf(b.nivel);
-  if (nivelDiff !== 0) return nivelDiff;
-  const gradoDiff = numeroDeGrado(a.grado) - numeroDeGrado(b.grado);
-  if (gradoDiff !== 0) return gradoDiff;
-  return a.nombre.localeCompare(b.nombre);
-}
 
 /** Redimensiona/comprime en el navegador antes de subir, para no acumular fotos pesadas en Mongo. */
 function comprimirImagen(archivo: File): Promise<Blob> {
@@ -129,9 +119,10 @@ function TarjetaEstudiante({
   );
 }
 
-export function TablaEstudiantes({ secciones }: Props) {
-  const [seccionId, setSeccionId] = useState("");
-  const [estudiantes, setEstudiantes] = useState<EstudianteResumen[]>([]);
+export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesIniciales }: Props) {
+  const [nivel, setNivel] = useState<NivelEducativo>(NIVELES_EDUCATIVOS.INICIAL);
+  const [seccionId, setSeccionId] = useState(seccionInicialId);
+  const [estudiantes, setEstudiantes] = useState<EstudianteResumen[]>(estudiantesIniciales);
   const [cargandoRoster, setCargandoRoster] = useState(false);
   const [cargandoEditarId, setCargandoEditarId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -151,14 +142,10 @@ export function TablaEstudiantes({ secciones }: Props) {
   });
 
   const seccionesOrdenadas = useMemo(() => [...secciones].sort(compararSecciones), [secciones]);
-  const seccionesPorNivel = useMemo(() => {
-    const grupos = new Map<NivelEducativo, SeccionProps[]>();
-    for (const s of seccionesOrdenadas) {
-      if (!grupos.has(s.nivel)) grupos.set(s.nivel, []);
-      grupos.get(s.nivel)!.push(s);
-    }
-    return grupos;
-  }, [seccionesOrdenadas]);
+  const seccionesDelNivel = useMemo(
+    () => seccionesOrdenadas.filter((s) => s.nivel === nivel),
+    [seccionesOrdenadas, nivel]
+  );
   const seccionActual = secciones.find((s) => s.id === seccionId) ?? null;
   const permiteFoto = seccionActual !== null && seccionActual.nivel !== NIVELES_EDUCATIVOS.INICIAL;
 
@@ -180,6 +167,12 @@ export function TablaEstudiantes({ secciones }: Props) {
     setBusqueda("");
     if (id) cargarRoster(id);
     else setEstudiantes([]);
+  }
+
+  function onCambiarNivel(nuevoNivel: NivelEducativo) {
+    setNivel(nuevoNivel);
+    const primeraSeccion = seccionesOrdenadas.find((s) => s.nivel === nuevoNivel);
+    onCambiarSeccion(primeraSeccion ? primeraSeccion.id : "");
   }
 
   function abrirCrear() {
@@ -286,6 +279,11 @@ export function TablaEstudiantes({ secciones }: Props) {
     }
   }
 
+  function nombreSeccionSeleccionada(id: string) {
+    const s = secciones.find((s) => s.id === id);
+    return s ? `${s.grado} ${s.nombre}` : "";
+  }
+
   const estudiantesFiltrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
     if (!termino) return estudiantes;
@@ -296,37 +294,35 @@ export function TablaEstudiantes({ secciones }: Props) {
 
   return (
     <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Estudiantes</h1>
-          <p className="text-sm text-muted-foreground">Administra la información de los estudiantes matriculados.</p>
-        </div>
-        <Button onClick={abrirCrear} disabled={!seccionActual}>
-          <Plus className="size-4" />
-          Nuevo estudiante
-        </Button>
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Estudiantes</h1>
+        <p className="text-sm text-muted-foreground">Administra la información de los estudiantes matriculados.</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={seccionId} onValueChange={(v) => v && onCambiarSeccion(v)}>
-          <SelectTrigger className="w-full sm:w-64">
+        <Select value={nivel} onValueChange={(v) => v && onCambiarNivel(v as NivelEducativo)} itemToStringLabel={(v) => ETIQUETAS_NIVEL_EDUCATIVO[v as NivelEducativo]}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Selecciona un nivel" />
+          </SelectTrigger>
+          <SelectContent>
+            {ORDEN_NIVELES_EDUCATIVOS.map((n) => (
+              <SelectItem key={n} value={n}>
+                {ETIQUETAS_NIVEL_EDUCATIVO[n]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={seccionId} onValueChange={(v) => v && onCambiarSeccion(v)} itemToStringLabel={nombreSeccionSeleccionada}>
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Selecciona una sección" />
           </SelectTrigger>
           <SelectContent>
-            {ORDEN_NIVELES_EDUCATIVOS.map((nivel) => {
-              const secs = seccionesPorNivel.get(nivel);
-              if (!secs || secs.length === 0) return null;
-              return (
-                <SelectGroup key={nivel}>
-                  <SelectLabel>{ETIQUETAS_NIVEL_EDUCATIVO[nivel]}</SelectLabel>
-                  {secs.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.grado} {s.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              );
-            })}
+            {seccionesDelNivel.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.grado} {s.nombre}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -341,6 +337,11 @@ export function TablaEstudiantes({ secciones }: Props) {
             />
           </div>
         )}
+
+        <Button onClick={abrirCrear} disabled={!seccionActual}>
+          <Plus className="size-4" />
+          Nuevo estudiante
+        </Button>
       </div>
 
       {!seccionActual ? (
