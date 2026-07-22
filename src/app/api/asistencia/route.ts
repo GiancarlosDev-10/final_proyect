@@ -9,11 +9,10 @@ import { SesionAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestr
 import { RegistroAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestructura/registro-asistencia-repositorio-mongo";
 
 /**
- * Llamado por el script de Python de reconocimiento facial (sin sesión de
- * NextAuth) apenas identifica a un alumno en un frame. Distinto de
- * /api/asistencia/captura, que solo recibe el frame crudo: este endpoint ya
- * recibe el estudianteId resuelto y se encarga de ubicar su clase actual y
- * marcar la asistencia.
+ * Llamado por el servicio de Python de reconocimiento facial (sin sesión de
+ * NextAuth) apenas identifica a un alumno con confianza suficiente. Recibe el
+ * estudianteId ya resuelto y se encarga de ubicar su clase actual y marcar la
+ * asistencia.
  */
 export async function POST(request: NextRequest) {
   if (!verificarSecretoAsistencia(request)) {

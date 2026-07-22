@@ -1,0 +1,18 @@
+services:
+  reconocimiento:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+
+  # Túnel gratuito de Cloudflare: expone "reconocimiento" con HTTPS público
+  # sin necesitar un dominio propio. La URL aparece en los logs de este
+  # contenedor (docker compose logs tunel) y cambia cada vez que se reinicia.
+  tunel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --url http://reconocimiento:5000
+    depends_on:
+      - reconocimiento

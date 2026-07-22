@@ -23,10 +23,19 @@ function mensajeError(error: unknown): string {
   return "No se pudo acceder a la cámara.";
 }
 
+const URL_RECONOCIMIENTO = process.env.NEXT_PUBLIC_RECONOCIMIENTO_URL;
+
+interface ResultadoReconocimiento {
+  reconocido: string | null;
+  marcado?: boolean;
+  estado?: string;
+}
+
 export function ConectorCamara() {
   const [estado, setEstado] = useState<EstadoConexion>("inactivo");
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [framesEnviados, setFramesEnviados] = useState(0);
+  const [ultimoResultado, setUltimoResultado] = useState<ResultadoReconocimiento | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -46,7 +55,7 @@ export function ConectorCamara() {
   async function enviarFrame() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < video.HAVE_CURRENT_DATA) return;
+    if (!video || !canvas || video.readyState < video.HAVE_CURRENT_DATA || !URL_RECONOCIMIENTO) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -58,13 +67,14 @@ export function ConectorCamara() {
       async (blob) => {
         if (!blob) return;
         try {
-          const respuesta = await fetch("/api/asistencia/captura", {
+          const respuesta = await fetch(`${URL_RECONOCIMIENTO}/frame`, {
             method: "POST",
             headers: { "Content-Type": "image/jpeg" },
             body: blob,
           });
           if (respuesta.ok) {
             setFramesEnviados((n) => n + 1);
+            setUltimoResultado(await respuesta.json());
           }
         } catch {
           // Fallo de un frame puntual no detiene la sesión de captura.
@@ -76,8 +86,14 @@ export function ConectorCamara() {
   }
 
   async function conectarCamara() {
+    if (!URL_RECONOCIMIENTO) {
+      setMensaje("Falta configurar NEXT_PUBLIC_RECONOCIMIENTO_URL.");
+      setEstado("error");
+      return;
+    }
     setEstado("solicitando");
     setMensaje(null);
+    setUltimoResultado(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -138,6 +154,16 @@ export function ConectorCamara() {
             <p className="text-sm text-muted-foreground">{framesEnviados} frames enviados</p>
           )}
         </div>
+
+        {estado === "activo" && (
+          <p className="text-sm text-muted-foreground">
+            {ultimoResultado?.reconocido
+              ? ultimoResultado.marcado
+                ? `Reconocido: ${ultimoResultado.reconocido} → ${ultimoResultado.estado}`
+                : `Reconocido: ${ultimoResultado.reconocido} (confirmando...)`
+              : "Nadie reconocido todavía."}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
