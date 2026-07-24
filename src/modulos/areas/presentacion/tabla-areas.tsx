@@ -144,7 +144,7 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
       <div>
         <h1 className="font-heading text-2xl font-semibold">Áreas</h1>
         <p className="text-sm text-muted-foreground">Gestiona las áreas curriculares del colegio.</p>
@@ -179,21 +179,21 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
 
       <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Cursos</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="w-64">Nombre</TableHead>
+                <TableHead className="w-[28rem]">Cursos</TableHead>
+                <TableHead className="w-24 text-center">Estado</TableHead>
+                <TableHead className="w-64 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {areasFiltradas.map((a) => (
                 <TableRow key={a.id}>
-                  <TableCell className="font-medium">{a.nombre}</TableCell>
-                  <TableCell className="text-muted-foreground">{textoCursos(cursosPorArea[a.id])}</TableCell>
-                  <TableCell>
+                  <TableCell className="truncate font-medium">{a.nombre}</TableCell>
+                  <TableCell className="truncate text-muted-foreground">{textoCursos(cursosPorArea[a.id])}</TableCell>
+                  <TableCell className="text-center">
                     {a.activo ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
                     ) : (
@@ -201,7 +201,7 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => abrirEditar(a)}>
                         <Pencil className="size-3.5" />
                         Editar

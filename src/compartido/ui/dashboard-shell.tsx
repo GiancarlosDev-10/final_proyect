@@ -52,7 +52,7 @@ function SidebarFooter({ usuario }: { usuario: Props["usuario"] }) {
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-medium">{usuario.name}</p>
+        <p className="line-clamp-2 text-base leading-tight font-medium">{usuario.name}</p>
         <p className="truncate text-sm text-sidebar-foreground/60">{usuario.email}</p>
       </div>
       <BotonCerrarSesion />
@@ -77,7 +77,7 @@ export function DashboardShell({ subtitulo, navItems, usuario, children }: Props
 
   return (
     <div className="flex h-screen">
-      <aside className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
+      <aside className="hidden w-72 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
         <SidebarBrand subtitulo={subtitulo} />
         <Separator className="bg-sidebar-border" />
         <SidebarNav items={navItems} />

@@ -204,7 +204,7 @@ export function TablaUsuarios({ usuarios }: Props) {
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
       <div>
         <h1 className="font-heading text-2xl font-semibold">Usuarios</h1>
         <p className="text-sm text-muted-foreground">Administra las cuentas de acceso al sistema.</p>

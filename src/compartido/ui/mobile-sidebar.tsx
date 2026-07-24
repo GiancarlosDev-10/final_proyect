@@ -16,7 +16,7 @@ export function MobileSidebar({ open, onOpenChange, children }: MobileSidebarPro
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop
           className={cn(
-            "fixed inset-0 z-50 bg-black/30 duration-150 md:hidden",
+            "fixed inset-0 z-50 isolate bg-black/30 duration-200 md:hidden",
             "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
           )}
         />

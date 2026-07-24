@@ -309,7 +309,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
   );
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
       <div>
         <h1 className="font-heading text-2xl font-semibold">Estudiantes</h1>
         <p className="text-sm text-muted-foreground">Administra la información de los estudiantes matriculados.</p>
