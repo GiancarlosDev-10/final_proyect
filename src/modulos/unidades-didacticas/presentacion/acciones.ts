@@ -5,6 +5,7 @@ import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/peri
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
 import { listarUnidadesDidacticas } from "@/modulos/unidades-didacticas/aplicacion/listar-unidades-didacticas";
 import { generarUnidadesDidacticas, GenerarUnidadesDidacticasDTO } from "@/modulos/unidades-didacticas/aplicacion/generar-unidades-didacticas";
+import { generarUnidadesDidacticasPeriodo, GenerarUnidadesDidacticasPeriodoDTO } from "@/modulos/unidades-didacticas/aplicacion/generar-unidades-didacticas-periodo";
 import { actualizarUnidadDidactica, ActualizarUnidadDidacticaDTO } from "@/modulos/unidades-didacticas/aplicacion/actualizar-unidad-didactica";
 import { abrirUnidadDidactica } from "@/modulos/unidades-didacticas/aplicacion/abrir-unidad-didactica";
 import { cerrarUnidadDidactica } from "@/modulos/unidades-didacticas/aplicacion/cerrar-unidad-didactica";
@@ -35,6 +36,16 @@ export async function accionGenerarUnidadesDidacticas(datos: GenerarUnidadesDida
   const resultado = await generarUnidadesDidacticas(datos, repositorio, periodoRepositorio);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Unidades didácticas generadas correctamente" };
+}
+
+export async function accionGenerarUnidadesDidacticasPeriodo(datos: GenerarUnidadesDidacticasPeriodoDTO): Promise<{ ok: boolean; mensaje: string }> {
+  if (!(await requerirRol(ROLES.ADMIN))) return { ok: false, mensaje: "No autorizado" };
+  const repositorio = new UnidadDidacticaRepositorioMongo();
+  const periodoRepositorio = new PeriodoRepositorioMongo();
+  const cursoRepositorio = new CursoRepositorioMongo();
+  const resultado = await generarUnidadesDidacticasPeriodo(datos, cursoRepositorio, repositorio, periodoRepositorio);
+  if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
+  return { ok: true, mensaje: `${resultado.value.length} unidades didácticas generadas correctamente` };
 }
 
 export async function accionActualizarUnidadDidactica(datos: ActualizarUnidadDidacticaDTO): Promise<{ ok: boolean; mensaje: string }> {

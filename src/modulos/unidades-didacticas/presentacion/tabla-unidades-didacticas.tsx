@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, LockOpen, Lock, MoreVertical } from "lucide-react";
+import { Plus, Pencil, LockOpen, Lock, MoreVertical, Search, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
 import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import {
   accionGenerarUnidadesDidacticas,
+  accionGenerarUnidadesDidacticasPeriodo,
   accionActualizarUnidadDidactica,
   accionAbrirUnidadDidactica,
   accionCerrarUnidadDidactica,
@@ -32,6 +34,14 @@ interface Props {
   unidadesDidacticas: UnidadDidacticaProps[];
   periodos: PeriodoProps[];
   cursos: CursoProps[];
+}
+
+const TAMANO_PAGINA = 10;
+const TODOS_LOS_PERIODOS = "TODOS";
+
+function formatearFecha(fecha: string) {
+  const [, mes, dia] = fecha.split("-");
+  return `${dia}/${mes}`;
 }
 
 function TarjetaUnidadDidactica({
@@ -58,7 +68,7 @@ function TarjetaUnidadDidactica({
           </p>
           <p className="truncate text-sm text-muted-foreground">{nombrePeriodo(unidad.periodoId)}</p>
           <p className="truncate text-sm text-muted-foreground">
-            {unidad.fechaInicio} — {unidad.fechaFin}
+            {formatearFecha(unidad.fechaInicio)} — {formatearFecha(unidad.fechaFin)}
           </p>
         </div>
         <DropdownMenu>
@@ -98,16 +108,73 @@ function TarjetaUnidadDidactica({
 
 export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }: Props) {
   const router = useRouter();
+  const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [filtroPeriodoId, setFiltroPeriodoId] = useState(
+    () => periodos.find((p) => p.estado === "ABIERTO")?.id ?? TODOS_LOS_PERIODOS
+  );
+
   const [abiertoGenerar, setAbiertoGenerar] = useState(false);
+  const [abiertoGenerarPeriodo, setAbiertoGenerarPeriodo] = useState(false);
   const [abiertoEditar, setAbiertoEditar] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingGenerarPeriodo, setLoadingGenerarPeriodo] = useState(false);
   const [editando, setEditando] = useState<UnidadDidacticaProps | null>(null);
   const [formGenerar, setFormGenerar] = useState({ cursoId: "", periodoId: "" });
+  const [formGenerarPeriodo, setFormGenerarPeriodo] = useState({ periodoId: "" });
   const [formEditar, setFormEditar] = useState({ nombre: "", fechaInicio: "", fechaFin: "" });
+
+  function nombrePeriodo(id: string) {
+    const p = periodos.find((p) => p.id === id);
+    return p ? `${p.nombre} ${p.anio}` : "(periodo eliminado)";
+  }
+
+  function nombreCurso(id: string) {
+    return cursos.find((c) => c.id === id)?.nombre || "(curso eliminado)";
+  }
+
+  function etiquetaFiltroPeriodo(id: string) {
+    return id === TODOS_LOS_PERIODOS ? "Todos los periodos" : nombrePeriodo(id);
+  }
+
+  const unidadesFiltradas = useMemo(() => {
+    const termino = normalizarTexto(busqueda);
+    return unidadesDidacticas.filter((u) => {
+      if (filtroPeriodoId !== TODOS_LOS_PERIODOS && u.periodoId !== filtroPeriodoId) return false;
+      if (!termino) return true;
+      return (
+        normalizarTexto(nombreCurso(u.cursoId)).includes(termino) ||
+        normalizarTexto(nombrePeriodo(u.periodoId)).includes(termino)
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidadesDidacticas, busqueda, filtroPeriodoId, cursos, periodos]);
+
+  const totalPaginas = Math.max(1, Math.ceil(unidadesFiltradas.length / TAMANO_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const unidadesPagina = useMemo(
+    () => unidadesFiltradas.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [unidadesFiltradas, paginaActual]
+  );
+
+  function onCambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
+  }
+
+  function onCambiarFiltroPeriodo(valor: string) {
+    setFiltroPeriodoId(valor);
+    setPagina(1);
+  }
 
   function abrirGenerar() {
     setFormGenerar({ cursoId: "", periodoId: "" });
     setAbiertoGenerar(true);
+  }
+
+  function abrirGenerarPeriodo() {
+    setFormGenerarPeriodo({ periodoId: filtroPeriodoId !== TODOS_LOS_PERIODOS ? filtroPeriodoId : "" });
+    setAbiertoGenerarPeriodo(true);
   }
 
   function abrirEditar(unidadDidactica: UnidadDidacticaProps) {
@@ -118,15 +185,6 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
       fechaFin: unidadDidactica.fechaFin,
     });
     setAbiertoEditar(true);
-  }
-
-  function nombrePeriodo(id: string) {
-    const p = periodos.find((p) => p.id === id);
-    return p ? `${p.nombre} ${p.anio}` : "(periodo eliminado)";
-  }
-
-  function nombreCurso(id: string) {
-    return cursos.find((c) => c.id === id)?.nombre || "(curso eliminado)";
   }
 
   async function onGenerar() {
@@ -140,6 +198,19 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
       toast.error(resultado.mensaje);
     }
     setLoading(false);
+  }
+
+  async function onGenerarPeriodo() {
+    setLoadingGenerarPeriodo(true);
+    const resultado = await accionGenerarUnidadesDidacticasPeriodo(formGenerarPeriodo);
+    if (resultado.ok) {
+      toast.success(resultado.mensaje);
+      setAbiertoGenerarPeriodo(false);
+      router.refresh();
+    } else {
+      toast.error(resultado.mensaje);
+    }
+    setLoadingGenerarPeriodo(false);
   }
 
   async function onEditar() {
@@ -169,14 +240,43 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Unidades Didácticas</h1>
-          <p className="text-sm text-muted-foreground">
-            Cada curso tiene Unidad 1 y Unidad 2 por bimestre, generadas automáticamente a partir de las fechas del periodo.
-          </p>
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Unidades Didácticas</h1>
+        <p className="text-sm text-muted-foreground">
+          Cada curso tiene Unidad 1 y Unidad 2 por periodo. Se abre automáticamente la que incluye la fecha de hoy.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busqueda}
+            onChange={(e) => onCambiarBusqueda(e.target.value)}
+            placeholder="Buscar por curso o periodo..."
+            className="pl-8"
+          />
         </div>
+        <Select
+          value={filtroPeriodoId}
+          onValueChange={(v) => onCambiarFiltroPeriodo(v ?? TODOS_LOS_PERIODOS)}
+          itemToStringLabel={etiquetaFiltroPeriodo}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Periodo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS_LOS_PERIODOS}>Todos los periodos</SelectItem>
+            {periodos.map((p) => (
+              <SelectItem key={p.id} value={p.id}>{p.nombre} {p.anio}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" onClick={abrirGenerarPeriodo}>
+          <CalendarPlus className="size-4" />
+          Generar unidades del periodo
+        </Button>
         <Button onClick={abrirGenerar}>
           <Plus className="size-4" />
           Generar para un curso
@@ -184,7 +284,7 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
       </div>
 
       <div className="space-y-3 md:hidden">
-        {unidadesDidacticas.map((u) => (
+        {unidadesPagina.map((u) => (
           <TarjetaUnidadDidactica
             key={u.id}
             unidad={u}
@@ -195,32 +295,36 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
             onCerrar={onCerrar}
           />
         ))}
-        {unidadesDidacticas.length === 0 && (
-          <p className="p-6 text-center text-sm text-muted-foreground">No hay unidades didácticas registradas.</p>
+        {unidadesFiltradas.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">
+            {unidadesDidacticas.length === 0
+              ? "No hay unidades didácticas registradas."
+              : "Ninguna unidad coincide con el filtro."}
+          </p>
         )}
       </div>
 
       <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Curso</TableHead>
-                <TableHead>Unidad</TableHead>
-                <TableHead>Periodo</TableHead>
-                <TableHead>Fechas</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="w-48">Curso</TableHead>
+                <TableHead className="w-24">Unidad</TableHead>
+                <TableHead className="w-36">Periodo</TableHead>
+                <TableHead className="w-32">Fechas</TableHead>
+                <TableHead className="w-28 text-center">Estado</TableHead>
+                <TableHead className="w-64 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {unidadesDidacticas.map((u) => (
+              {unidadesPagina.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">{nombreCurso(u.cursoId)}</TableCell>
-                  <TableCell>{u.nombre}</TableCell>
-                  <TableCell className="text-muted-foreground">{nombrePeriodo(u.periodoId)}</TableCell>
-                  <TableCell className="text-muted-foreground">{u.fechaInicio} — {u.fechaFin}</TableCell>
-                  <TableCell>
+                  <TableCell className="truncate font-medium">{nombreCurso(u.cursoId)}</TableCell>
+                  <TableCell className="text-muted-foreground">{u.nombre}</TableCell>
+                  <TableCell className="truncate text-muted-foreground">{nombrePeriodo(u.periodoId)}</TableCell>
+                  <TableCell className="truncate text-muted-foreground">{formatearFecha(u.fechaInicio)} — {formatearFecha(u.fechaFin)}</TableCell>
+                  <TableCell className="text-center">
                     {u.estado === "ABIERTO" ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Abierto</Badge>
                     ) : (
@@ -228,7 +332,7 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => abrirEditar(u)}>
                         <Pencil className="size-3.5" />
                         Editar
@@ -249,10 +353,12 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
                   </TableCell>
                 </TableRow>
               ))}
-              {unidadesDidacticas.length === 0 && (
+              {unidadesFiltradas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    No hay unidades didácticas registradas.
+                    {unidadesDidacticas.length === 0
+                      ? "No hay unidades didácticas registradas."
+                      : "Ninguna unidad coincide con el filtro."}
                   </TableCell>
                 </TableRow>
               )}
@@ -260,6 +366,36 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
           </Table>
         </CardContent>
       </Card>
+
+      {unidadesFiltradas.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
+            {Math.min(paginaActual * TAMANO_PAGINA, unidadesFiltradas.length)} de {unidadesFiltradas.length} unidades
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p - 1)}
+              disabled={paginaActual <= 1}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-medium">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p + 1)}
+              disabled={paginaActual >= totalPaginas}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={abiertoGenerar} onOpenChange={setAbiertoGenerar}>
         <DialogContent>
@@ -294,7 +430,8 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
               </Select>
             </div>
             <p className="text-sm text-muted-foreground">
-              Las fechas de Unidad 1 y Unidad 2 se calculan automáticamente dividiendo el bimestre en 2 meses. Si ya existen para este curso y periodo, no se duplican.
+              Las fechas de Unidad 1 y Unidad 2 se calculan automáticamente dividiendo el periodo en 2 meses, y se
+              abre la que incluye la fecha de hoy. Si ya existen para este curso y periodo, no se duplican.
             </p>
           </div>
           <DialogFooter>
@@ -303,6 +440,45 @@ export function TablaUnidadesDidacticas({ unidadesDidacticas, periodos, cursos }
             </Button>
             <Button onClick={onGenerar} disabled={loading || !formGenerar.cursoId || !formGenerar.periodoId}>
               {loading ? "Generando..." : "Generar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={abiertoGenerarPeriodo} onOpenChange={setAbiertoGenerarPeriodo}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generar unidades del periodo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Crea Unidad 1 y Unidad 2 para todos los cursos activos en el periodo elegido, de una sola vez. Si algún
+              curso ya las tiene, se dejan tal cual (no se duplican).
+            </p>
+            <div className="space-y-2">
+              <Label>Periodo</Label>
+              <Select
+                value={formGenerarPeriodo.periodoId}
+                onValueChange={(v) => setFormGenerarPeriodo({ periodoId: v ?? "" })}
+                itemToStringLabel={nombrePeriodo}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar periodo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nombre} {p.anio}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAbiertoGenerarPeriodo(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={onGenerarPeriodo} disabled={loadingGenerarPeriodo || !formGenerarPeriodo.periodoId}>
+              {loadingGenerarPeriodo ? "Generando..." : "Generar"}
             </Button>
           </DialogFooter>
         </DialogContent>

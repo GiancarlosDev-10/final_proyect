@@ -2,11 +2,16 @@ import { IUnidadDidacticaRepositorio } from "@/modulos/unidades-didacticas/aplic
 import { IPeriodoRepositorio } from "@/modulos/periodos/aplicacion/i-periodo-repositorio";
 import { UnidadDidactica } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 import { PeriodoNoEncontradoError } from "@/modulos/periodos/dominio/periodo";
-import { calcularFechasUnidadesDidacticas } from "@/modulos/unidades-didacticas/dominio/calcular-fechas-unidades";
+import { calcularFechasUnidadesDidacticas, RangoFechas } from "@/modulos/unidades-didacticas/dominio/calcular-fechas-unidades";
+import { fechaDeHoyISO } from "@/modulos/asistencia/dominio/tiempo";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { generarId } from "@/compartido/lib/uuid";
 import { ESTADOS_UNIDAD_DIDACTICA } from "@/config/constantes";
 import { ErrorDominio } from "@/compartido/dominio/errores";
+
+function estadoSegunFecha(rango: RangoFechas, hoy: string): typeof ESTADOS_UNIDAD_DIDACTICA[keyof typeof ESTADOS_UNIDAD_DIDACTICA] {
+  return hoy >= rango.fechaInicio && hoy <= rango.fechaFin ? ESTADOS_UNIDAD_DIDACTICA.ABIERTO : ESTADOS_UNIDAD_DIDACTICA.CERRADO;
+}
 
 export interface GenerarUnidadesDidacticasDTO {
   cursoId: string;
@@ -32,6 +37,7 @@ export async function generarUnidadesDidacticas(
 
     const [rangoUnidad1, rangoUnidad2] = calcularFechasUnidadesDidacticas(periodo.fechaInicio, periodo.fechaFin);
     const ahora = new Date().toISOString();
+    const hoy = fechaDeHoyISO();
 
     const unidad1 = new UnidadDidactica({
       id: generarId("UDI"),
@@ -41,7 +47,7 @@ export async function generarUnidadesDidacticas(
       orden: 1,
       fechaInicio: rangoUnidad1.fechaInicio,
       fechaFin: rangoUnidad1.fechaFin,
-      estado: ESTADOS_UNIDAD_DIDACTICA.ABIERTO,
+      estado: estadoSegunFecha(rangoUnidad1, hoy),
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -54,7 +60,7 @@ export async function generarUnidadesDidacticas(
       orden: 2,
       fechaInicio: rangoUnidad2.fechaInicio,
       fechaFin: rangoUnidad2.fechaFin,
-      estado: ESTADOS_UNIDAD_DIDACTICA.ABIERTO,
+      estado: estadoSegunFecha(rangoUnidad2, hoy),
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
