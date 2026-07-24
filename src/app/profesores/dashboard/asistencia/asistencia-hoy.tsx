@@ -292,7 +292,7 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
                   </>
                 )}
 
-                <Link href="/profesores/dashboard/asistencia/camara" className={buttonVariants({ variant: "outline", className: "w-full" })}>
+                <Link href="/asistencia/camara" className={buttonVariants({ variant: "outline", className: "w-full" })}>
                   <ScanFace className="size-4" />
                   Conectar cámara
                 </Link>
