@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Plus, Pencil, UserX, UserCheck, Eye, MoreVertical } from "lucide-react";
+import { Plus, Pencil, UserX, UserCheck, Eye, MoreVertical, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { validarPassword, PASSWORD_MIN_LENGTH } from "@/modulos/usuarios/dominio/politica-password";
 import { accionCrearUsuario, accionActualizarUsuario, accionDesactivarUsuario, accionActivarUsuario } from "@/modulos/usuarios/presentacion/acciones";
@@ -27,6 +27,8 @@ import {
 interface Props {
   usuarios: UsuarioPublico[];
 }
+
+const TAMANO_PAGINA = 10;
 
 function TarjetaUsuario({
   usuario,
@@ -100,6 +102,28 @@ export function TablaUsuarios({ usuarios }: Props) {
     rol: "PROFESOR" as "ADMIN" | "PROFESOR",
   });
   const [erroresPassword, setErroresPassword] = useState<string[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+
+  const usuariosFiltrados = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase();
+    if (!termino) return usuarios;
+    return usuarios.filter(
+      (u) => u.nombreCompleto.toLowerCase().includes(termino) || u.email.toLowerCase().includes(termino)
+    );
+  }, [usuarios, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / TAMANO_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const usuariosPagina = useMemo(
+    () => usuariosFiltrados.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [usuariosFiltrados, paginaActual]
+  );
+
+  function onCambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
+  }
 
   function abrirCrear() {
     setEditando(null);
@@ -179,10 +203,20 @@ export function TablaUsuarios({ usuarios }: Props) {
 
   return (
     <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Usuarios</h1>
-          <p className="text-sm text-muted-foreground">Administra las cuentas de acceso al sistema.</p>
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Usuarios</h1>
+        <p className="text-sm text-muted-foreground">Administra las cuentas de acceso al sistema.</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busqueda}
+            onChange={(e) => onCambiarBusqueda(e.target.value)}
+            placeholder="Buscar por nombre o email..."
+            className="pl-8"
+          />
         </div>
         <Button onClick={abrirCrear}>
           <Plus className="size-4" />
@@ -191,7 +225,7 @@ export function TablaUsuarios({ usuarios }: Props) {
       </div>
 
       <div className="space-y-3 md:hidden">
-        {usuarios.map((u) => (
+        {usuariosPagina.map((u) => (
           <TarjetaUsuario
             key={u.id}
             usuario={u}
@@ -200,8 +234,10 @@ export function TablaUsuarios({ usuarios }: Props) {
             onActivar={onActivar}
           />
         ))}
-        {usuarios.length === 0 && (
-          <p className="p-6 text-center text-sm text-muted-foreground">No hay usuarios registrados.</p>
+        {usuariosFiltrados.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">
+            {usuarios.length === 0 ? "No hay usuarios registrados." : "Ningún usuario coincide con la búsqueda."}
+          </p>
         )}
       </div>
 
@@ -218,7 +254,7 @@ export function TablaUsuarios({ usuarios }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {usuarios.map((u) => (
+              {usuariosPagina.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.nombreCompleto}</TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
@@ -262,10 +298,10 @@ export function TablaUsuarios({ usuarios }: Props) {
                   </TableCell>
                 </TableRow>
               ))}
-              {usuarios.length === 0 && (
+              {usuariosFiltrados.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No hay usuarios registrados.
+                    {usuarios.length === 0 ? "No hay usuarios registrados." : "Ningún usuario coincide con la búsqueda."}
                   </TableCell>
                 </TableRow>
               )}
@@ -273,6 +309,36 @@ export function TablaUsuarios({ usuarios }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      {usuariosFiltrados.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
+            {Math.min(paginaActual * TAMANO_PAGINA, usuariosFiltrados.length)} de {usuariosFiltrados.length} usuarios
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p - 1)}
+              disabled={paginaActual <= 1}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-medium">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p + 1)}
+              disabled={paginaActual >= totalPaginas}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent>
