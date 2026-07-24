@@ -4,11 +4,13 @@ import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asig
 import { IBloqueHorarioRepositorio } from "@/modulos/horarios/aplicacion/i-bloque-horario-repositorio";
 import { ISesionAsistenciaRepositorio } from "@/modulos/asistencia/aplicacion/i-sesion-asistencia-repositorio";
 import { IRegistroAsistenciaRepositorio } from "@/modulos/asistencia/aplicacion/i-registro-asistencia-repositorio";
+import { BloqueHorario } from "@/modulos/horarios/dominio/bloque-horario";
+import { SesionAsistencia } from "@/modulos/asistencia/dominio/sesion-asistencia";
 import { EstudianteNoEncontradoError } from "@/modulos/estudiantes/dominio/estudiante";
 import { MatriculaActivaNoEncontradaError, SinClaseEnCursoError } from "@/modulos/asistencia/dominio/reconocimiento";
 import { abrirSesionAsistencia } from "@/modulos/asistencia/aplicacion/abrir-sesion-asistencia";
 import { marcarAsistencia } from "@/modulos/asistencia/aplicacion/marcar-asistencia";
-import { diaSemanaDeHoy, horaActualHHMM } from "@/modulos/asistencia/dominio/tiempo";
+import { diaSemanaDeHoy, horaActualHHMM, fechaDeHoyISO } from "@/modulos/asistencia/dominio/tiempo";
 import { ESTADOS_ASISTENCIA, EstadoAsistencia } from "@/config/constantes";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { ErrorDominio } from "@/compartido/dominio/errores";
@@ -33,7 +35,9 @@ export interface ResultadoReconocimiento {
  * profesor lo seleccionó), aquí solo llega un estudianteId reconocido por la
  * cámara — hay que resolver por cuenta propia qué clase tiene en curso ahora
  * mismo (matrícula -> sección -> asignaciones activas -> bloque de hoy cuya
- * ventana horaria contiene la hora actual).
+ * ventana horaria contiene la hora actual). Si el profesor ya abrió esa
+ * sesión y editó sus umbrales manualmente, esa ventana editada tiene
+ * prioridad sobre el horario original del bloque.
  */
 export async function registrarAsistenciaPorReconocimiento(
   estudianteId: string,
@@ -55,15 +59,38 @@ export async function registrarAsistenciaPorReconocimiento(
     );
     if (asignaciones.length === 0) return err(new SinClaseEnCursoError(estudianteId));
 
-    const bloques = await deps.bloqueRepo.listarPorAsignaciones(asignaciones.map((a) => a.id));
+    const bloques = (await deps.bloqueRepo.listarPorAsignaciones(asignaciones.map((a) => a.id))).filter(
+      (b) => b.diaSemana === hoy
+    );
+    if (bloques.length === 0) return err(new SinClaseEnCursoError(estudianteId));
+
     const ahora = horaActualHHMM();
-    const bloqueActivo = bloques.find((b) => b.diaSemana === hoy && b.horaInicio <= ahora && ahora <= b.horaFin);
+    const fecha = fechaDeHoyISO();
+
+    // Si el profesor ya abrió la sesión de este bloque hoy y editó sus
+    // umbrales manualmente (ej. para que coincidan con la hora real de una
+    // demo fuera del horario normal), esa ventana editada manda sobre el
+    // horario original del bloque a la hora de decidir si "hay clase ahora".
+    let bloqueActivo: BloqueHorario | null = null;
+    let sesionExistente: SesionAsistencia | null = null;
+    for (const bloque of bloques) {
+      const sesion = await deps.sesionRepo.buscarPorBloqueYFecha(bloque.id, fecha);
+      if (sesion) {
+        if (sesion.horaEntrada <= ahora && ahora <= sesion.horaCierre) {
+          bloqueActivo = bloque;
+          sesionExistente = sesion;
+          break;
+        }
+      } else if (bloque.horaInicio <= ahora && ahora <= bloque.horaFin) {
+        bloqueActivo = bloque;
+        break;
+      }
+    }
     if (!bloqueActivo) return err(new SinClaseEnCursoError(estudianteId));
 
-    const sesionResultado = await abrirSesionAsistencia(bloqueActivo.id, {
-      sesionRepo: deps.sesionRepo,
-      bloqueRepo: deps.bloqueRepo,
-    });
+    const sesionResultado = sesionExistente
+      ? ok(sesionExistente)
+      : await abrirSesionAsistencia(bloqueActivo.id, { sesionRepo: deps.sesionRepo, bloqueRepo: deps.bloqueRepo });
     if (!sesionResultado.ok) return err(sesionResultado.error);
     const sesion = sesionResultado.value;
 
