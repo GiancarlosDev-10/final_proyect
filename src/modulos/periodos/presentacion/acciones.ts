@@ -4,6 +4,7 @@ import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/peri
 import { UnidadDidacticaRepositorioMongo } from "@/modulos/unidades-didacticas/infraestructura/unidad-didactica-repositorio-mongo";
 import { listarPeriodos } from "@/modulos/periodos/aplicacion/listar-periodos";
 import { crearPeriodo, CrearPeriodoDTO } from "@/modulos/periodos/aplicacion/crear-periodo";
+import { generarPeriodosAnio, GenerarPeriodosAnioDTO } from "@/modulos/periodos/aplicacion/generar-periodos-anio";
 import { actualizarPeriodo, ActualizarPeriodoDTO } from "@/modulos/periodos/aplicacion/actualizar-periodo";
 import { abrirPeriodo } from "@/modulos/periodos/aplicacion/abrir-periodo";
 import { cerrarPeriodo } from "@/modulos/periodos/aplicacion/cerrar-periodo";
@@ -25,6 +26,14 @@ export async function accionCrearPeriodo(datos: CrearPeriodoDTO): Promise<{ ok: 
   const resultado = await crearPeriodo(datos, repositorio);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Periodo creado correctamente" };
+}
+
+export async function accionGenerarPeriodosAnio(datos: GenerarPeriodosAnioDTO): Promise<{ ok: boolean; mensaje: string }> {
+  if (!(await requerirRol(ROLES.ADMIN))) return { ok: false, mensaje: "No autorizado" };
+  const repositorio = new PeriodoRepositorioMongo();
+  const resultado = await generarPeriodosAnio(datos, repositorio);
+  if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
+  return { ok: true, mensaje: "Periodos del año generados correctamente" };
 }
 
 export async function accionActualizarPeriodo(datos: ActualizarPeriodoDTO): Promise<{ ok: boolean; mensaje: string }> {

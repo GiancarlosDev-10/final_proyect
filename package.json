@@ -11,6 +11,7 @@
     "seed:profesor": "tsx --env-file=.env.local scripts/crear-profesor.ts",
     "seed:escolares": "tsx --env-file=.env.local scripts/seed-datos-escolares.ts",
     "migrar:nivel-secciones": "tsx --env-file=.env.local scripts/migrar-nivel-secciones.ts",
+    "migrar:periodos-2026": "tsx --env-file=.env.local scripts/migrar-periodos-2026.ts",
     "test": "vitest run"
   },
   "dependencies": {

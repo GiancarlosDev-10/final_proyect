@@ -8,6 +8,7 @@ export async function listarPeriodos(
 ): Promise<Result<Periodo[]>> {
   try {
     const periodos = await repositorio.listar();
+    periodos.sort((a, b) => b.anio - a.anio || a.fechaInicio.localeCompare(b.fechaInicio));
     return ok(periodos);
   } catch (e) {
     return err(e as ErrorDominio);

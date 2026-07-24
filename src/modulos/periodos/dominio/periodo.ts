@@ -22,6 +22,13 @@ export class RangoFechasInvalidoError extends ErrorDominio {
   }
 }
 
+export class PeriodosAnioYaExistenError extends ErrorDominio {
+  readonly codigo = "PERIODOS_ANIO_YA_EXISTEN";
+  constructor(anio: number) {
+    super(`Ya existen periodos registrados para el año ${anio}.`);
+  }
+}
+
 export interface PeriodoProps {
   id: string;
   nombre: string;
