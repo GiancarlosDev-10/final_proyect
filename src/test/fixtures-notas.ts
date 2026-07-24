@@ -397,7 +397,6 @@ export function crearSeccion(overrides: Partial<SeccionProps> = {}): Seccion {
     nombre: "A",
     grado: "1°",
     nivel: "PRIMARIA",
-    anio: 2026,
     activo: true,
     creadoEn: AHORA,
     actualizadoEn: AHORA,

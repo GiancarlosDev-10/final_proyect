@@ -13,7 +13,11 @@ import { EstudianteModel } from "@/modulos/estudiantes/infraestructura/estudiant
  * - "1°".."5°" -> ambiguo por texto; se resuelve mirando la edad real de un
  *   alumno matriculado, ya que el seed generó edades distintas a propósito
  *   (Primaria 1°=6 años, Secundaria 1°=12 años, etc.).
+ *
+ * Nota histórica: esta migración corrió una sola vez sobre el seed del año
+ * 2026 (Seccion ya no guarda su propio campo `anio`, así que se fija acá).
  */
+const ANIO_SEED_HISTORICO = 2026;
 async function main() {
   await mongoose.connect(process.env.MONGODB_URI!);
   console.log("Conectado a MongoDB.");
@@ -43,7 +47,7 @@ async function main() {
 
       if (estudiante) {
         const anioNacimiento = Number(estudiante.fechaNacimiento.split("-")[0]);
-        const edad = seccion.anio - anioNacimiento;
+        const edad = ANIO_SEED_HISTORICO - anioNacimiento;
         const edadPrimariaEsperada = 5 + gradoNum;
         const edadSecundariaEsperada = 11 + gradoNum;
         nivel =

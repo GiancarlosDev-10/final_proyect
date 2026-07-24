@@ -8,7 +8,6 @@ export interface ActualizarSeccionDTO {
   nombre: string;
   grado: string;
   nivel: NivelEducativo;
-  anio: number;
   activo: boolean;
 }
 
@@ -26,7 +25,6 @@ export async function actualizarSeccion(
     nombre: datos.nombre,
     grado: datos.grado,
     nivel: datos.nivel,
-    anio: datos.anio,
     activo: datos.activo,
     creadoEn: seccion.creadoEn,
     actualizadoEn: ahora,

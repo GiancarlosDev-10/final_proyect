@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
 import { accionCrearSeccion, accionActualizarSeccion, accionEliminarSeccion } from "@/modulos/secciones/presentacion/acciones";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { NIVELES_EDUCATIVOS, ETIQUETAS_NIVEL_EDUCATIVO, NivelEducativo } from "@/config/constantes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +41,7 @@ function TarjetaSeccion({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{seccion.grado} {seccion.nombre}</p>
-          <p className="truncate text-sm text-muted-foreground">{ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]} · Año {seccion.anio}</p>
+          <p className="truncate text-sm text-muted-foreground">{ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]}</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
@@ -69,8 +70,12 @@ function TarjetaSeccion({
   );
 }
 
+const TAMANO_PAGINA = 10;
+
 export function TablaSecciones({ secciones }: Props) {
   const router = useRouter();
+  const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
   const [abierto, setAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState<SeccionProps | null>(null);
@@ -78,18 +83,40 @@ export function TablaSecciones({ secciones }: Props) {
     nombre: "",
     grado: "",
     nivel: NIVELES_EDUCATIVOS.PRIMARIA as NivelEducativo,
-    anio: new Date().getFullYear().toString(),
   });
+
+  const seccionesFiltradas = useMemo(() => {
+    const termino = normalizarTexto(busqueda);
+    if (!termino) return secciones;
+    return secciones.filter(
+      (s) =>
+        normalizarTexto(s.nombre).includes(termino) ||
+        normalizarTexto(s.grado).includes(termino) ||
+        normalizarTexto(ETIQUETAS_NIVEL_EDUCATIVO[s.nivel]).includes(termino)
+    );
+  }, [secciones, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(seccionesFiltradas.length / TAMANO_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const seccionesPagina = useMemo(
+    () => seccionesFiltradas.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [seccionesFiltradas, paginaActual]
+  );
+
+  function onCambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
+  }
 
   function abrirCrear() {
     setEditando(null);
-    setForm({ nombre: "", grado: "", nivel: NIVELES_EDUCATIVOS.PRIMARIA, anio: new Date().getFullYear().toString() });
+    setForm({ nombre: "", grado: "", nivel: NIVELES_EDUCATIVOS.PRIMARIA });
     setAbierto(true);
   }
 
   function abrirEditar(seccion: SeccionProps) {
     setEditando(seccion);
-    setForm({ nombre: seccion.nombre, grado: seccion.grado, nivel: seccion.nivel, anio: seccion.anio.toString() });
+    setForm({ nombre: seccion.nombre, grado: seccion.grado, nivel: seccion.nivel });
     setAbierto(true);
   }
 
@@ -103,7 +130,6 @@ export function TablaSecciones({ secciones }: Props) {
         nombre: form.nombre,
         grado: form.grado,
         nivel: form.nivel,
-        anio: parseInt(form.anio),
         activo: editando.activo,
       });
     } else {
@@ -111,7 +137,6 @@ export function TablaSecciones({ secciones }: Props) {
         nombre: form.nombre,
         grado: form.grado,
         nivel: form.nivel,
-        anio: parseInt(form.anio),
       });
     }
 
@@ -132,11 +157,21 @@ export function TablaSecciones({ secciones }: Props) {
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Secciones</h1>
-          <p className="text-sm text-muted-foreground">Organiza los grados y secciones por año escolar.</p>
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Secciones</h1>
+        <p className="text-sm text-muted-foreground">Organiza los grados y secciones del colegio.</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busqueda}
+            onChange={(e) => onCambiarBusqueda(e.target.value)}
+            placeholder="Buscar por nombre, grado o nivel..."
+            className="pl-8"
+          />
         </div>
         <Button onClick={abrirCrear}>
           <Plus className="size-4" />
@@ -145,35 +180,35 @@ export function TablaSecciones({ secciones }: Props) {
       </div>
 
       <div className="space-y-3 md:hidden">
-        {secciones.map((s) => (
+        {seccionesPagina.map((s) => (
           <TarjetaSeccion key={s.id} seccion={s} onEditar={abrirEditar} onEliminar={onEliminar} />
         ))}
-        {secciones.length === 0 && (
-          <p className="p-6 text-center text-sm text-muted-foreground">No hay secciones registradas.</p>
+        {seccionesFiltradas.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">
+            {secciones.length === 0 ? "No hay secciones registradas." : "Ninguna sección coincide con la búsqueda."}
+          </p>
         )}
       </div>
 
       <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Grado</TableHead>
-                <TableHead>Nivel</TableHead>
-                <TableHead>Año</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="w-32">Nombre</TableHead>
+                <TableHead className="w-32">Grado</TableHead>
+                <TableHead className="w-36">Nivel</TableHead>
+                <TableHead className="w-28 text-center">Estado</TableHead>
+                <TableHead className="w-56 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {secciones.map((s) => (
+              {seccionesPagina.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="font-medium">{s.nombre}</TableCell>
+                  <TableCell className="truncate font-medium">{s.nombre}</TableCell>
                   <TableCell className="text-muted-foreground">{s.grado}</TableCell>
-                  <TableCell className="text-muted-foreground">{ETIQUETAS_NIVEL_EDUCATIVO[s.nivel]}</TableCell>
-                  <TableCell className="text-muted-foreground">{s.anio}</TableCell>
-                  <TableCell>
+                  <TableCell className="truncate text-muted-foreground">{ETIQUETAS_NIVEL_EDUCATIVO[s.nivel]}</TableCell>
+                  <TableCell className="text-center">
                     {s.activo ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
                     ) : (
@@ -181,7 +216,7 @@ export function TablaSecciones({ secciones }: Props) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => abrirEditar(s)}>
                         <Pencil className="size-3.5" />
                         Editar
@@ -194,10 +229,10 @@ export function TablaSecciones({ secciones }: Props) {
                   </TableCell>
                 </TableRow>
               ))}
-              {secciones.length === 0 && (
+              {seccionesFiltradas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    No hay secciones registradas.
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    {secciones.length === 0 ? "No hay secciones registradas." : "Ninguna sección coincide con la búsqueda."}
                   </TableCell>
                 </TableRow>
               )}
@@ -205,6 +240,36 @@ export function TablaSecciones({ secciones }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      {seccionesFiltradas.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
+            {Math.min(paginaActual * TAMANO_PAGINA, seccionesFiltradas.length)} de {seccionesFiltradas.length} secciones
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p - 1)}
+              disabled={paginaActual <= 1}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-medium">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p + 1)}
+              disabled={paginaActual >= totalPaginas}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent>
@@ -242,14 +307,6 @@ export function TablaSecciones({ secciones }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Año</Label>
-              <Input
-                type="number"
-                value={form.anio}
-                onChange={(e) => setForm({ ...form, anio: e.target.value })}
-              />
             </div>
           </div>
           <DialogFooter>

@@ -13,7 +13,6 @@ export interface SeccionProps {
   nombre: string;
   grado: string;
   nivel: NivelEducativo;
-  anio: number;
   activo: boolean;
   creadoEn: string;
   actualizadoEn: string;
@@ -24,7 +23,6 @@ export class Seccion {
   readonly nombre: string;
   readonly grado: string;
   readonly nivel: NivelEducativo;
-  readonly anio: number;
   readonly activo: boolean;
   readonly creadoEn: string;
   readonly actualizadoEn: string;
@@ -34,7 +32,6 @@ export class Seccion {
     this.nombre = props.nombre;
     this.grado = props.grado;
     this.nivel = props.nivel;
-    this.anio = props.anio;
     this.activo = props.activo;
     this.creadoEn = props.creadoEn;
     this.actualizadoEn = props.actualizadoEn;
@@ -46,7 +43,6 @@ export class Seccion {
       nombre: this.nombre,
       grado: this.grado,
       nivel: this.nivel,
-      anio: this.anio,
       activo: this.activo,
       creadoEn: this.creadoEn,
       actualizadoEn: this.actualizadoEn,

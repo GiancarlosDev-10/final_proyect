@@ -261,7 +261,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
         fechaNacimiento: form.fechaNacimiento,
         apoderado,
         seccionId: seccionActual.id,
-        anio: seccionActual.anio,
+        anio: new Date().getFullYear(),
       });
     } else {
       setLoading(false);

@@ -9,7 +9,6 @@ export interface CrearSeccionDTO {
   nombre: string;
   grado: string;
   nivel: NivelEducativo;
-  anio: number;
 }
 
 export async function crearSeccion(
@@ -24,7 +23,6 @@ export async function crearSeccion(
       nombre: datos.nombre,
       grado: datos.grado,
       nivel: datos.nivel,
-      anio: datos.anio,
       activo: true,
       creadoEn: ahora,
       actualizadoEn: ahora,

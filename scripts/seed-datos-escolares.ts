@@ -290,14 +290,14 @@ async function main() {
   const seccionesInicial: SeccionInfo[] = [];
   const seccionesPrimaria: SeccionInfo[] = [];
   const seccionesSecundaria: SeccionInfo[] = [];
-  const seccionesDocs: Array<{ _id: string; nombre: string; grado: string; nivel: string; anio: number; activo: boolean; creadoEn: string; actualizadoEn: string }> = [];
+  const seccionesDocs: Array<{ _id: string; nombre: string; grado: string; nivel: string; activo: boolean; creadoEn: string; actualizadoEn: string }> = [];
 
   function crearSecciones(grados: string[], nivel: "INICIAL" | "PRIMARIA" | "SECUNDARIA", destino: SeccionInfo[]) {
     for (const grado of grados) {
       for (const nombreSeccion of NOMBRES_SECCION) {
         const id = generarId("SEC");
         destino.push({ id, grado, nombreSeccion });
-        seccionesDocs.push({ _id: id, nombre: nombreSeccion, grado, nivel, anio: ANIO, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
+        seccionesDocs.push({ _id: id, nombre: nombreSeccion, grado, nivel, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
       }
     }
   }

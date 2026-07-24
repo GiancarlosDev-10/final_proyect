@@ -6,7 +6,6 @@ export interface ISeccionDocument {
   nombre: string;
   grado: string;
   nivel: NivelEducativo;
-  anio: number;
   activo: boolean;
   creadoEn: string;
   actualizadoEn: string;
@@ -18,7 +17,6 @@ const SeccionSchema = new Schema<ISeccionDocument>(
     nombre: { type: String, required: true },
     grado: { type: String, required: true },
     nivel: { type: String, enum: ["INICIAL", "PRIMARIA", "SECUNDARIA"], required: true },
-    anio: { type: Number, required: true },
     activo: { type: Boolean, default: true },
     creadoEn: { type: String, required: true },
     actualizadoEn: { type: String, required: true },
