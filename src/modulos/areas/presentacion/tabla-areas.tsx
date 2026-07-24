@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreVertical, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { AreaProps } from "@/modulos/areas/dominio/area";
 import { accionCrearArea, accionActualizarArea, accionEliminarArea } from "@/modulos/areas/presentacion/acciones";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
@@ -25,6 +25,8 @@ interface Props {
   areas: AreaProps[];
   cursosPorArea: Record<string, string[]>;
 }
+
+const TAMANO_PAGINA = 10;
 
 function textoCursos(cursos: string[] | undefined): string {
   return cursos && cursos.length > 0 ? cursos.join(", ") : "Sin cursos asignados";
@@ -82,6 +84,7 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
   const [editando, setEditando] = useState<AreaProps | null>(null);
   const [form, setForm] = useState({ nombre: "", descripcion: "" });
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   const areasFiltradas = useMemo(() => {
     const termino = normalizarTexto(busqueda);
@@ -92,6 +95,18 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
         normalizarTexto(textoCursos(cursosPorArea[a.id])).includes(termino)
     );
   }, [areas, cursosPorArea, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(areasFiltradas.length / TAMANO_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const areasPagina = useMemo(
+    () => areasFiltradas.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [areasFiltradas, paginaActual]
+  );
+
+  function onCambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
+  }
 
   function abrirCrear() {
     setEditando(null);
@@ -155,7 +170,7 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => onCambiarBusqueda(e.target.value)}
             placeholder="Buscar por nombre o curso..."
             className="pl-8"
           />
@@ -167,7 +182,7 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
       </div>
 
       <div className="space-y-3 md:hidden">
-        {areasFiltradas.map((a) => (
+        {areasPagina.map((a) => (
           <TarjetaArea key={a.id} area={a} cursos={cursosPorArea[a.id]} onEditar={abrirEditar} onEliminar={onEliminar} />
         ))}
         {areasFiltradas.length === 0 && (
@@ -189,7 +204,7 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {areasFiltradas.map((a) => (
+              {areasPagina.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell className="truncate font-medium">{a.nombre}</TableCell>
                   <TableCell className="truncate text-muted-foreground">{textoCursos(cursosPorArea[a.id])}</TableCell>
@@ -225,6 +240,36 @@ export function TablaAreas({ areas, cursosPorArea }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      {areasFiltradas.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
+            {Math.min(paginaActual * TAMANO_PAGINA, areasFiltradas.length)} de {areasFiltradas.length} áreas
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p - 1)}
+              disabled={paginaActual <= 1}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-medium">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p + 1)}
+              disabled={paginaActual >= totalPaginas}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent>

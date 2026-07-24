@@ -68,12 +68,23 @@ export class CursoRepositorioMongo implements ICursoRepositorio {
 
   async actualizar(curso: Curso): Promise<void> {
     await conectarMongoDB();
-    await CursoModel.findByIdAndUpdate(curso.id, {
+
+    const campos: Record<string, unknown> = {
       nombre: curso.nombre,
-      descripcion: curso.descripcion,
-      areaId: curso.areaId,
       activo: curso.activo,
       actualizadoEn: curso.actualizadoEn,
+    };
+    const paraQuitar: Record<string, unknown> = {};
+
+    if (curso.descripcion !== undefined) campos.descripcion = curso.descripcion;
+    else paraQuitar.descripcion = "";
+
+    if (curso.areaId !== undefined) campos.areaId = curso.areaId;
+    else paraQuitar.areaId = "";
+
+    await CursoModel.findByIdAndUpdate(curso.id, {
+      $set: campos,
+      ...(Object.keys(paraQuitar).length > 0 ? { $unset: paraQuitar } : {}),
     });
   }
 

@@ -152,7 +152,9 @@ const CURSOS_SECUNDARIA = [
   { nombre: "Geometría", area: "Matemática" },
   { nombre: "Trigonometría", area: "Matemática" },
   { nombre: "Comunicación", area: "Comunicación" },
-  { nombre: "Ciencia y Tecnología", area: "Ciencia y Tecnología" },
+  { nombre: "Física", area: "Ciencia y Tecnología" },
+  { nombre: "Química", area: "Ciencia y Tecnología" },
+  { nombre: "Biología", area: "Ciencia y Tecnología" },
   { nombre: "Ciencias Sociales", area: "Ciencias Sociales" },
   { nombre: "Desarrollo Personal, Ciudadanía y Cívica", area: "Desarrollo Personal, Ciudadanía y Cívica" },
   { nombre: "Arte y Cultura", area: "Arte y Cultura" },
@@ -217,9 +219,28 @@ async function main() {
   await AreaModel.insertMany(areasDocs);
 
   // ---------- 4. cursos ----------
+  // Un mismo curso (ej. "Comunicación") puede dictarse en más de un nivel; en
+  // vez de crear un documento por nivel (lo que duplicaba 6 materias), se
+  // reusa el mismo cursoId por nombre y se acumulan los niveles que lo dictan
+  // para armar la descripción ("Primaria y Secundaria", etc.).
+  type Nivel = "INICIAL" | "PRIMARIA" | "SECUNDARIA";
+  const ETIQUETA_NIVEL: Record<Nivel, string> = { INICIAL: "Inicial", PRIMARIA: "Primaria", SECUNDARIA: "Secundaria" };
+  const ORDEN_NIVELES: Nivel[] = ["INICIAL", "PRIMARIA", "SECUNDARIA"];
+
+  function etiquetaNiveles(niveles: Set<Nivel>): string {
+    const presentes = ORDEN_NIVELES.filter((n) => niveles.has(n)).map((n) => ETIQUETA_NIVEL[n]);
+    if (presentes.length <= 1) return presentes[0] ?? "";
+    return `${presentes.slice(0, -1).join(", ")} y ${presentes[presentes.length - 1]}`;
+  }
+
+  // Estos 3 cursos de Primaria son los mismos que dicta la profesora de aula
+  // de Inicial (ver "cursosInicial" más abajo), por eso también llevan INICIAL.
+  const NOMBRES_CURSOS_INICIAL_DESDE_PRIMARIA = new Set(["Matemática", "Comunicación", "Personal Social"]);
+
   const cursoIdPrimariaPorArea = new Map<string, string>(); // nombre área -> cursoId (primaria)
   const cursoIdSecundariaPorNombre = new Map<string, string>(); // nombre curso -> cursoId (secundaria)
   const cursoIdInicialPorNombre = new Map<string, string>(); // nombre curso nuevo de inicial -> cursoId
+  const nivelesPorCursoId = new Map<string, Set<Nivel>>();
 
   const cursosDocs: Array<{
     _id: string; nombre: string; descripcion: string; areaId: string; activo: boolean; creadoEn: string; actualizadoEn: string;
@@ -228,18 +249,39 @@ async function main() {
   for (const c of CURSOS_PRIMARIA) {
     const id = generarId("CUR");
     cursoIdPrimariaPorArea.set(c.area, id);
-    cursosDocs.push({ _id: id, nombre: c.nombre, descripcion: c.area, areaId: areaIdPorNombre.get(c.area)!, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
+    const niveles = new Set<Nivel>(["PRIMARIA"]);
+    if (NOMBRES_CURSOS_INICIAL_DESDE_PRIMARIA.has(c.nombre)) niveles.add("INICIAL");
+    nivelesPorCursoId.set(id, niveles);
+    cursosDocs.push({ _id: id, nombre: c.nombre, descripcion: "", areaId: areaIdPorNombre.get(c.area)!, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
   }
   for (const c of CURSOS_SECUNDARIA) {
+    const idPrimariaMismoNombre = CURSOS_PRIMARIA.some((p) => p.nombre === c.nombre)
+      ? cursoIdPrimariaPorArea.get(c.area)
+      : undefined;
+
+    if (idPrimariaMismoNombre) {
+      // Misma materia que ya se dicta en Primaria: no crear otro documento.
+      cursoIdSecundariaPorNombre.set(c.nombre, idPrimariaMismoNombre);
+      nivelesPorCursoId.get(idPrimariaMismoNombre)!.add("SECUNDARIA");
+      continue;
+    }
+
     const id = generarId("CUR");
     cursoIdSecundariaPorNombre.set(c.nombre, id);
-    cursosDocs.push({ _id: id, nombre: c.nombre, descripcion: c.area, areaId: areaIdPorNombre.get(c.area)!, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
+    nivelesPorCursoId.set(id, new Set<Nivel>(["SECUNDARIA"]));
+    cursosDocs.push({ _id: id, nombre: c.nombre, descripcion: "", areaId: areaIdPorNombre.get(c.area)!, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
   }
   for (const c of CURSOS_INICIAL_NUEVOS) {
     const id = generarId("CUR");
     cursoIdInicialPorNombre.set(c.nombre, id);
-    cursosDocs.push({ _id: id, nombre: c.nombre, descripcion: c.area, areaId: areaIdPorNombre.get(c.area)!, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
+    nivelesPorCursoId.set(id, new Set<Nivel>(["INICIAL"]));
+    cursosDocs.push({ _id: id, nombre: c.nombre, descripcion: "", areaId: areaIdPorNombre.get(c.area)!, activo: true, creadoEn: ahora(), actualizadoEn: ahora() });
   }
+
+  for (const doc of cursosDocs) {
+    doc.descripcion = etiquetaNiveles(nivelesPorCursoId.get(doc._id)!);
+  }
+
   await CursoModel.insertMany(cursosDocs);
   console.log(`${areasDocs.length} áreas, ${cursosDocs.length} cursos creados.`);
 
@@ -327,8 +369,10 @@ async function main() {
     }
   }
 
-  // Secundaria: 1 profesor especialista por área (Matemática dividida en 2), dicta a TODAS las secciones de secundaria.
-  const CURSOS_SECUNDARIA_NO_MATE = CURSOS_SECUNDARIA.filter((c) => c.area !== "Matemática");
+  // Secundaria: 1 profesor especialista por área (Matemática y Ciencia y Tecnología divididas), dicta a TODAS las secciones de secundaria.
+  const CURSOS_SECUNDARIA_NO_MATE = CURSOS_SECUNDARIA.filter(
+    (c) => c.area !== "Matemática" && c.area !== "Ciencia y Tecnología"
+  );
   for (const c of CURSOS_SECUNDARIA_NO_MATE) {
     const esComunicacion = c.nombre === "Comunicación";
     const profesorId = esComunicacion ? PROFESOR_EXISTENTE_ID : await crearProfesor();
@@ -348,6 +392,21 @@ async function main() {
       for (const seccion of seccionesSecundaria) {
         crearAsignacionYBloque(profesorId, cursoId, seccion.id);
       }
+    }
+  }
+
+  // Ciencia y Tecnología en Secundaria: un mismo especialista dicta las 3
+  // ramas, repartidas por grado (igual que se hizo al migrar los datos reales).
+  const gruposCienciaTecnologia: Array<{ nombreCurso: string; grados: string[] }> = [
+    { nombreCurso: "Biología", grados: ["1°", "2°"] },
+    { nombreCurso: "Química", grados: ["3°"] },
+    { nombreCurso: "Física", grados: ["4°", "5°"] },
+  ];
+  const profesorCienciaTecnologia = await crearProfesor();
+  for (const grupo of gruposCienciaTecnologia) {
+    const cursoId = cursoIdSecundariaPorNombre.get(grupo.nombreCurso)!;
+    for (const seccion of seccionesSecundaria.filter((s) => grupo.grados.includes(s.grado))) {
+      crearAsignacionYBloque(profesorCienciaTecnologia, cursoId, seccion.id);
     }
   }
 

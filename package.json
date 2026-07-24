@@ -12,6 +12,8 @@
     "seed:escolares": "tsx --env-file=.env.local scripts/seed-datos-escolares.ts",
     "migrar:nivel-secciones": "tsx --env-file=.env.local scripts/migrar-nivel-secciones.ts",
     "migrar:periodos-2026": "tsx --env-file=.env.local scripts/migrar-periodos-2026.ts",
+    "migrar:cursos-duplicados": "tsx --env-file=.env.local scripts/migrar-cursos-duplicados.ts",
+    "migrar:ciencia-tecnologia-secundaria": "tsx --env-file=.env.local scripts/migrar-ciencia-tecnologia-secundaria.ts",
     "test": "vitest run"
   },
   "dependencies": {
