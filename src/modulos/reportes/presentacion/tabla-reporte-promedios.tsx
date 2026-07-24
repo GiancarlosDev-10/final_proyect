@@ -10,7 +10,6 @@ import { PromedioArea } from "@/modulos/reportes/aplicacion/calcular-promedio-ar
 import { accionCalcularPromedioArea } from "@/modulos/reportes/presentacion/acciones";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -61,21 +60,11 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Reporte de Promedios</h1>
-          <p className="text-sm text-muted-foreground">
-            Promedio bimestral de un estudiante en un área, calculado a partir de sus notas por unidad didáctica.
-          </p>
-        </div>
-        <Badge variant="secondary">Solo lectura</Badge>
-      </div>
-
+    <div className="space-y-6">
       <Card>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="flex-1 space-y-2">
               <Label>Estudiante</Label>
               <Select value={estudianteId} onValueChange={(v) => setEstudianteId(v ?? "")} itemToStringLabel={nombreEstudiante}>
                 <SelectTrigger className="w-full">
@@ -88,7 +77,7 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="flex-1 space-y-2">
               <Label>Área</Label>
               <Select value={areaId} onValueChange={(v) => setAreaId(v ?? "")} itemToStringLabel={nombreArea}>
                 <SelectTrigger className="w-full">
@@ -101,7 +90,7 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="flex-1 space-y-2">
               <Label>Periodo</Label>
               <Select value={periodoId} onValueChange={(v) => setPeriodoId(v ?? "")} itemToStringLabel={nombrePeriodo}>
                 <SelectTrigger className="w-full">
@@ -114,8 +103,6 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="mt-4 flex justify-end">
             <Button onClick={onBuscar} disabled={!estudianteId || !areaId || !periodoId || loading}>
               <Search className="size-4" />
               {loading ? "Calculando..." : "Ver reporte"}

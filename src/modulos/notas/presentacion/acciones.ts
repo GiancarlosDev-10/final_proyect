@@ -6,6 +6,7 @@ import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructur
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
 import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/seccion-repositorio-mongo";
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
+import { UsuarioRepositorioMongo } from "@/modulos/usuarios/infraestructura/usuario-repositorio-mongo";
 import { listarNotasPorAsignacion } from "@/modulos/notas/aplicacion/listar-notas-por-asignacion";
 import { NotaProps } from "@/modulos/notas/dominio/nota";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
@@ -13,6 +14,7 @@ import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
+import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { requerirRol } from "@/compartido/lib/autorizacion";
 import { ROLES } from "@/config/constantes";
 
@@ -57,4 +59,11 @@ export async function accionListarPeriodosParaNotas(): Promise<PeriodoProps[]> {
   const repositorio = new PeriodoRepositorioMongo();
   const resultado = await repositorio.listar();
   return resultado.map((p) => p.toPlainObject());
+}
+
+export async function accionListarProfesoresParaNotas(): Promise<UsuarioPublico[]> {
+  if (!(await requerirRol(ROLES.ADMIN))) return [];
+  const repositorio = new UsuarioRepositorioMongo();
+  const todos = await repositorio.listar();
+  return todos.filter((u) => u.rol === ROLES.PROFESOR).map((u) => u.toPlainObjectPublico());
 }

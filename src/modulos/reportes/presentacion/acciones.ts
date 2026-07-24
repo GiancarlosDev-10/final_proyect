@@ -4,14 +4,22 @@ import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructur
 import { AreaRepositorioMongo } from "@/modulos/areas/infraestructura/area-repositorio-mongo";
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
+import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/seccion-repositorio-mongo";
 import { UnidadDidacticaRepositorioMongo } from "@/modulos/unidades-didacticas/infraestructura/unidad-didactica-repositorio-mongo";
 import { NotaRepositorioMongo } from "@/modulos/notas/infraestructura/nota-repositorio-mongo";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
+import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { calcularPromedioArea, CalcularPromedioAreaDTO, PromedioArea } from "@/modulos/reportes/aplicacion/calcular-promedio-area";
+import {
+  calcularConsolidadoSeccion,
+  CalcularConsolidadoSeccionDTO,
+  ConsolidadoSeccion,
+} from "@/modulos/reportes/aplicacion/calcular-consolidado-seccion";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { AreaProps } from "@/modulos/areas/dominio/area";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
+import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
 import { requerirRol } from "@/compartido/lib/autorizacion";
 import { ROLES } from "@/config/constantes";
 
@@ -51,6 +59,30 @@ export async function accionCalcularPromedioArea(datos: CalcularPromedioAreaDTO)
   const unidadRepo = new UnidadDidacticaRepositorioMongo();
 
   const resultado = await calcularPromedioArea(datos, cursoRepo, notaRepo, asignacionRepo, unidadRepo);
+  if (!resultado.ok) return null;
+  return resultado.value;
+}
+
+export async function accionListarSeccionesParaReportes(): Promise<SeccionProps[]> {
+  if (!(await requerirRol(ROLES.ADMIN))) return [];
+  const repositorio = new SeccionRepositorioMongo();
+  const todas = await repositorio.listar();
+  return todas.map((s) => s.toPlainObject());
+}
+
+export async function accionCalcularConsolidadoSeccion(datos: CalcularConsolidadoSeccionDTO): Promise<ConsolidadoSeccion | null> {
+  if (!(await requerirRol(ROLES.ADMIN))) return null;
+  const matriculaRepositorio = new MatriculaRepositorioMongo();
+  const asignacionRepositorio = new AsignacionRepositorioMongo();
+  const unidadDidacticaRepositorio = new UnidadDidacticaRepositorioMongo();
+  const notaRepositorio = new NotaRepositorioMongo();
+
+  const resultado = await calcularConsolidadoSeccion(datos, {
+    matriculaRepositorio,
+    asignacionRepositorio,
+    unidadDidacticaRepositorio,
+    notaRepositorio,
+  });
   if (!resultado.ok) return null;
   return resultado.value;
 }

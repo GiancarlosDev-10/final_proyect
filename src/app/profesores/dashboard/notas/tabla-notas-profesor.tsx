@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, MoreVertical, FileDown } from "lucide-react";
 import { NotaProps } from "@/modulos/notas/dominio/nota";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
@@ -16,7 +16,7 @@ import {
   accionEditarNota,
   accionEliminarNotaProfesor,
 } from "@/app/profesores/dashboard/notas/acciones";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +100,16 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     valor: "",
     fecha: "",
   });
+
+  const [seccionExportarId, setSeccionExportarId] = useState("");
+  const [periodoExportarId, setPeriodoExportarId] = useState("");
+  const [ordenUnidadExportar, setOrdenUnidadExportar] = useState<"1" | "2">("1");
+
+  // Solo las secciones donde el profesor realmente dicta algún curso.
+  const misSecciones = useMemo(() => {
+    const ids = [...new Set(asignaciones.map((a) => a.seccionId))];
+    return secciones.filter((s) => ids.includes(s.id));
+  }, [asignaciones, secciones]);
 
   const unidadesDelPeriodo = asignacionSeleccionada
     ? unidadesDidacticas.filter(
@@ -271,6 +281,73 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
           </Button>
         )}
       </div>
+
+      <Card>
+        <CardContent>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Exportar consolidado de una sección</Label>
+            <p className="text-xs text-muted-foreground">
+              Todos los cursos de la sección en un solo Excel, con puntaje y orden de mérito.
+            </p>
+          </div>
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Sección</Label>
+              <Select value={seccionExportarId} onValueChange={(v) => setSeccionExportarId(v ?? "")} itemToStringLabel={nombreSeccion}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar sección" />
+                </SelectTrigger>
+                <SelectContent>
+                  {misSecciones.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.grado} {s.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Periodo</Label>
+              <Select value={periodoExportarId} onValueChange={(v) => setPeriodoExportarId(v ?? "")} itemToStringLabel={nombrePeriodo}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar periodo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Unidad</Label>
+              <Select value={ordenUnidadExportar} onValueChange={(v) => setOrdenUnidadExportar((v ?? "1") as "1" | "2")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Unidad 1</SelectItem>
+                  <SelectItem value="2">Unidad 2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            {seccionExportarId && periodoExportarId ? (
+              <a
+                href={`/api/reportes/consolidado-seccion/excel?seccionId=${seccionExportarId}&periodoId=${periodoExportarId}&ordenUnidad=${ordenUnidadExportar}`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <FileDown className="size-4" />
+                Descargar Excel
+              </a>
+            ) : (
+              <Button variant="outline" disabled>
+                <FileDown className="size-4" />
+                Descargar Excel
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent>

@@ -3,18 +3,20 @@ import {
   accionListarAreasParaReportes,
   accionListarPeriodosParaReportes,
   accionListarCursosParaReportes,
+  accionListarSeccionesParaReportes,
 } from "@/modulos/reportes/presentacion/acciones";
-import { TablaReportePromedios } from "@/modulos/reportes/presentacion/tabla-reporte-promedios";
+import { ReportesShell } from "@/modulos/reportes/presentacion/reportes-shell";
 
 export default async function ReportesPage() {
-  const [estudiantes, areas, periodos, cursos] = await Promise.all([
+  const [estudiantes, areas, periodos, cursos, secciones] = await Promise.all([
     accionListarEstudiantesParaReportes(),
     accionListarAreasParaReportes(),
     accionListarPeriodosParaReportes(),
     accionListarCursosParaReportes(),
+    accionListarSeccionesParaReportes(),
   ]);
 
   return (
-    <TablaReportePromedios estudiantes={estudiantes} areas={areas} periodos={periodos} cursos={cursos} />
+    <ReportesShell estudiantes={estudiantes} areas={areas} periodos={periodos} cursos={cursos} secciones={secciones} />
   );
 }

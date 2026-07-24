@@ -4,16 +4,18 @@ import {
   accionListarCursosParaNotas,
   accionListarSeccionesParaNotas,
   accionListarPeriodosParaNotas,
+  accionListarProfesoresParaNotas,
 } from "@/modulos/notas/presentacion/acciones";
 import { TablaNotasAdmin } from "@/modulos/notas/presentacion/tabla-notas-admin";
 
 export default async function NotasAdminPage() {
-  const [asignaciones, estudiantes, cursos, secciones, periodos] = await Promise.all([
+  const [asignaciones, estudiantes, cursos, secciones, periodos, profesores] = await Promise.all([
     accionListarAsignacionesParaNotas(),
     accionListarEstudiantesParaNotas(),
     accionListarCursosParaNotas(),
     accionListarSeccionesParaNotas(),
     accionListarPeriodosParaNotas(),
+    accionListarProfesoresParaNotas(),
   ]);
 
   return (
@@ -23,6 +25,7 @@ export default async function NotasAdminPage() {
       cursos={cursos}
       secciones={secciones}
       periodos={periodos}
+      profesores={profesores}
     />
   );
 }
