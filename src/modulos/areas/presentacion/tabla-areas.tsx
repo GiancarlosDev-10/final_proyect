@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical, Search } from "lucide-react";
 import { AreaProps } from "@/modulos/areas/dominio/area";
 import { accionCrearArea, accionActualizarArea, accionEliminarArea } from "@/modulos/areas/presentacion/acciones";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,14 +23,21 @@ import {
 
 interface Props {
   areas: AreaProps[];
+  cursosPorArea: Record<string, string[]>;
+}
+
+function textoCursos(cursos: string[] | undefined): string {
+  return cursos && cursos.length > 0 ? cursos.join(", ") : "Sin cursos asignados";
 }
 
 function TarjetaArea({
   area,
+  cursos,
   onEditar,
   onEliminar,
 }: {
   area: AreaProps;
+  cursos: string[] | undefined;
   onEditar: (area: AreaProps) => void;
   onEliminar: (id: string) => void;
 }) {
@@ -38,7 +46,7 @@ function TarjetaArea({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{area.nombre}</p>
-          <p className="truncate text-sm text-muted-foreground">{area.descripcion || "Sin descripción"}</p>
+          <p className="truncate text-sm text-muted-foreground">{textoCursos(cursos)}</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
@@ -67,12 +75,23 @@ function TarjetaArea({
   );
 }
 
-export function TablaAreas({ areas }: Props) {
+export function TablaAreas({ areas, cursosPorArea }: Props) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState<AreaProps | null>(null);
   const [form, setForm] = useState({ nombre: "", descripcion: "" });
+  const [busqueda, setBusqueda] = useState("");
+
+  const areasFiltradas = useMemo(() => {
+    const termino = normalizarTexto(busqueda);
+    if (!termino) return areas;
+    return areas.filter(
+      (a) =>
+        normalizarTexto(a.nombre).includes(termino) ||
+        normalizarTexto(textoCursos(cursosPorArea[a.id])).includes(termino)
+    );
+  }, [areas, cursosPorArea, busqueda]);
 
   function abrirCrear() {
     setEditando(null);
@@ -126,10 +145,20 @@ export function TablaAreas({ areas }: Props) {
 
   return (
     <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Áreas</h1>
-          <p className="text-sm text-muted-foreground">Gestiona las áreas curriculares del colegio.</p>
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Áreas</h1>
+        <p className="text-sm text-muted-foreground">Gestiona las áreas curriculares del colegio.</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre o curso..."
+            className="pl-8"
+          />
         </div>
         <Button onClick={abrirCrear}>
           <Plus className="size-4" />
@@ -138,11 +167,13 @@ export function TablaAreas({ areas }: Props) {
       </div>
 
       <div className="space-y-3 md:hidden">
-        {areas.map((a) => (
-          <TarjetaArea key={a.id} area={a} onEditar={abrirEditar} onEliminar={onEliminar} />
+        {areasFiltradas.map((a) => (
+          <TarjetaArea key={a.id} area={a} cursos={cursosPorArea[a.id]} onEditar={abrirEditar} onEliminar={onEliminar} />
         ))}
-        {areas.length === 0 && (
-          <p className="p-6 text-center text-sm text-muted-foreground">No hay áreas registradas.</p>
+        {areasFiltradas.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">
+            {areas.length === 0 ? "No hay áreas registradas." : "Ningún área coincide con la búsqueda."}
+          </p>
         )}
       </div>
 
@@ -152,16 +183,16 @@ export function TablaAreas({ areas }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
-                <TableHead>Descripción</TableHead>
+                <TableHead>Cursos</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {areas.map((a) => (
+              {areasFiltradas.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell className="font-medium">{a.nombre}</TableCell>
-                  <TableCell className="text-muted-foreground">{a.descripcion || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{textoCursos(cursosPorArea[a.id])}</TableCell>
                   <TableCell>
                     {a.activo ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
@@ -183,10 +214,10 @@ export function TablaAreas({ areas }: Props) {
                   </TableCell>
                 </TableRow>
               ))}
-              {areas.length === 0 && (
+              {areasFiltradas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                    No hay áreas registradas.
+                    {areas.length === 0 ? "No hay áreas registradas." : "Ningún área coincide con la búsqueda."}
                   </TableCell>
                 </TableRow>
               )}

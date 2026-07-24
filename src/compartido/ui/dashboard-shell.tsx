@@ -14,12 +14,12 @@ import { Button } from "@/components/ui/button";
 interface Props {
   subtitulo: string;
   navItems: SidebarNavItem[];
-  usuario: { nombre?: string | null; email?: string | null };
+  usuario: { name?: string | null; email?: string | null };
   children: React.ReactNode;
 }
 
-function iniciales(usuario: { nombre?: string | null; email?: string | null }) {
-  const base = usuario.nombre ?? usuario.email ?? "?";
+function iniciales(usuario: { name?: string | null; email?: string | null }) {
+  const base = usuario.name ?? usuario.email ?? "?";
   return base
     .trim()
     .split(/\s+/)
@@ -52,8 +52,8 @@ function SidebarFooter({ usuario }: { usuario: Props["usuario"] }) {
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{usuario.nombre}</p>
-        <p className="truncate text-xs text-sidebar-foreground/60">{usuario.email}</p>
+        <p className="truncate text-base font-medium">{usuario.name}</p>
+        <p className="truncate text-sm text-sidebar-foreground/60">{usuario.email}</p>
       </div>
       <BotonCerrarSesion />
     </div>

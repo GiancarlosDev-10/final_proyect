@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreVertical, Search, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical, Search, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { EstudianteResumen } from "@/modulos/estudiantes/aplicacion/listar-estudiantes-por-seccion";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
@@ -15,6 +15,7 @@ import {
   accionObtenerEstudiante,
 } from "@/modulos/estudiantes/presentacion/acciones";
 import { NIVELES_EDUCATIVOS, ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo } from "@/config/constantes";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ interface Props {
 
 const LADO_MAXIMO_FOTO = 480;
 const CALIDAD_JPEG_FOTO = 0.85;
+const TAMANO_PAGINA = 10;
 
 /** Redimensiona/comprime en el navegador antes de subir, para no acumular fotos pesadas en Mongo. */
 function comprimirImagen(archivo: File): Promise<Blob> {
@@ -126,6 +128,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
   const [cargandoRoster, setCargandoRoster] = useState(false);
   const [cargandoEditarId, setCargandoEditarId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   const [abierto, setAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -165,8 +168,14 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
   function onCambiarSeccion(id: string) {
     setSeccionId(id);
     setBusqueda("");
+    setPagina(1);
     if (id) cargarRoster(id);
     else setEstudiantes([]);
+  }
+
+  function onCambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
   }
 
   function onCambiarNivel(nuevoNivel: NivelEducativo) {
@@ -285,12 +294,19 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
   }
 
   const estudiantesFiltrados = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
+    const termino = normalizarTexto(busqueda);
     if (!termino) return estudiantes;
     return estudiantes.filter(
-      (e) => e.nombreCompleto.toLowerCase().includes(termino) || e.documento.toLowerCase().includes(termino)
+      (e) => normalizarTexto(e.nombreCompleto).includes(termino) || normalizarTexto(e.documento).includes(termino)
     );
   }, [estudiantes, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(estudiantesFiltrados.length / TAMANO_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const estudiantesPagina = useMemo(
+    () => estudiantesFiltrados.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [estudiantesFiltrados, paginaActual]
+  );
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -331,7 +347,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              onChange={(e) => onCambiarBusqueda(e.target.value)}
               placeholder="Buscar por nombre o documento..."
               className="pl-8"
             />
@@ -351,7 +367,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
       ) : (
         <>
           <div className="space-y-3 md:hidden">
-            {estudiantesFiltrados.map((e) => (
+            {estudiantesPagina.map((e) => (
               <TarjetaEstudiante key={e.id} estudiante={e} onEditar={abrirEditar} onEliminar={onEliminar} />
             ))}
             {estudiantesFiltrados.length === 0 && (
@@ -361,23 +377,23 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
 
           <Card className="hidden p-0 md:block">
             <CardContent className="p-0">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>Apoderado</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead className="w-48">Nombre</TableHead>
+                    <TableHead className="w-32">Documento</TableHead>
+                    <TableHead className="w-48">Apoderado</TableHead>
+                    <TableHead className="w-24 text-center">Estado</TableHead>
+                    <TableHead className="w-64 text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {estudiantesFiltrados.map((e) => (
+                  {estudiantesPagina.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell className="font-medium">{e.nombreCompleto}</TableCell>
-                      <TableCell className="text-muted-foreground">{e.documento}</TableCell>
-                      <TableCell className="text-muted-foreground">{e.apoderado.nombre}</TableCell>
-                      <TableCell>
+                      <TableCell className="truncate font-medium">{e.nombreCompleto}</TableCell>
+                      <TableCell className="truncate text-muted-foreground">{e.documento}</TableCell>
+                      <TableCell className="truncate text-muted-foreground">{e.apoderado.nombre}</TableCell>
+                      <TableCell className="text-center">
                         {e.activo ? (
                           <StatusBadge variant="success">Activo</StatusBadge>
                         ) : (
@@ -385,7 +401,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-center gap-2">
                           <Button variant="outline" size="sm" onClick={() => abrirEditar(e)} disabled={cargandoEditarId === e.id}>
                             <Pencil className="size-3.5" />
                             {cargandoEditarId === e.id ? "Cargando..." : "Editar"}
@@ -409,6 +425,37 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
               </Table>
             </CardContent>
           </Card>
+
+          {estudiantesFiltrados.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
+                {Math.min(paginaActual * TAMANO_PAGINA, estudiantesFiltrados.length)} de {estudiantesFiltrados.length}{" "}
+                alumnos
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagina((p) => p - 1)}
+                  disabled={paginaActual <= 1}
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <span className="text-sm font-medium">
+                  Página {paginaActual} de {totalPaginas}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagina((p) => p + 1)}
+                  disabled={paginaActual >= totalPaginas}
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

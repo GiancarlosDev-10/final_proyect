@@ -8,6 +8,7 @@ export async function listarCursos(
 ): Promise<Result<Curso[]>> {
   try {
     const cursos = await repositorio.listar();
+    cursos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
     return ok(cursos);
   } catch (e) {
     return err(e as ErrorDominio);

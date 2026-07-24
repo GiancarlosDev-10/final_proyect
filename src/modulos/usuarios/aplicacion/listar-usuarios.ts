@@ -8,6 +8,7 @@ export async function listarUsuarios(
 ): Promise<Result<Usuario[]>> {
   try {
     const usuarios = await repositorio.listar();
+    usuarios.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, "es"));
     return ok(usuarios);
   } catch (e) {
     return err(e as ErrorDominio);

@@ -8,6 +8,7 @@ export async function listarAreas(
 ): Promise<Result<Area[]>> {
   try {
     const areas = await repositorio.listar();
+    areas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
     return ok(areas);
   } catch (e) {
     return err(e as ErrorDominio);

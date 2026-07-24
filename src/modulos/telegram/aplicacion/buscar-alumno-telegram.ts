@@ -4,7 +4,7 @@ import { IMatriculaRepositorio } from "@/modulos/matriculas/aplicacion/i-matricu
 import { IEstudianteRepositorio } from "@/modulos/estudiantes/aplicacion/i-estudiante-repositorio";
 import { ISeccionRepositorio } from "@/modulos/secciones/aplicacion/i-seccion-repositorio";
 import { TelegramChatNoEncontradoError } from "@/modulos/telegram/dominio/telegram-chat";
-import { normalizarTexto } from "@/modulos/telegram/aplicacion/normalizar-texto";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { Result, ok, err } from "@/compartido/lib/result";
 
 export interface CandidatoAlumno {

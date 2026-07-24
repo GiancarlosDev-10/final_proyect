@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Plus, Pencil, UserX, UserCheck, Eye, MoreVertical, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { validarPassword, PASSWORD_MIN_LENGTH } from "@/modulos/usuarios/dominio/politica-password";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+import { cn } from "@/lib/utils";
 import { accionCrearUsuario, accionActualizarUsuario, accionDesactivarUsuario, accionActivarUsuario } from "@/modulos/usuarios/presentacion/acciones";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,10 +108,10 @@ export function TablaUsuarios({ usuarios }: Props) {
   const [pagina, setPagina] = useState(1);
 
   const usuariosFiltrados = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
+    const termino = normalizarTexto(busqueda);
     if (!termino) return usuarios;
     return usuarios.filter(
-      (u) => u.nombreCompleto.toLowerCase().includes(termino) || u.email.toLowerCase().includes(termino)
+      (u) => normalizarTexto(u.nombreCompleto).includes(termino) || normalizarTexto(u.email).includes(termino)
     );
   }, [usuarios, busqueda]);
 
@@ -243,25 +245,25 @@ export function TablaUsuarios({ usuarios }: Props) {
 
       <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="w-48">Nombre</TableHead>
+                <TableHead className="w-80">Email</TableHead>
+                <TableHead className="w-24 text-center">Rol</TableHead>
+                <TableHead className="w-24 text-center">Estado</TableHead>
+                <TableHead className="w-96 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {usuariosPagina.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.nombreCompleto}</TableCell>
-                  <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                  <TableCell>
+                  <TableCell className="truncate font-medium">{u.nombreCompleto}</TableCell>
+                  <TableCell className="truncate text-muted-foreground">{u.email}</TableCell>
+                  <TableCell className="text-center">
                     <Badge variant="outline">{u.rol}</Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {u.activo ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
                     ) : (
@@ -269,8 +271,8 @@ export function TablaUsuarios({ usuarios }: Props) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-2">
-                      {u.rol === "PROFESOR" && (
+                    <div className="flex justify-center gap-2">
+                      {u.rol === "PROFESOR" ? (
                         <Link
                           href={`/admin/dashboard/usuarios/${u.id}`}
                           className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -278,6 +280,13 @@ export function TablaUsuarios({ usuarios }: Props) {
                           <Eye className="size-3.5" />
                           Ver detalles
                         </Link>
+                      ) : (
+                        // Slot invisible (mismo tamaño) para que "Editar"/"Desactivar" caigan
+                        // en la misma posición que en las filas de profesores.
+                        <span aria-hidden className={cn(buttonVariants({ variant: "outline", size: "sm" }), "invisible")}>
+                          <Eye className="size-3.5" />
+                          Ver detalles
+                        </span>
                       )}
                       <Button variant="outline" size="sm" onClick={() => abrirEditar(u)}>
                         <Pencil className="size-3.5" />

@@ -1,5 +1,6 @@
 import { ISeccionRepositorio } from "@/modulos/secciones/aplicacion/i-seccion-repositorio";
 import { Seccion } from "@/modulos/secciones/dominio/seccion";
+import { compararSecciones } from "@/modulos/secciones/dominio/orden-secciones";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { ErrorDominio } from "@/compartido/dominio/errores";
 
@@ -8,6 +9,7 @@ export async function listarSecciones(
 ): Promise<Result<Seccion[]>> {
   try {
     const secciones = await repositorio.listar();
+    secciones.sort(compararSecciones);
     return ok(secciones);
   } catch (e) {
     return err(e as ErrorDominio);

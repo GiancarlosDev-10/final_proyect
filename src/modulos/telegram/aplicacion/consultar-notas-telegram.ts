@@ -7,7 +7,7 @@ import { ICursoRepositorio } from "@/modulos/cursos/aplicacion/i-curso-repositor
 import { IPeriodoRepositorio } from "@/modulos/periodos/aplicacion/i-periodo-repositorio";
 import { TelegramChatNoEncontradoError } from "@/modulos/telegram/dominio/telegram-chat";
 import { AlumnoNoEncontradoError, AlumnoNoAsignadoError } from "@/modulos/telegram/dominio/errores";
-import { normalizarTexto } from "@/modulos/telegram/aplicacion/normalizar-texto";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { Result, ok, err } from "@/compartido/lib/result";
 
 export interface ConsultarNotasTelegramDTO {
