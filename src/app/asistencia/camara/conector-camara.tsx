@@ -43,6 +43,23 @@ export function ConectorCamara() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervaloRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const ultimoSonadoRef = useRef<string | null>(null);
+
+  function reproducirBeep() {
+    const contexto = audioContextRef.current;
+    if (!contexto) return;
+    const oscilador = contexto.createOscillator();
+    const ganancia = contexto.createGain();
+    oscilador.type = "sine";
+    oscilador.frequency.value = 880;
+    ganancia.gain.setValueAtTime(0.3, contexto.currentTime);
+    ganancia.gain.exponentialRampToValueAtTime(0.001, contexto.currentTime + 0.3);
+    oscilador.connect(ganancia);
+    ganancia.connect(contexto.destination);
+    oscilador.start();
+    oscilador.stop(contexto.currentTime + 0.3);
+  }
 
   function detenerCaptura() {
     if (intervaloRef.current) {
@@ -88,7 +105,12 @@ export function ConectorCamara() {
           });
           if (respuesta.ok) {
             setFramesEnviados((n) => n + 1);
-            setUltimoResultado(await respuesta.json());
+            const datos: ResultadoReconocimiento = await respuesta.json();
+            setUltimoResultado(datos);
+            if (datos.marcado && datos.nombreCompleto && ultimoSonadoRef.current !== datos.nombreCompleto) {
+              ultimoSonadoRef.current = datos.nombreCompleto;
+              reproducirBeep();
+            }
           }
         } catch {
           // Fallo de un frame puntual no detiene la sesión de captura.
@@ -109,6 +131,10 @@ export function ConectorCamara() {
     setMensaje(null);
     setUltimoResultado(null);
     try {
+      // Se crea acá (dentro del clic) para que el navegador no bloquee el
+      // audio por política de autoplay — necesita nacer de un gesto real.
+      audioContextRef.current ??= new AudioContext();
+      ultimoSonadoRef.current = null;
       await iniciarStream(camaraFrontal);
       setEstado("activo");
       setFramesEnviados(0);
