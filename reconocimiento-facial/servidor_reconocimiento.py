@@ -29,7 +29,11 @@ CORS(app, resources={r"/frame": {"origins": os.environ.get("ORIGEN_PERMITIDO", "
 
 base_rostros = BaseDeRostros()
 votante = VotanteTemporal()
-_ultimo_marcado: dict[str, float] = {}
+# Guarda no solo cuándo se marcó, sino el resultado — así, mientras dure el
+# cooldown, se le puede seguir devolviendo al navegador el mismo
+# estado/nombre en vez de un "yaRegistrado" vacío que hace parpadear la
+# pantalla de vuelta a "verificando...".
+_ultimo_marcado: dict[str, tuple[float, dict]] = {}
 _bloqueo = threading.Lock()
 
 
@@ -90,9 +94,9 @@ def recibir_frame():
 
     with _bloqueo:
         ahora = time.time()
-        ultimo = _ultimo_marcado.get(confirmado, 0)
-        if ahora - ultimo < config.COOLDOWN_TRAS_MARCAR_SEG:
-            return jsonify({"ok": True, "reconocido": confirmado, "yaRegistrado": True})
+        previo = _ultimo_marcado.get(confirmado)
+        if previo and ahora - previo[0] < config.COOLDOWN_TRAS_MARCAR_SEG:
+            return jsonify({"ok": True, "reconocido": confirmado, "marcado": True, **previo[1], "yaRegistrado": True})
 
     resultado = cliente_api.marcar_asistencia(confirmado)
 
@@ -105,7 +109,7 @@ def recibir_frame():
 
     votante.reiniciar()
     with _bloqueo:
-        _ultimo_marcado[confirmado] = time.time()
+        _ultimo_marcado[confirmado] = (time.time(), resultado)
 
     logger.info("Asistencia marcada: %s -> %s", confirmado, resultado["estado"])
     return jsonify({"ok": True, "reconocido": confirmado, "marcado": True, **resultado})
