@@ -46,3 +46,8 @@ next-env.d.ts
 
 # workflow local de n8n (contiene la URL/secreto del bot; no se sube al repo)
 /n8n/
+
+# python (servicio de reconocimiento facial)
+__pycache__/
+*.pyc
+reconocimiento-facial/.venv*/

@@ -27,6 +27,7 @@ export interface RegistrarAsistenciaPorReconocimientoDeps {
 export interface ResultadoReconocimiento {
   estado: EstadoAsistencia;
   yaRegistrado: boolean;
+  nombreCompleto: string;
 }
 
 /**
@@ -99,7 +100,7 @@ export async function registrarAsistenciaPorReconocimiento(
     // puede seguir sobreescribiendo manualmente desde el roster).
     const existente = await deps.registroRepo.buscarPorSesionYEstudiante(sesion.id, estudianteId);
     if (existente?.bloqueado) {
-      return ok({ estado: existente.estado, yaRegistrado: true });
+      return ok({ estado: existente.estado, yaRegistrado: true, nombreCompleto: estudiante.nombreCompleto });
     }
 
     const estado: EstadoAsistencia =
@@ -108,7 +109,7 @@ export async function registrarAsistenciaPorReconocimiento(
     const resultado = await marcarAsistencia(sesion.id, estudianteId, estado, deps.registroRepo);
     if (!resultado.ok) return err(resultado.error);
 
-    return ok({ estado, yaRegistrado: false });
+    return ok({ estado, yaRegistrado: false, nombreCompleto: estudiante.nombreCompleto });
   } catch (e) {
     return err(e as ErrorDominio);
   }

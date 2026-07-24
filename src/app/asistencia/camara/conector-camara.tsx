@@ -29,6 +29,7 @@ interface ResultadoReconocimiento {
   reconocido: string | null;
   marcado?: boolean;
   estado?: string;
+  nombreCompleto?: string;
 }
 
 export function ConectorCamara() {
@@ -172,8 +173,8 @@ export function ConectorCamara() {
           <p className="text-center text-sm text-white">
             {ultimoResultado?.reconocido
               ? ultimoResultado.marcado
-                ? `Reconocido: ${ultimoResultado.reconocido} → ${ultimoResultado.estado}`
-                : `Reconocido: ${ultimoResultado.reconocido} (confirmando...)`
+                ? `${ultimoResultado.nombreCompleto ?? "Alumno"} → ${ultimoResultado.estado}`
+                : "Alumno reconocido, verificando..."
               : "Nadie reconocido todavía."}
           </p>
           <div className="flex items-center justify-center gap-3">

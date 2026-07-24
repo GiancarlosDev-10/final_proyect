@@ -38,5 +38,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, mensaje: resultado.error.message, codigo: resultado.error.codigo });
   }
 
-  return NextResponse.json({ ok: true, estado: resultado.value.estado, yaRegistrado: resultado.value.yaRegistrado });
+  return NextResponse.json({
+    ok: true,
+    estado: resultado.value.estado,
+    yaRegistrado: resultado.value.yaRegistrado,
+    nombreCompleto: resultado.value.nombreCompleto,
+  });
 }

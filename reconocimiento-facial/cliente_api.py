@@ -42,7 +42,7 @@ def listar_encodings_activos() -> list[dict]:
 
 
 def marcar_asistencia(estudiante_id: str) -> dict | None:
-    """Llama a /api/asistencia. Devuelve {estado, yaRegistrado} o None si falló/rechazó."""
+    """Llama a /api/asistencia. Devuelve {estado, yaRegistrado, nombreCompleto} o None si falló/rechazó."""
     resp = requests.post(
         f"{config.API_BASE_URL}/api/asistencia",
         headers=_HEADERS,
@@ -53,4 +53,8 @@ def marcar_asistencia(estudiante_id: str) -> dict | None:
     if not datos.get("ok"):
         logger.info("No se marcó asistencia para %s: %s", estudiante_id, datos.get("mensaje"))
         return None
-    return {"estado": datos["estado"], "yaRegistrado": datos["yaRegistrado"]}
+    return {
+        "estado": datos["estado"],
+        "yaRegistrado": datos["yaRegistrado"],
+        "nombreCompleto": datos.get("nombreCompleto"),
+    }

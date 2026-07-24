@@ -100,6 +100,19 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
     return () => clearInterval(intervalo);
   }, []);
 
+  // Refresca el roster solo (sin recargar la página) mientras la sesión esté
+  // abierta, para que las marcas que haga la cámara aparezcan solas.
+  useEffect(() => {
+    const sesionId = sesion?.id;
+    const seccionId = bloqueSeleccionado?.seccionId;
+    if (!sesionId || !seccionId) return;
+    const intervalo = setInterval(async () => {
+      const filas = await accionListarRoster(sesionId, seccionId);
+      setRoster(filas);
+    }, 2000);
+    return () => clearInterval(intervalo);
+  }, [sesion?.id, bloqueSeleccionado?.seccionId]);
+
   async function seleccionarBloque(bloque: BloqueDeHoy) {
     setCargando(true);
     setBloqueSeleccionado(bloque);

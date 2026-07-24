@@ -93,13 +93,19 @@ def recibir_frame():
         ultimo = _ultimo_marcado.get(confirmado, 0)
         if ahora - ultimo < config.COOLDOWN_TRAS_MARCAR_SEG:
             return jsonify({"ok": True, "reconocido": confirmado, "yaRegistrado": True})
-        _ultimo_marcado[confirmado] = ahora
 
     resultado = cliente_api.marcar_asistencia(confirmado)
-    votante.reiniciar()
 
+    # El cooldown y el reinicio de la votación solo aplican si REALMENTE se
+    # marcó asistencia — si falló (ej. la sesión no cubre la hora actual
+    # todavía), se reintenta en el próximo frame en vez de quedar "atascado"
+    # sin reintentar por los próximos COOLDOWN_TRAS_MARCAR_SEG segundos.
     if resultado is None:
         return jsonify({"ok": True, "reconocido": confirmado, "marcado": False})
+
+    votante.reiniciar()
+    with _bloqueo:
+        _ultimo_marcado[confirmado] = time.time()
 
     logger.info("Asistencia marcada: %s -> %s", confirmado, resultado["estado"])
     return jsonify({"ok": True, "reconocido": confirmado, "marcado": True, **resultado})
