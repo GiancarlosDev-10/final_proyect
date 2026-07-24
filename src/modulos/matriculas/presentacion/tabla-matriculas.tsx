@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { MatriculaProps } from "@/modulos/matriculas/dominio/matricula";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
 import { accionCrearMatricula, accionActualizarMatricula, accionEliminarMatricula } from "@/modulos/matriculas/presentacion/acciones";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +30,8 @@ interface Props {
   estudiantes: EstudianteProps[];
   secciones: SeccionProps[];
 }
+
+const TAMANO_PAGINA = 10;
 
 function TarjetaMatricula({
   matricula,
@@ -79,6 +83,8 @@ function TarjetaMatricula({
 
 export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
   const router = useRouter();
+  const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
   const [abierto, setAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState<MatriculaProps | null>(null);
@@ -87,6 +93,49 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
     seccionId: "",
     anio: new Date().getFullYear().toString(),
   });
+
+  function nombreEstudiante(id: string) {
+    const e = estudiantes.find((e) => e.id === id);
+    return e ? apellidoNombre(e.nombreCompleto) : "(estudiante eliminado)";
+  }
+
+  function nombreSeccion(id: string) {
+    const s = secciones.find((s) => s.id === id);
+    return s ? `${s.grado} ${s.nombre}` : "(sección eliminada)";
+  }
+
+  // Alfabético por apellido para que sea fácil ubicar un alumno entre ~250+.
+  const estudiantesOrdenados = useMemo(
+    () => [...estudiantes].sort((a, b) => apellidoNombre(a.nombreCompleto).localeCompare(apellidoNombre(b.nombreCompleto), "es")),
+    [estudiantes]
+  );
+
+  const matriculasFiltradas = useMemo(() => {
+    const termino = normalizarTexto(busqueda);
+    const base = !termino
+      ? matriculas
+      : matriculas.filter(
+          (m) =>
+            normalizarTexto(nombreEstudiante(m.estudianteId)).includes(termino) ||
+            normalizarTexto(nombreSeccion(m.seccionId)).includes(termino)
+        );
+    return [...base].sort((a, b) =>
+      nombreEstudiante(a.estudianteId).localeCompare(nombreEstudiante(b.estudianteId), "es")
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matriculas, busqueda, estudiantes, secciones]);
+
+  const totalPaginas = Math.max(1, Math.ceil(matriculasFiltradas.length / TAMANO_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const matriculasPagina = useMemo(
+    () => matriculasFiltradas.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [matriculasFiltradas, paginaActual]
+  );
+
+  function onCambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
+  }
 
   function abrirCrear() {
     setEditando(null);
@@ -135,21 +184,22 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
     else toast.error(resultado.mensaje);
   }
 
-  function nombreEstudiante(id: string) {
-    return estudiantes.find((e) => e.id === id)?.nombreCompleto || "(estudiante eliminado)";
-  }
-
-  function nombreSeccion(id: string) {
-    const s = secciones.find((s) => s.id === id);
-    return s ? `${s.grado} ${s.nombre}` : "(sección eliminada)";
-  }
-
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Matrículas</h1>
-          <p className="text-sm text-muted-foreground">Asocia estudiantes a una sección por año escolar.</p>
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Matrículas</h1>
+        <p className="text-sm text-muted-foreground">Asocia estudiantes a una sección por año escolar.</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busqueda}
+            onChange={(e) => onCambiarBusqueda(e.target.value)}
+            placeholder="Buscar por estudiante o sección..."
+            className="pl-8"
+          />
         </div>
         <Button onClick={abrirCrear}>
           <Plus className="size-4" />
@@ -158,7 +208,7 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
       </div>
 
       <div className="space-y-3 md:hidden">
-        {matriculas.map((m) => (
+        {matriculasPagina.map((m) => (
           <TarjetaMatricula
             key={m.id}
             matricula={m}
@@ -168,30 +218,32 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
             onEliminar={onEliminar}
           />
         ))}
-        {matriculas.length === 0 && (
-          <p className="p-6 text-center text-sm text-muted-foreground">No hay matrículas registradas.</p>
+        {matriculasFiltradas.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">
+            {matriculas.length === 0 ? "No hay matrículas registradas." : "Ninguna matrícula coincide con la búsqueda."}
+          </p>
         )}
       </div>
 
       <Card className="hidden p-0 md:block">
         <CardContent className="p-0">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Estudiante</TableHead>
-                <TableHead>Sección</TableHead>
-                <TableHead>Año</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="w-64">Estudiante</TableHead>
+                <TableHead className="w-32">Sección</TableHead>
+                <TableHead className="w-20">Año</TableHead>
+                <TableHead className="w-28 text-center">Estado</TableHead>
+                <TableHead className="w-56 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matriculas.map((m) => (
+              {matriculasPagina.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="font-medium">{nombreEstudiante(m.estudianteId)}</TableCell>
+                  <TableCell className="truncate font-medium">{nombreEstudiante(m.estudianteId)}</TableCell>
                   <TableCell className="text-muted-foreground">{nombreSeccion(m.seccionId)}</TableCell>
                   <TableCell className="text-muted-foreground">{m.anio}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {m.activo ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
                     ) : (
@@ -199,7 +251,7 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => abrirEditar(m)}>
                         <Pencil className="size-3.5" />
                         Editar
@@ -212,10 +264,10 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
                   </TableCell>
                 </TableRow>
               ))}
-              {matriculas.length === 0 && (
+              {matriculasFiltradas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No hay matrículas registradas.
+                    {matriculas.length === 0 ? "No hay matrículas registradas." : "Ninguna matrícula coincide con la búsqueda."}
                   </TableCell>
                 </TableRow>
               )}
@@ -223,6 +275,36 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      {matriculasFiltradas.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
+            {Math.min(paginaActual * TAMANO_PAGINA, matriculasFiltradas.length)} de {matriculasFiltradas.length} matrículas
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p - 1)}
+              disabled={paginaActual <= 1}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-medium">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => p + 1)}
+              disabled={paginaActual >= totalPaginas}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent>
@@ -242,8 +324,8 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
                   <SelectValue placeholder="Seleccionar estudiante" />
                 </SelectTrigger>
                 <SelectContent>
-                  {estudiantes.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.nombreCompleto}</SelectItem>
+                  {estudiantesOrdenados.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{apellidoNombre(e.nombreCompleto)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
