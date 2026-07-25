@@ -124,7 +124,7 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, recor
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold">Mi Horario</h1>
