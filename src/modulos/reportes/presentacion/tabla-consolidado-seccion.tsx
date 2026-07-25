@@ -86,8 +86,8 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
     <div className="space-y-6">
       <Card>
         <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="flex-1 space-y-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1 space-y-2">
               <Label>Sección</Label>
               <Select value={seccionId} onValueChange={(v) => setSeccionId(v ?? "")} itemToStringLabel={nombreSeccion}>
                 <SelectTrigger className="w-full">
@@ -100,7 +100,7 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <Label>Periodo</Label>
               <Select value={periodoId} onValueChange={(v) => setPeriodoId(v ?? "")} itemToStringLabel={nombrePeriodo}>
                 <SelectTrigger className="w-full">

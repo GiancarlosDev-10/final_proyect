@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, MoreVertical, FileDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, MoreVertical, FileDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { NotaProps } from "@/modulos/notas/dominio/nota";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
@@ -30,7 +30,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TIPOS_NOTA, TipoNota } from "@/config/constantes";
+import { TIPOS_NOTA, TipoNota, ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo } from "@/config/constantes";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+
+const TAMANO_PAGINA = 10;
+
+function numeroDeGrado(grado: string): number {
+  const match = grado.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
 
 interface Props {
   asignaciones: AsignacionProps[];
@@ -86,8 +94,6 @@ function TarjetaNotaProfesor({
 }
 
 export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos, secciones, unidadesDidacticas }: Props) {
-  const [asignacionSeleccionada, setAsignacionSeleccionada] = useState<AsignacionProps | null>(null);
-  const [unidadSeleccionada, setUnidadSeleccionada] = useState<UnidadDidacticaProps | null>(null);
   const [notas, setNotas] = useState<NotaProps[]>([]);
   const [loadingNotas, setLoadingNotas] = useState(false);
   const [abierto, setAbierto] = useState(false);
@@ -101,36 +107,144 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     fecha: "",
   });
 
-  const [seccionExportarId, setSeccionExportarId] = useState("");
-  const [periodoExportarId, setPeriodoExportarId] = useState("");
-  const [ordenUnidadExportar, setOrdenUnidadExportar] = useState<"1" | "2">("1");
+  const [cursoFiltroId, setCursoFiltroId] = useState("");
+  const [nivelFiltro, setNivelFiltro] = useState<NivelEducativo | "">("");
+  const [gradoFiltro, setGradoFiltro] = useState("");
+  const [seccionFiltroId, setSeccionFiltroId] = useState("");
+  const [periodoFiltroId, setPeriodoFiltroId] = useState("");
+  const [ordenUnidad, setOrdenUnidad] = useState<"1" | "2">("1");
 
-  // Solo las secciones donde el profesor realmente dicta algún curso.
+  // Solo lo que el profesor realmente dicta, para no ofrecerle combinaciones ajenas.
+  const misCursos = useMemo(() => {
+    const ids = [...new Set(asignaciones.map((a) => a.cursoId))];
+    return cursos.filter((c) => ids.includes(c.id));
+  }, [asignaciones, cursos]);
+
   const misSecciones = useMemo(() => {
     const ids = [...new Set(asignaciones.map((a) => a.seccionId))];
     return secciones.filter((s) => ids.includes(s.id));
   }, [asignaciones, secciones]);
 
-  const unidadesDelPeriodo = asignacionSeleccionada
-    ? unidadesDidacticas.filter(
-        (u) => u.periodoId === asignacionSeleccionada.periodoId && u.cursoId === asignacionSeleccionada.cursoId
-      )
-    : [];
+  const misPeriodos = useMemo(() => {
+    const ids = [...new Set(asignaciones.map((a) => a.periodoId))];
+    return periodos.filter((p) => ids.includes(p.id));
+  }, [asignaciones, periodos]);
 
-  async function onSeleccionarAsignacion(id: string) {
-    const asignacion = asignaciones.find((a) => a.id === id) || null;
-    setAsignacionSeleccionada(asignacion);
-    setUnidadSeleccionada(null);
-    if (!id) { setNotas([]); return; }
+  // Nivel → Grado → Sección: "1°" existe tanto en Primaria como en Secundaria,
+  // así que sin el nivel de por medio elegir la sección correcta es ambiguo.
+  const nivelesDisponibles = useMemo(() => {
+    const niveles = new Set(misSecciones.map((s) => s.nivel));
+    return ORDEN_NIVELES_EDUCATIVOS.filter((n) => niveles.has(n));
+  }, [misSecciones]);
+
+  const gradosDisponibles = useMemo(() => {
+    const base = nivelFiltro ? misSecciones.filter((s) => s.nivel === nivelFiltro) : misSecciones;
+    return [...new Set(base.map((s) => s.grado))].sort((a, b) => numeroDeGrado(a) - numeroDeGrado(b));
+  }, [misSecciones, nivelFiltro]);
+
+  const seccionesFiltradas = useMemo(() => {
+    return misSecciones.filter(
+      (s) => (!nivelFiltro || s.nivel === nivelFiltro) && (!gradoFiltro || s.grado === gradoFiltro)
+    );
+  }, [misSecciones, nivelFiltro, gradoFiltro]);
+
+  // Curso solo decide qué asignación calificar aquí abajo; el Excel (más
+  // abajo) exporta TODOS los cursos de la Sección+Periodo+Unidad elegidos,
+  // sin importar qué Curso esté seleccionado en este mismo selector.
+  const asignacionSeleccionada = useMemo(() => {
+    if (!cursoFiltroId || !seccionFiltroId || !periodoFiltroId) return null;
+    return (
+      asignaciones.find(
+        (a) => a.cursoId === cursoFiltroId && a.seccionId === seccionFiltroId && a.periodoId === periodoFiltroId && a.activo
+      ) ?? null
+    );
+  }, [asignaciones, cursoFiltroId, seccionFiltroId, periodoFiltroId]);
+
+  const unidadSeleccionada = useMemo(() => {
+    if (!asignacionSeleccionada) return null;
+    return (
+      unidadesDidacticas.find(
+        (u) =>
+          u.cursoId === asignacionSeleccionada.cursoId &&
+          u.periodoId === asignacionSeleccionada.periodoId &&
+          u.orden === Number(ordenUnidad)
+      ) ?? null
+    );
+  }, [unidadesDidacticas, asignacionSeleccionada, ordenUnidad]);
+
+  // Se dispara desde los onChange de Curso/Sección/Periodo (no con un
+  // useEffect) para no violar react-hooks/set-state-in-effect, y porque de
+  // todos modos es una reacción directa a la interacción del usuario.
+  async function cargarNotasSegunFiltros(nuevoCursoId: string, nuevoSeccionId: string, nuevoPeriodoId: string) {
+    const asignacion = asignaciones.find(
+      (a) => a.cursoId === nuevoCursoId && a.seccionId === nuevoSeccionId && a.periodoId === nuevoPeriodoId && a.activo
+    );
+    if (!asignacion) {
+      setNotas([]);
+      return;
+    }
     setLoadingNotas(true);
-    const resultado = await accionListarNotasPorAsignacionProfesor(id);
+    const resultado = await accionListarNotasPorAsignacionProfesor(asignacion.id);
     setNotas(resultado);
     setLoadingNotas(false);
   }
 
-  function onSeleccionarUnidad(id: string) {
-    setUnidadSeleccionada(unidadesDidacticas.find((u) => u.id === id) || null);
+  function onCambiarCurso(id: string) {
+    setCursoFiltroId(id);
+    cargarNotasSegunFiltros(id, seccionFiltroId, periodoFiltroId);
   }
+
+  function onCambiarNivel(valor: string) {
+    setNivelFiltro(valor as NivelEducativo | "");
+    setGradoFiltro("");
+    setSeccionFiltroId("");
+    cargarNotasSegunFiltros(cursoFiltroId, "", periodoFiltroId);
+  }
+
+  function onCambiarGrado(valor: string) {
+    setGradoFiltro(valor);
+    setSeccionFiltroId("");
+    cargarNotasSegunFiltros(cursoFiltroId, "", periodoFiltroId);
+  }
+
+  function onCambiarSeccion(id: string) {
+    setSeccionFiltroId(id);
+    cargarNotasSegunFiltros(cursoFiltroId, id, periodoFiltroId);
+  }
+
+  function onCambiarPeriodo(id: string) {
+    setPeriodoFiltroId(id);
+    cargarNotasSegunFiltros(cursoFiltroId, seccionFiltroId, id);
+  }
+
+  const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+
+  const notasFiltradas = useMemo(() => {
+    const termino = normalizarTexto(busqueda);
+    if (!termino) return notas;
+    return notas.filter(
+      (n) => normalizarTexto(nombreEstudiante(n.estudianteId)).includes(termino) || normalizarTexto(n.etiqueta).includes(termino)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notas, busqueda, estudiantes]);
+
+  const totalPaginas = Math.max(1, Math.ceil(notasFiltradas.length / TAMANO_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const notasPagina = useMemo(
+    () => notasFiltradas.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [notasFiltradas, paginaActual]
+  );
+
+  function onCambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
+  }
+
+  const urlExcel =
+    seccionFiltroId && periodoFiltroId
+      ? `/api/reportes/consolidado-seccion/excel?seccionId=${seccionFiltroId}&periodoId=${periodoFiltroId}&ordenUnidad=${ordenUnidad}`
+      : null;
 
   function abrirCrear() {
     setEditando(null);
@@ -255,20 +369,8 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     return s ? `${s.grado} ${s.nombre}` : "(sección eliminada)";
   }
 
-  function nombreAsignacionPorId(id: string) {
-    const a = asignaciones.find((a) => a.id === id);
-    if (!a) return "(asignación eliminada)";
-    return `${nombrePeriodo(a.periodoId)} — ${nombreCurso(a.cursoId)} — ${nombreSeccion(a.seccionId)}`;
-  }
-
-  function nombreUnidad(id: string) {
-    const u = unidadesDidacticas.find((u) => u.id === id);
-    if (!u) return "(unidad eliminada)";
-    return `${u.nombre}${u.estado === "CERRADO" ? " (cerrada)" : ""}`;
-  }
-
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold">Mis Notas</h1>
@@ -284,42 +386,79 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
 
       <Card>
         <CardContent>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Exportar consolidado de una sección</Label>
-            <p className="text-xs text-muted-foreground">
-              Todos los cursos de la sección en un solo Excel, con puntaje y orden de mérito.
-            </p>
-          </div>
-          <div className="mt-3 grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label>Curso</Label>
+              <Select value={cursoFiltroId} onValueChange={(v) => onCambiarCurso(v ?? "")} itemToStringLabel={nombreCurso}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar curso" />
+                </SelectTrigger>
+                <SelectContent>
+                  {misCursos.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-36 space-y-2">
+              <Label>Nivel</Label>
+              <Select
+                value={nivelFiltro}
+                onValueChange={(v) => onCambiarNivel(v ?? "")}
+                itemToStringLabel={(n) => (n ? ETIQUETAS_NIVEL_EDUCATIVO[n as NivelEducativo] : "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Nivel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {nivelesDisponibles.map((n) => (
+                    <SelectItem key={n} value={n}>{ETIQUETAS_NIVEL_EDUCATIVO[n]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-28 space-y-2">
+              <Label>Grado</Label>
+              <Select value={gradoFiltro} onValueChange={(v) => onCambiarGrado(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Grado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gradosDisponibles.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-0 flex-1 space-y-2">
               <Label>Sección</Label>
-              <Select value={seccionExportarId} onValueChange={(v) => setSeccionExportarId(v ?? "")} itemToStringLabel={nombreSeccion}>
+              <Select value={seccionFiltroId} onValueChange={(v) => onCambiarSeccion(v ?? "")} itemToStringLabel={nombreSeccion}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar sección" />
                 </SelectTrigger>
                 <SelectContent>
-                  {misSecciones.map((s) => (
+                  {seccionesFiltradas.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.grado} {s.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <Label>Periodo</Label>
-              <Select value={periodoExportarId} onValueChange={(v) => setPeriodoExportarId(v ?? "")} itemToStringLabel={nombrePeriodo}>
+              <Select value={periodoFiltroId} onValueChange={(v) => onCambiarPeriodo(v ?? "")} itemToStringLabel={nombrePeriodo}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar periodo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {periodos.map((p) => (
+                  {misPeriodos.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="w-28 space-y-2">
               <Label>Unidad</Label>
-              <Select value={ordenUnidadExportar} onValueChange={(v) => setOrdenUnidadExportar((v ?? "1") as "1" | "2")}>
+              <Select value={ordenUnidad} onValueChange={(v) => setOrdenUnidad((v ?? "1") as "1" | "2")}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -330,68 +469,43 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
               </Select>
             </div>
           </div>
-          <div className="mt-4 flex justify-end">
-            {seccionExportarId && periodoExportarId ? (
-              <a
-                href={`/api/reportes/consolidado-seccion/excel?seccionId=${seccionExportarId}&periodoId=${periodoExportarId}&ordenUnidad=${ordenUnidadExportar}`}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                <FileDown className="size-4" />
-                Descargar Excel
-              </a>
-            ) : (
-              <Button variant="outline" disabled>
-                <FileDown className="size-4" />
-                Descargar Excel
-              </Button>
-            )}
-          </div>
+
+          {cursoFiltroId && seccionFiltroId && periodoFiltroId && !asignacionSeleccionada && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              No tienes una asignación activa con esa combinación de curso, sección y periodo.
+            </p>
+          )}
+          {asignacionSeleccionada && !unidadSeleccionada && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              No hay una Unidad {ordenUnidad} generada para este curso y periodo. Pide al administrador que la cree.
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Asignación</Label>
-              <Select value={asignacionSeleccionada?.id ?? ""} onValueChange={(v) => onSeleccionarAsignacion(v ?? "")} itemToStringLabel={nombreAsignacionPorId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar asignación" />
-                </SelectTrigger>
-                <SelectContent>
-                  {asignaciones.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {nombrePeriodo(a.periodoId)} — {nombreCurso(a.cursoId)} — {nombreSeccion(a.seccionId)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {asignacionSeleccionada && (
-              <div className="space-y-2">
-                <Label>Unidad didáctica</Label>
-                <Select value={unidadSeleccionada?.id ?? ""} onValueChange={(v) => onSeleccionarUnidad(v ?? "")} itemToStringLabel={nombreUnidad}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar unidad didáctica" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {unidadesDelPeriodo.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.nombre}{u.estado === "CERRADO" ? " (cerrada)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {unidadesDelPeriodo.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    No hay unidades didácticas para el periodo de esta asignación. Pide al administrador que las cree.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busqueda}
+            onChange={(e) => onCambiarBusqueda(e.target.value)}
+            placeholder="Buscar por estudiante o etiqueta..."
+            className="pl-8"
+            disabled={!asignacionSeleccionada}
+          />
+        </div>
+        {urlExcel ? (
+          <a href={urlExcel} className={buttonVariants({ variant: "outline" })}>
+            <FileDown className="size-4" />
+            Descargar Excel
+          </a>
+        ) : (
+          <Button variant="outline" disabled>
+            <FileDown className="size-4" />
+            Descargar Excel
+          </Button>
+        )}
+      </div>
 
       {loadingNotas && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -403,43 +517,45 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
       {!loadingNotas && asignacionSeleccionada && (
         <>
           <div className="space-y-3 md:hidden">
-            {notas.map((n) => (
+            {notasPagina.map((n) => (
               <TarjetaNotaProfesor key={n.id} nota={n} nombreEstudiante={nombreEstudiante} onEditar={abrirEditar} onEliminar={onEliminar} />
             ))}
-            {notas.length === 0 && (
-              <p className="p-6 text-center text-sm text-muted-foreground">No hay notas para esta asignación.</p>
+            {notasFiltradas.length === 0 && (
+              <p className="p-6 text-center text-sm text-muted-foreground">
+                {notas.length === 0 ? "No hay notas para esta asignación." : "Ninguna nota coincide con la búsqueda."}
+              </p>
             )}
           </div>
 
           <Card className="hidden p-0 md:block">
           <CardContent className="p-0">
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Estudiante</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Etiqueta</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="w-56">Estudiante</TableHead>
+                  <TableHead className="w-28">Tipo</TableHead>
+                  <TableHead className="w-40">Etiqueta</TableHead>
+                  <TableHead className="w-20 text-center">Valor</TableHead>
+                  <TableHead className="w-28">Fecha</TableHead>
+                  <TableHead className="w-56 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {notas.map((n) => (
+                {notasPagina.map((n) => (
                   <TableRow key={n.id}>
-                    <TableCell className="font-medium">{nombreEstudiante(n.estudianteId)}</TableCell>
+                    <TableCell className="truncate font-medium">{nombreEstudiante(n.estudianteId)}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{n.tipo}</Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{n.etiqueta}</TableCell>
-                    <TableCell>
+                    <TableCell className="truncate text-muted-foreground">{n.etiqueta}</TableCell>
+                    <TableCell className="text-center">
                       <span className={`font-semibold ${n.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                         {n.valor}
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{n.fecha}</TableCell>
                     <TableCell>
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => abrirEditar(n)}>
                           <Pencil className="size-3.5" />
                           Editar
@@ -452,10 +568,10 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
                     </TableCell>
                   </TableRow>
                 ))}
-                {notas.length === 0 && (
+                {notasFiltradas.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                      No hay notas para esta asignación.
+                      {notas.length === 0 ? "No hay notas para esta asignación." : "Ninguna nota coincide con la búsqueda."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -463,6 +579,36 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
             </Table>
           </CardContent>
           </Card>
+
+          {notasFiltradas.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
+                {Math.min(paginaActual * TAMANO_PAGINA, notasFiltradas.length)} de {notasFiltradas.length} notas
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagina((p) => p - 1)}
+                  disabled={paginaActual <= 1}
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <span className="text-sm font-medium">
+                  Página {paginaActual} de {totalPaginas}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagina((p) => p + 1)}
+                  disabled={paginaActual >= totalPaginas}
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

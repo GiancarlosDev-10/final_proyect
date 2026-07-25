@@ -13,6 +13,15 @@ import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-re
 import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructura/estudiante-repositorio-mongo";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 
+const AZUL_ENCABEZADO = "FF1E293B";
+const GRIS_FRANJA = "FFF8FAFC";
+const BORDE_GRIS = "FFCBD5E1";
+const VERDE_APROBADO = "FF059669";
+const ROJO_DESAPROBADO = "FFA23B3B";
+
+const BORDE_FINO = { style: "thin" as const, color: { argb: BORDE_GRIS } };
+const BORDE_CELDA = { top: BORDE_FINO, left: BORDE_FINO, bottom: BORDE_FINO, right: BORDE_FINO };
+
 export async function GET(request: NextRequest) {
   const profesorId = await requerirRol(ROLES.PROFESOR);
   if (!profesorId) {
@@ -78,32 +87,84 @@ export async function GET(request: NextRequest) {
   );
 
   const workbook = new ExcelJS.Workbook();
-  const hoja = workbook.addWorksheet("Consolidado");
-
-  hoja.addRow([`Sección: ${seccion.grado} ${seccion.nombre}`]);
-  hoja.addRow([`Periodo: ${periodo.nombre} ${periodo.anio} — Unidad ${ordenUnidad}`]);
-  hoja.addRow([]);
-
-  const filaEncabezado = hoja.addRow(["N°", "Apellidos y Nombres", ...consolidado.cursoIds.map(nombreCurso), "Puntaje", "Orden de Mérito"]);
-  filaEncabezado.font = { bold: true };
-  filaEncabezado.eachCell((celda) => {
-    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
-    celda.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  workbook.creator = "Dashboard Colegio";
+  const hoja = workbook.addWorksheet("Consolidado", {
+    views: [{ state: "frozen", xSplit: 2, ySplit: 6 }],
   });
 
+  const totalColumnas = 2 + consolidado.cursoIds.length + 2;
+  const ultimaColumna = totalColumnas;
+
+  hoja.mergeCells(1, 1, 1, ultimaColumna);
+  const celdaTitulo = hoja.getCell(1, 1);
+  celdaTitulo.value = "CONSOLIDADO DE NOTAS";
+  celdaTitulo.font = { bold: true, size: 14 };
+  celdaTitulo.alignment = { horizontal: "center", vertical: "middle" };
+  hoja.getRow(1).height = 24;
+
+  function filaInfo(numeroFila: number, etiqueta: string, valor: string) {
+    const celdaEtiqueta = hoja.getCell(numeroFila, 1);
+    celdaEtiqueta.value = etiqueta;
+    celdaEtiqueta.font = { bold: true };
+    hoja.mergeCells(numeroFila, 2, numeroFila, ultimaColumna);
+    hoja.getCell(numeroFila, 2).value = valor;
+  }
+  filaInfo(2, "Sección", `${seccion.grado} ${seccion.nombre}`);
+  filaInfo(3, "Periodo", `${periodo.nombre} ${periodo.anio}`);
+  filaInfo(4, "Unidad", `Unidad ${ordenUnidad}`);
+
+  const encabezados = ["N°", "Apellidos y Nombres", ...consolidado.cursoIds.map(nombreCurso), "Puntaje", "Orden de Mérito"];
+  const filaEncabezado = hoja.getRow(6);
+  encabezados.forEach((texto, i) => {
+    const celda = filaEncabezado.getCell(i + 1);
+    celda.value = texto;
+    celda.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AZUL_ENCABEZADO } };
+    celda.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    celda.border = BORDE_CELDA;
+  });
+  filaEncabezado.height = 28;
+
   filasOrdenadas.forEach((fila, indice) => {
-    hoja.addRow([
+    const numeroFila = 7 + indice;
+    const esFranjaGris = indice % 2 === 1;
+    const valores = [
       indice + 1,
       apellidoNombre(nombreEstudiante(fila.estudianteId)),
       ...fila.notasPorCurso.map((n) => (n.promedio === null ? "—" : `${n.promedio.toFixed(1)} ${n.letra}`)),
       fila.puntaje === null ? "—" : Number(fila.puntaje.toFixed(1)),
       fila.ordenMerito === null ? "—" : fila.ordenMerito,
-    ]);
+    ];
+
+    valores.forEach((valor, i) => {
+      const celda = hoja.getCell(numeroFila, i + 1);
+      celda.value = valor;
+      celda.border = BORDE_CELDA;
+      celda.alignment = { horizontal: i === 1 ? "left" : "center", vertical: "middle" };
+      if (esFranjaGris) {
+        celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GRIS_FRANJA } };
+      }
+
+      const esColumnaDeCurso = i >= 2 && i < 2 + consolidado.cursoIds.length;
+      if (esColumnaDeCurso) {
+        const promedio = fila.notasPorCurso[i - 2]?.promedio;
+        if (promedio !== null && promedio !== undefined) {
+          celda.font = { color: { argb: promedio >= 11 ? VERDE_APROBADO : ROJO_DESAPROBADO }, bold: true };
+        }
+      }
+      if (i === 2 + consolidado.cursoIds.length) {
+        celda.font = { ...celda.font, bold: true };
+      }
+    });
   });
 
-  hoja.columns.forEach((columna, indice) => {
-    columna.width = indice === 1 ? 28 : 14;
-  });
+  hoja.getColumn(1).width = 6;
+  hoja.getColumn(2).width = 30;
+  for (let i = 0; i < consolidado.cursoIds.length; i++) {
+    hoja.getColumn(3 + i).width = 13;
+  }
+  hoja.getColumn(ultimaColumna - 1).width = 12;
+  hoja.getColumn(ultimaColumna).width = 16;
 
   const buffer = await workbook.xlsx.writeBuffer();
   const nombreArchivo = `consolidado_${seccion.grado}${seccion.nombre}_${periodo.nombre}_U${ordenUnidad}.xlsx`.replace(/\s+/g, "_");

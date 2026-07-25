@@ -64,7 +64,7 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
       <Card>
         <CardContent>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <Label>Estudiante</Label>
               <Select value={estudianteId} onValueChange={(v) => setEstudianteId(v ?? "")} itemToStringLabel={nombreEstudiante}>
                 <SelectTrigger className="w-full">
@@ -77,7 +77,7 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <Label>Área</Label>
               <Select value={areaId} onValueChange={(v) => setAreaId(v ?? "")} itemToStringLabel={nombreArea}>
                 <SelectTrigger className="w-full">
@@ -90,7 +90,7 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <Label>Periodo</Label>
               <Select value={periodoId} onValueChange={(v) => setPeriodoId(v ?? "")} itemToStringLabel={nombrePeriodo}>
                 <SelectTrigger className="w-full">
