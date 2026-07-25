@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
+import { ETIQUETAS_NIVEL_EDUCATIVO, NivelEducativo } from "@/config/constantes";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -12,19 +13,30 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface EstudianteFila extends EstudianteProps {
+  nivel: NivelEducativo | null;
+  grado: string | null;
+  seccionNombre: string | null;
+}
+
 interface Props {
-  estudiantes: EstudianteProps[];
+  estudiantes: EstudianteFila[];
 }
 
 const TAMANO_PAGINA = 10;
 
-function TarjetaEstudiante({ estudiante }: { estudiante: EstudianteProps }) {
+function nombreNivel(nivel: NivelEducativo | null) {
+  return nivel ? ETIQUETAS_NIVEL_EDUCATIVO[nivel] : "—";
+}
+
+function TarjetaEstudiante({ estudiante }: { estudiante: EstudianteFila }) {
   return (
     <Card className="p-3">
       <div className="min-w-0">
         <p className="truncate font-medium">{apellidoNombre(estudiante.nombreCompleto)}</p>
-        <p className="truncate text-sm text-muted-foreground">Documento: {estudiante.documento}</p>
-        <p className="truncate text-sm text-muted-foreground">Apoderado: {estudiante.apoderado.nombre}</p>
+        <p className="truncate text-sm text-muted-foreground">
+          {nombreNivel(estudiante.nivel)} · {estudiante.grado ?? "—"} {estudiante.seccionNombre ?? ""}
+        </p>
       </div>
       <div className="mt-3 flex items-center justify-between gap-2">
         {estudiante.activo ? (
@@ -53,7 +65,11 @@ export function TablaEstudiantesProfesor({ estudiantes }: Props) {
     const base = !termino
       ? estudiantes
       : estudiantes.filter(
-          (e) => normalizarTexto(e.nombreCompleto).includes(termino) || normalizarTexto(e.documento).includes(termino)
+          (e) =>
+            normalizarTexto(e.nombreCompleto).includes(termino) ||
+            normalizarTexto(nombreNivel(e.nivel)).includes(termino) ||
+            normalizarTexto(e.grado ?? "").includes(termino) ||
+            normalizarTexto(e.seccionNombre ?? "").includes(termino)
         );
     return [...base].sort((a, b) => apellidoNombre(a.nombreCompleto).localeCompare(apellidoNombre(b.nombreCompleto), "es"));
   }, [estudiantes, busqueda]);
@@ -82,7 +98,7 @@ export function TablaEstudiantesProfesor({ estudiantes }: Props) {
         <Input
           value={busqueda}
           onChange={(e) => onCambiarBusqueda(e.target.value)}
-          placeholder="Buscar por nombre o documento..."
+          placeholder="Buscar por nombre, nivel, grado o sección..."
           className="pl-8"
         />
       </div>
@@ -103,9 +119,10 @@ export function TablaEstudiantesProfesor({ estudiantes }: Props) {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-48">Nombre</TableHead>
-                <TableHead className="w-32">Documento</TableHead>
-                <TableHead className="w-48">Apoderado</TableHead>
+                <TableHead className="w-56">Nombre</TableHead>
+                <TableHead className="w-32">Nivel</TableHead>
+                <TableHead className="w-20">Grado</TableHead>
+                <TableHead className="w-20">Sección</TableHead>
                 <TableHead className="w-24 text-center">Estado</TableHead>
                 <TableHead className="w-40 text-center">Acciones</TableHead>
               </TableRow>
@@ -114,8 +131,9 @@ export function TablaEstudiantesProfesor({ estudiantes }: Props) {
               {estudiantesPagina.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell className="truncate font-medium">{apellidoNombre(e.nombreCompleto)}</TableCell>
-                  <TableCell className="truncate text-muted-foreground">{e.documento}</TableCell>
-                  <TableCell className="truncate text-muted-foreground">{e.apoderado.nombre}</TableCell>
+                  <TableCell className="truncate text-muted-foreground">{nombreNivel(e.nivel)}</TableCell>
+                  <TableCell className="text-muted-foreground">{e.grado ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{e.seccionNombre ?? "—"}</TableCell>
                   <TableCell className="text-center">
                     {e.activo ? (
                       <StatusBadge variant="success">Activo</StatusBadge>
@@ -138,7 +156,7 @@ export function TablaEstudiantesProfesor({ estudiantes }: Props) {
               ))}
               {estudiantesFiltrados.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     {estudiantes.length === 0 ? "No tienes estudiantes asignados." : "Ningún estudiante coincide con la búsqueda."}
                   </TableCell>
                 </TableRow>
