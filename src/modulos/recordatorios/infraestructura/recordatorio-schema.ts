@@ -23,7 +23,7 @@ const RecordatorioSchema = new Schema<IRecordatorioDocument>(
     descripcion: { type: String },
     tipo: {
       type: String,
-      enum: ["REUNION_PADRE", "REUNION_PROFESOR", "REUNION_DIRECTOR", "OTRO"],
+      enum: ["REUNION", "EVALUACION", "ENTREGA", "TAREA", "OTRO"],
       required: true,
     },
     horaInicio: { type: String },

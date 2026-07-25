@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { RecordatorioProps } from "@/modulos/recordatorios/dominio/recordatorio";
 import {
   accionCrearRecordatorio,
   accionActualizarRecordatorio,
   accionEliminarRecordatorio,
 } from "@/app/profesores/dashboard/recordatorios/acciones";
+import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,7 @@ export function MuroRecordatorios({ recordatorios }: Props) {
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState<RecordatorioProps | null>(null);
   const [form, setForm] = useState(FORM_VACIO);
+  const [busqueda, setBusqueda] = useState("");
 
   function abrirCrear() {
     setEditando(null);
@@ -84,14 +86,35 @@ export function MuroRecordatorios({ recordatorios }: Props) {
     }
   }
 
-  const recordatoriosOrdenados = [...recordatorios].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const recordatoriosOrdenados = useMemo(() => {
+    const termino = normalizarTexto(busqueda);
+    const base = !termino
+      ? recordatorios
+      : recordatorios.filter(
+          (r) =>
+            normalizarTexto(r.titulo).includes(termino) ||
+            normalizarTexto(r.descripcion ?? "").includes(termino) ||
+            normalizarTexto(ETIQUETAS_TIPO_RECORDATORIO[r.tipo]).includes(termino)
+        );
+    return [...base].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }, [recordatorios, busqueda]);
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Mis Recordatorios</h1>
-          <p className="text-sm text-muted-foreground">Reuniones y pendientes personales, solo visibles para ti.</p>
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Mis Recordatorios</h1>
+        <p className="text-sm text-muted-foreground">Reuniones y pendientes personales, solo visibles para ti.</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por título, descripción o tipo..."
+            className="pl-8"
+          />
         </div>
         <Button onClick={abrirCrear}>
           <Plus className="size-4" />
@@ -100,7 +123,9 @@ export function MuroRecordatorios({ recordatorios }: Props) {
       </div>
 
       {recordatoriosOrdenados.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No tienes recordatorios todavía.</p>
+        <p className="text-sm text-muted-foreground">
+          {recordatorios.length === 0 ? "No tienes recordatorios todavía." : "Ningún recordatorio coincide con la búsqueda."}
+        </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {recordatoriosOrdenados.map((r) => (
@@ -158,7 +183,7 @@ export function MuroRecordatorios({ recordatorios }: Props) {
                 itemToStringLabel={(t) => ETIQUETAS_TIPO_RECORDATORIO[t as TipoRecordatorio] ?? ""}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona un tipo" />
+                  <SelectValue placeholder="Elige el tipo de recordatorio" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(TIPOS_RECORDATORIO).map((t) => (

@@ -15,6 +15,7 @@
     "migrar:cursos-duplicados": "tsx --env-file=.env.local scripts/migrar-cursos-duplicados.ts",
     "migrar:ciencia-tecnologia-secundaria": "tsx --env-file=.env.local scripts/migrar-ciencia-tecnologia-secundaria.ts",
     "migrar:eliminar-anio-secciones": "tsx --env-file=.env.local scripts/migrar-eliminar-anio-secciones.ts",
+    "migrar:tipos-recordatorio": "tsx --env-file=.env.local scripts/migrar-tipos-recordatorio.ts",
     "test": "vitest run"
   },
   "dependencies": {

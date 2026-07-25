@@ -220,7 +220,7 @@ export function crearRecordatorio(overrides: Partial<RecordatorioProps> = {}): R
     profesorId: "PROF-1",
     fecha: "2026-07-13",
     titulo: "Reunión con el padre de Giancarlos",
-    tipo: TIPOS_RECORDATORIO.REUNION_PADRE,
+    tipo: TIPOS_RECORDATORIO.REUNION,
     creadoEn: AHORA,
     actualizadoEn: AHORA,
     ...overrides,

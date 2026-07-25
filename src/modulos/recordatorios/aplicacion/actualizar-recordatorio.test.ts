@@ -22,7 +22,7 @@ describe("actualizarRecordatorio", () => {
     ]);
 
     const resultado = await actualizarRecordatorio(
-      { id: "REC-1", profesorId: "PROF-1", fecha: "2026-07-14", titulo: "Título editado", tipo: TIPOS_RECORDATORIO.REUNION_PROFESOR },
+      { id: "REC-1", profesorId: "PROF-1", fecha: "2026-07-14", titulo: "Título editado", tipo: TIPOS_RECORDATORIO.REUNION },
       repo
     );
 
