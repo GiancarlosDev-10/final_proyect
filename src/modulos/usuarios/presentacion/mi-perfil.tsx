@@ -115,7 +115,7 @@ export function MiPerfil({ perfil }: Props) {
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
       <div>
         <h1 className="font-heading text-2xl font-semibold">Mi Perfil</h1>
         <p className="text-sm text-muted-foreground">Administra tu información personal y tu acceso.</p>
