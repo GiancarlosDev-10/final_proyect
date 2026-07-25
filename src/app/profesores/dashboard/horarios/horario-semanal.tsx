@@ -2,6 +2,7 @@
 
 import { Fragment, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BloqueHorarioProps } from "@/modulos/horarios/dominio/bloque-horario";
@@ -180,16 +181,20 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, recor
                       onDrop={(e) => onSoltarEnCeldaHora(e, fecha, periodo)}
                     >
                       {bloque ? (
-                        <div className="flex min-h-12 w-full flex-col items-center justify-center overflow-hidden rounded-md border border-primary/30 bg-primary/10 px-4 py-2 text-center">
-                          {asignacion ? (
-                            <>
-                              <p className="w-full truncate text-xs font-medium">{nombreCurso(asignacion.cursoId)}</p>
-                              <p className="w-full truncate text-[11px] text-muted-foreground">{nombreSeccion(asignacion.seccionId)}</p>
-                            </>
-                          ) : (
+                        asignacion ? (
+                          <Link
+                            href={`/profesores/dashboard/asistencia?bloqueId=${bloque.id}`}
+                            className="flex min-h-12 w-full flex-col items-center justify-center overflow-hidden rounded-md border border-primary/30 bg-primary/10 px-4 py-2 text-center transition-colors hover:bg-primary/20"
+                            title="Ir a Asistencia de esta clase"
+                          >
+                            <p className="w-full truncate text-xs font-medium">{nombreCurso(asignacion.cursoId)}</p>
+                            <p className="w-full truncate text-[11px] text-muted-foreground">{nombreSeccion(asignacion.seccionId)}</p>
+                          </Link>
+                        ) : (
+                          <div className="flex min-h-12 w-full flex-col items-center justify-center overflow-hidden rounded-md border border-primary/30 bg-primary/10 px-4 py-2 text-center">
                             <p className="w-full truncate text-xs text-muted-foreground">(asignación eliminada)</p>
-                          )}
-                        </div>
+                          </div>
+                        )
                       ) : recordatoriosDeLaCelda.length === 0 ? (
                         <div className="min-h-12 w-full rounded-md border border-dashed" />
                       ) : null}

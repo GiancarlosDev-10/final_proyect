@@ -13,6 +13,7 @@ import { SesionAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestr
 import { RegistroAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestructura/registro-asistencia-repositorio-mongo";
 
 import { listarBloquesDeHoy, BloqueDeHoy } from "@/modulos/asistencia/aplicacion/listar-bloques-de-hoy";
+import { obtenerBloqueParaAsistencia } from "@/modulos/asistencia/aplicacion/obtener-bloque-para-asistencia";
 import { abrirSesionAsistencia } from "@/modulos/asistencia/aplicacion/abrir-sesion-asistencia";
 import { actualizarUmbralesSesion } from "@/modulos/asistencia/aplicacion/actualizar-umbrales-sesion";
 import { listarRoster, FilaRoster } from "@/modulos/asistencia/aplicacion/listar-roster";
@@ -33,6 +34,18 @@ export async function accionListarBloquesDeHoy(): Promise<BloqueDeHoy[]> {
   if (!sesion) return [];
   const resultado = await listarBloquesDeHoy(sesion.id, { bloqueRepo, asignacionRepo, seccionRepo, cursoRepo });
   return resultado.ok ? resultado.value : [];
+}
+
+export async function accionObtenerBloqueParaAsistencia(bloqueHorarioId: string): Promise<BloqueDeHoy | null> {
+  const sesion = await requerirSesion();
+  if (!sesion) return null;
+  const resultado = await obtenerBloqueParaAsistencia(bloqueHorarioId, sesion.id, {
+    bloqueRepo,
+    asignacionRepo,
+    seccionRepo,
+    cursoRepo,
+  });
+  return resultado.ok ? resultado.value : null;
 }
 
 export async function accionAbrirSesion(
