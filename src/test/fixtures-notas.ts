@@ -24,6 +24,8 @@ import { TelegramChat, TelegramChatProps } from "@/modulos/telegram/dominio/tele
 import { ITelegramChatRepositorio } from "@/modulos/telegram/aplicacion/i-telegram-chat-repositorio";
 import { TelegramIntento, TelegramIntentoProps } from "@/modulos/telegram/dominio/telegram-intento";
 import { ITelegramIntentoRepositorio } from "@/modulos/telegram/aplicacion/i-telegram-intento-repositorio";
+import { LoginIntento, LoginIntentoProps } from "@/modulos/auth/dominio/login-intento";
+import { ILoginIntentoRepositorio } from "@/modulos/auth/aplicacion/i-login-intento-repositorio";
 import {
   ESTADOS_PERIODO,
   ESTADOS_UNIDAD_DIDACTICA,
@@ -571,5 +573,30 @@ export class FakeTelegramIntentoRepositorio implements ITelegramIntentoRepositor
 
   async eliminar(chatId: string): Promise<void> {
     this.intentos = this.intentos.filter((i) => i.chatId !== chatId);
+  }
+}
+
+export function crearLoginIntento(overrides: Partial<LoginIntentoProps> = {}): LoginIntento {
+  return new LoginIntento({
+    email: "profesor@colegio.edu.pe",
+    intentosFallidos: 0,
+    actualizadoEn: AHORA,
+    ...overrides,
+  });
+}
+
+export class FakeLoginIntentoRepositorio implements ILoginIntentoRepositorio {
+  constructor(private intentos: LoginIntento[] = []) {}
+
+  async buscarPorEmail(email: string): Promise<LoginIntento | null> {
+    return this.intentos.find((i) => i.email === email) ?? null;
+  }
+
+  async guardar(intento: LoginIntento): Promise<void> {
+    this.intentos = [...this.intentos.filter((i) => i.email !== intento.email), intento];
+  }
+
+  async eliminar(email: string): Promise<void> {
+    this.intentos = this.intentos.filter((i) => i.email !== email);
   }
 }

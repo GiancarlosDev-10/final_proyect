@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { env } from "@/config/env";
+import { compararSecretoTimingSafe } from "@/compartido/lib/comparar-secreto";
 
 /**
  * El script de Python de reconocimiento facial no tiene sesión de NextAuth —
@@ -8,5 +9,5 @@ import { env } from "@/config/env";
  */
 export function verificarSecretoAsistencia(request: NextRequest): boolean {
   const header = request.headers.get("x-api-key");
-  return header === env.ASISTENCIA_API_SECRET;
+  return compararSecretoTimingSafe(header, env.ASISTENCIA_API_SECRET);
 }

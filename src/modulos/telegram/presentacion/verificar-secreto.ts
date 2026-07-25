@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { env } from "@/config/env";
+import { compararSecretoTimingSafe } from "@/compartido/lib/comparar-secreto";
 
 /**
  * Los endpoints de /api/telegram no usan la sesión de NextAuth (quien llama
@@ -9,5 +10,5 @@ import { env } from "@/config/env";
  */
 export function verificarSecretoTelegram(request: NextRequest): boolean {
   const header = request.headers.get("x-api-key");
-  return header === env.TELEGRAM_API_SECRET;
+  return compararSecretoTimingSafe(header, env.TELEGRAM_API_SECRET);
 }

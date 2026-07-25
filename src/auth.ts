@@ -1,9 +1,16 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { cache } from "react";
+import { z } from "zod";
 import { authConfig } from "@/auth.config";
 import { UsuarioRepositorioMongo } from "@/modulos/usuarios/infraestructura/usuario-repositorio-mongo";
+import { LoginIntentoRepositorioMongo } from "@/modulos/auth/infraestructura/login-intento-repositorio-mongo";
 import { iniciarSesion } from "@/modulos/auth/aplicacion/iniciar-sesion";
+
+const credencialesSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
 
 const { handlers, signIn, signOut, auth: authSinCache } = NextAuth({
   ...authConfig,
@@ -14,13 +21,11 @@ const { handlers, signIn, signOut, auth: authSinCache } = NextAuth({
         password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        const datos = credencialesSchema.safeParse(credentials);
+        if (!datos.success) return null;
         const repositorio = new UsuarioRepositorioMongo();
-        const resultado = await iniciarSesion(
-          credentials.email as string,
-          credentials.password as string,
-          repositorio
-        );
+        const intentoRepo = new LoginIntentoRepositorioMongo();
+        const resultado = await iniciarSesion(datos.data.email, datos.data.password, repositorio, intentoRepo);
         if (!resultado.ok) return null;
         const usuario = resultado.value;
         return {
