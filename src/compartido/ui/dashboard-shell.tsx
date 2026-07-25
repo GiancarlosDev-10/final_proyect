@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Menu } from "lucide-react";
+import Image from "next/image";
+import { Menu } from "lucide-react";
 import { SidebarNav, type SidebarNavItem } from "@/compartido/ui/sidebar-nav";
 import { MobileSidebar } from "@/compartido/ui/mobile-sidebar";
 import { BotonCerrarSesion } from "@/compartido/ui/boton-cerrar-sesion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import logoColegio from "@/assets/juanvelasco.png";
 
 interface Props {
   subtitulo: string;
@@ -32,11 +34,11 @@ function iniciales(usuario: { name?: string | null; email?: string | null }) {
 function SidebarBrand({ subtitulo }: { subtitulo: string }) {
   return (
     <div className="flex items-center gap-2.5 px-4 py-5">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-        <GraduationCap className="size-5" />
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white p-1">
+        <Image src={logoColegio} alt="Colegio Juan Velasco Alvarado" className="size-full object-contain" />
       </div>
       <div className="min-w-0">
-        <p className="truncate font-heading text-sm font-semibold leading-tight">Dashboard Colegio</p>
+        <p className="truncate font-heading text-sm font-semibold leading-tight">Colegio Juan Velasco Alvarado</p>
         <p className="truncate text-xs text-sidebar-foreground/60">{subtitulo}</p>
       </div>
     </div>
