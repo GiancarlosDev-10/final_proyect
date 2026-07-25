@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Award, CalendarDays, ClipboardList, GraduationCap } from "lucide-react";
+import { ArrowLeft, Award, Cake, GraduationCap, Phone, type LucideIcon } from "lucide-react";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructura/estudiante-repositorio-mongo";
@@ -10,10 +10,10 @@ import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-re
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
 import { NotaRepositorioMongo } from "@/modulos/notas/infraestructura/nota-repositorio-mongo";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TipoNota } from "@/config/constantes";
+import { HistorialEvaluaciones, FilaEvaluacion } from "@/app/profesores/dashboard/estudiantes/[id]/historial-evaluaciones";
 
 const ETIQUETAS_TIPO_NOTA: Record<TipoNota, string> = {
   PRACTICA: "Práctica",
@@ -31,15 +31,6 @@ function iniciales(nombreCompleto: string): string {
     .map((p) => p[0])
     .join("")
     .toUpperCase();
-}
-
-function calcularEdad(fechaNacimiento: string): number | null {
-  const [anio, mes, dia] = fechaNacimiento.split("-").map(Number);
-  if (!anio || !mes || !dia) return null;
-  const hoy = new Date();
-  let edad = hoy.getFullYear() - anio;
-  if (hoy.getMonth() + 1 < mes || (hoy.getMonth() + 1 === mes && hoy.getDate() < dia)) edad--;
-  return edad;
 }
 
 function formatearFecha(fechaISO: string): string {
@@ -87,7 +78,6 @@ export default async function DetalleEstudiantePage({ params }: { params: Promis
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   const nombreSeccion = seccion ? `${seccion.grado} ${seccion.nombre}` : "—";
-  const edad = calcularEdad(estudiante.fechaNacimiento);
   const promedio = notas.length > 0 ? notas.reduce((s, n) => s + n.valor, 0) / notas.length : null;
 
   function nombreCurso(asignacionId: string) {
@@ -99,15 +89,33 @@ export default async function DetalleEstudiantePage({ params }: { params: Promis
     return periodos.find((p) => p.id === periodoId)?.nombre || "—";
   }
 
-  const estadisticas = [
-    { etiqueta: "Sección", valor: nombreSeccion, icono: GraduationCap },
-    { etiqueta: "Edad", valor: edad !== null ? `${edad} años` : "—", icono: CalendarDays },
+  const estadisticas: Array<{ etiqueta: string; valor: React.ReactNode; icono: LucideIcon }> = [
+    { etiqueta: "Grado y Sección", valor: nombreSeccion, icono: GraduationCap },
+    { etiqueta: "Fecha de nacimiento", valor: formatearFecha(estudiante.fechaNacimiento), icono: Cake },
+    {
+      etiqueta: `${estudiante.apoderado.nombre} (${estudiante.apoderado.parentesco})`,
+      valor: (
+        <a href={`tel:${estudiante.apoderado.telefono}`} className="hover:underline">
+          {estudiante.apoderado.telefono}
+        </a>
+      ),
+      icono: Phone,
+    },
     { etiqueta: "Promedio general", valor: promedio !== null ? promedio.toFixed(1) : "—", icono: Award },
-    { etiqueta: "Evaluaciones", valor: String(notas.length), icono: ClipboardList },
   ];
 
+  const filasEvaluaciones: FilaEvaluacion[] = notas.map((n) => ({
+    id: n.id,
+    cursoNombre: nombreCurso(n.asignacionId),
+    periodoNombre: nombrePeriodo(n.periodoId),
+    tipoEtiqueta: ETIQUETAS_TIPO_NOTA[n.tipo],
+    etiqueta: n.etiqueta,
+    fecha: formatearFecha(n.fecha),
+    valor: n.valor,
+  }));
+
   return (
-    <div className="space-y-6 p-6 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
       <div>
         <Link href="/profesores/dashboard/estudiantes" className={buttonVariants({ variant: "ghost", size: "sm" })}>
           <ArrowLeft className="size-3.5" />
@@ -150,122 +158,7 @@ export default async function DetalleEstudiantePage({ params }: { params: Promis
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Información personal</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Nombre completo</span>
-              <span className="text-right font-medium">{estudiante.nombreCompleto}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Documento</span>
-              <span className="font-medium">{estudiante.documento}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Fecha de nacimiento</span>
-              <span className="font-medium">{formatearFecha(estudiante.fechaNacimiento)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Sección</span>
-              <span className="font-medium">{nombreSeccion}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Apoderado</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Nombre</span>
-              <span className="text-right font-medium">{estudiante.apoderado.nombre}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Parentesco</span>
-              <span className="font-medium">{estudiante.apoderado.parentesco}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Teléfono</span>
-              <a href={`tel:${estudiante.apoderado.telefono}`} className="font-medium text-primary hover:underline">
-                {estudiante.apoderado.telefono}
-              </a>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="p-0">
-        <CardHeader className="p-4 pb-0">
-          <CardTitle className="text-base">Historial de evaluaciones</CardTitle>
-          <p className="text-sm font-normal text-muted-foreground">
-            Notas registradas en tus cursos. Escala de 0 a 20; aprobatoria desde {NOTA_APROBATORIA}.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3 p-4 pt-2 md:hidden">
-          {notas.map((n) => (
-            <Card key={n.id} className="p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{nombreCurso(n.asignacionId)}</p>
-                  <p className="truncate text-sm text-muted-foreground">{n.etiqueta}</p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {ETIQUETAS_TIPO_NOTA[n.tipo]} · {nombrePeriodo(n.periodoId)} · {formatearFecha(n.fecha)}
-                  </p>
-                </div>
-                <StatusBadge variant={n.valor >= NOTA_APROBATORIA ? "success" : "error"} className="shrink-0">
-                  {n.valor}
-                </StatusBadge>
-              </div>
-            </Card>
-          ))}
-          {notas.length === 0 && (
-            <p className="p-6 text-center text-sm text-muted-foreground">
-              Aún no hay notas registradas para este estudiante en tus cursos.
-            </p>
-          )}
-        </CardContent>
-        <CardContent className="hidden p-0 pt-2 md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Curso</TableHead>
-                <TableHead>Periodo</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Nota</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {notas.map((n) => (
-                <TableRow key={n.id}>
-                  <TableCell className="font-medium">{nombreCurso(n.asignacionId)}</TableCell>
-                  <TableCell className="text-muted-foreground">{nombrePeriodo(n.periodoId)}</TableCell>
-                  <TableCell className="text-muted-foreground">{ETIQUETAS_TIPO_NOTA[n.tipo]}</TableCell>
-                  <TableCell className="text-muted-foreground">{n.etiqueta}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatearFecha(n.fecha)}</TableCell>
-                  <TableCell className="text-right">
-                    <StatusBadge variant={n.valor >= NOTA_APROBATORIA ? "success" : "error"}>
-                      {n.valor}
-                    </StatusBadge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {notas.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    Aún no hay notas registradas para este estudiante en tus cursos.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <HistorialEvaluaciones notas={filasEvaluaciones} notaAprobatoria={NOTA_APROBATORIA} />
     </div>
   );
 }
