@@ -26,9 +26,18 @@ import { TelegramIntento, TelegramIntentoProps } from "@/modulos/telegram/domini
 import { ITelegramIntentoRepositorio } from "@/modulos/telegram/aplicacion/i-telegram-intento-repositorio";
 import { LoginIntento, LoginIntentoProps } from "@/modulos/auth/dominio/login-intento";
 import { ILoginIntentoRepositorio } from "@/modulos/auth/aplicacion/i-login-intento-repositorio";
+import { RegistroAsistencia, RegistroAsistenciaProps } from "@/modulos/asistencia/dominio/registro-asistencia";
+import { IRegistroAsistenciaRepositorio } from "@/modulos/asistencia/aplicacion/i-registro-asistencia-repositorio";
+import { CodigoApoderado, CodigoApoderadoProps } from "@/modulos/telegram/dominio/codigo-apoderado";
+import { ICodigoApoderadoRepositorio } from "@/modulos/telegram/aplicacion/i-codigo-apoderado-repositorio";
+import { ApoderadoVinculado, ApoderadoVinculadoProps } from "@/modulos/telegram/dominio/apoderado-vinculado";
+import { IApoderadoVinculadoRepositorio } from "@/modulos/telegram/aplicacion/i-apoderado-vinculado-repositorio";
+import { ApoderadoIntento, ApoderadoIntentoProps } from "@/modulos/telegram/dominio/apoderado-intento";
+import { IApoderadoIntentoRepositorio } from "@/modulos/telegram/aplicacion/i-apoderado-intento-repositorio";
 import {
   ESTADOS_PERIODO,
   ESTADOS_UNIDAD_DIDACTICA,
+  ESTADOS_ASISTENCIA,
   TIPOS_NOTA,
   TIPOS_RECORDATORIO,
   DIAS_SEMANA,
@@ -436,7 +445,7 @@ export function crearEstudiante(overrides: Partial<EstudianteProps> = {}): Estud
     documento: "71000001",
     nombreCompleto: "Camila Flores Huamán",
     fechaNacimiento: "2013-05-10",
-    apoderado: { nombre: "José Flores", telefono: "999999999", parentesco: "Padre" },
+    apoderado: { nombre: "José Flores", telefono: "999999999", parentesco: "Padre", email: "jose.flores@ejemplo.com" },
     activo: true,
     fotoBase64: null,
     fotoContentType: null,
@@ -457,6 +466,10 @@ export class FakeEstudianteRepositorio implements IEstudianteRepositorio {
 
   async buscarPorIds(ids: string[]): Promise<Estudiante[]> {
     return this.estudiantes.filter((e) => ids.includes(e.id));
+  }
+
+  async buscarPorDocumento(documento: string): Promise<Estudiante | null> {
+    return this.estudiantes.find((e) => e.documento === documento) ?? null;
   }
 
   async listar(): Promise<Estudiante[]> {
@@ -598,5 +611,117 @@ export class FakeLoginIntentoRepositorio implements ILoginIntentoRepositorio {
 
   async eliminar(email: string): Promise<void> {
     this.intentos = this.intentos.filter((i) => i.email !== email);
+  }
+}
+
+export function crearRegistroAsistencia(overrides: Partial<RegistroAsistenciaProps> = {}): RegistroAsistencia {
+  return new RegistroAsistencia({
+    id: "REG-1",
+    sesionId: "SES-1",
+    estudianteId: "EST-1",
+    estado: ESTADOS_ASISTENCIA.AUSENTE,
+    bloqueado: false,
+    creadoEn: AHORA,
+    actualizadoEn: AHORA,
+    ...overrides,
+  });
+}
+
+export class FakeRegistroAsistenciaRepositorio implements IRegistroAsistenciaRepositorio {
+  constructor(private registros: RegistroAsistencia[] = []) {}
+
+  async buscarPorSesionYEstudiante(sesionId: string, estudianteId: string): Promise<RegistroAsistencia | null> {
+    return this.registros.find((r) => r.sesionId === sesionId && r.estudianteId === estudianteId) ?? null;
+  }
+
+  async listarPorSesion(sesionId: string): Promise<RegistroAsistencia[]> {
+    return this.registros.filter((r) => r.sesionId === sesionId);
+  }
+
+  async crear(registro: RegistroAsistencia): Promise<void> {
+    this.registros.push(registro);
+  }
+
+  async actualizar(registro: RegistroAsistencia): Promise<void> {
+    this.registros = this.registros.map((r) => (r.id === registro.id ? registro : r));
+  }
+}
+
+export function crearCodigoApoderado(overrides: Partial<CodigoApoderadoProps> = {}): CodigoApoderado {
+  return new CodigoApoderado({
+    chatId: "CHAT-1",
+    estudianteId: "EST-1",
+    codigo: "123456",
+    expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+    creadoEn: AHORA,
+    ...overrides,
+  });
+}
+
+export class FakeCodigoApoderadoRepositorio implements ICodigoApoderadoRepositorio {
+  constructor(private codigos: CodigoApoderado[] = []) {}
+
+  async buscarPorChatId(chatId: string): Promise<CodigoApoderado | null> {
+    return this.codigos.find((c) => c.chatId === chatId) ?? null;
+  }
+
+  async guardar(codigo: CodigoApoderado): Promise<void> {
+    this.codigos = [...this.codigos.filter((c) => c.chatId !== codigo.chatId), codigo];
+  }
+
+  async eliminar(chatId: string): Promise<void> {
+    this.codigos = this.codigos.filter((c) => c.chatId !== chatId);
+  }
+}
+
+export function crearApoderadoVinculado(overrides: Partial<ApoderadoVinculadoProps> = {}): ApoderadoVinculado {
+  return new ApoderadoVinculado({
+    id: "APOD-1",
+    chatId: "CHAT-1",
+    estudianteId: "EST-1",
+    creadoEn: AHORA,
+    ...overrides,
+  });
+}
+
+export class FakeApoderadoVinculadoRepositorio implements IApoderadoVinculadoRepositorio {
+  constructor(private vinculos: ApoderadoVinculado[] = []) {}
+
+  async buscarPorChatIdYEstudianteId(chatId: string, estudianteId: string): Promise<ApoderadoVinculado | null> {
+    return this.vinculos.find((v) => v.chatId === chatId && v.estudianteId === estudianteId) ?? null;
+  }
+
+  async listarPorEstudianteId(estudianteId: string): Promise<ApoderadoVinculado[]> {
+    return this.vinculos.filter((v) => v.estudianteId === estudianteId);
+  }
+
+  async vincular(vinculo: ApoderadoVinculado): Promise<void> {
+    const yaExiste = this.vinculos.some((v) => v.chatId === vinculo.chatId && v.estudianteId === vinculo.estudianteId);
+    if (!yaExiste) this.vinculos = [...this.vinculos, vinculo];
+  }
+}
+
+export function crearApoderadoIntento(overrides: Partial<ApoderadoIntentoProps> = {}): ApoderadoIntento {
+  return new ApoderadoIntento({
+    chatId: "CHAT-1",
+    intentosFallidos: 0,
+    actualizadoEn: AHORA,
+    ...overrides,
+  });
+}
+
+export class FakeApoderadoIntentoRepositorio implements IApoderadoIntentoRepositorio {
+  constructor(private intentos: ApoderadoIntento[] = []) {}
+
+  async buscarPorChatId(chatId: string): Promise<ApoderadoIntento | null> {
+    return this.intentos.find((i) => i.chatId === chatId) ?? null;
+  }
+
+  async guardar(intento: ApoderadoIntento): Promise<void> {
+    this.intentos = [...this.intentos.filter((i) => i.chatId !== intento.chatId), intento];
+  }
+
+  async eliminar(chatId: string): Promise<void> {
+    this.intentos = this.intentos.filter((i) => i.chatId !== chatId);
   }
 }

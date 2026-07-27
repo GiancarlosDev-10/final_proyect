@@ -7,6 +7,10 @@ import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructu
 import { BloqueHorarioRepositorioMongo } from "@/modulos/horarios/infraestructura/bloque-horario-repositorio-mongo";
 import { SesionAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestructura/sesion-asistencia-repositorio-mongo";
 import { RegistroAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestructura/registro-asistencia-repositorio-mongo";
+import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
+import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/seccion-repositorio-mongo";
+import { ApoderadoVinculadoRepositorioMongo } from "@/modulos/telegram/infraestructura/apoderado-vinculado-repositorio-mongo";
+import { NotificadorAsistenciaApoderadoN8n } from "@/modulos/asistencia/infraestructura/notificador-asistencia-apoderado-n8n";
 
 /**
  * Llamado por el servicio de Python de reconocimiento facial (sin sesión de
@@ -25,13 +29,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, mensaje: "estudianteId es requerido" }, { status: 400 });
   }
 
+  const estudianteRepo = new EstudianteRepositorioMongo();
+  const asignacionRepo = new AsignacionRepositorioMongo();
+  const bloqueRepo = new BloqueHorarioRepositorioMongo();
+  const sesionRepo = new SesionAsistenciaRepositorioMongo();
+
   const resultado = await registrarAsistenciaPorReconocimiento(estudianteId, {
-    estudianteRepo: new EstudianteRepositorioMongo(),
+    estudianteRepo,
     matriculaRepo: new MatriculaRepositorioMongo(),
-    asignacionRepo: new AsignacionRepositorioMongo(),
-    bloqueRepo: new BloqueHorarioRepositorioMongo(),
-    sesionRepo: new SesionAsistenciaRepositorioMongo(),
+    asignacionRepo,
+    bloqueRepo,
+    sesionRepo,
     registroRepo: new RegistroAsistenciaRepositorioMongo(),
+    notificador: new NotificadorAsistenciaApoderadoN8n({
+      vinculadoRepo: new ApoderadoVinculadoRepositorioMongo(),
+      estudianteRepo,
+      sesionRepo,
+      bloqueRepo,
+      asignacionRepo,
+      cursoRepo: new CursoRepositorioMongo(),
+      seccionRepo: new SeccionRepositorioMongo(),
+    }),
   });
 
   if (!resultado.ok) {

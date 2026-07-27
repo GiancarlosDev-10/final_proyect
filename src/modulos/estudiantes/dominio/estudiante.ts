@@ -11,6 +11,8 @@ export interface ApoderadoProps {
   nombre: string;
   telefono: string;
   parentesco: string;
+  /** Usado para el segundo factor de vinculación del bot de Telegram (código de verificación). */
+  email: string;
 }
 
 export interface EstudianteProps {

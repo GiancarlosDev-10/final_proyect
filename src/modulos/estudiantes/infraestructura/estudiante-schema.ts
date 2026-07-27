@@ -9,6 +9,7 @@ export interface IEstudianteDocument {
     nombre: string;
     telefono: string;
     parentesco: string;
+    email: string;
   };
   activo: boolean;
   fotoBase64: string | null;
@@ -29,6 +30,7 @@ const EstudianteSchema = new Schema<IEstudianteDocument>(
       nombre: { type: String, required: true },
       telefono: { type: String, required: true },
       parentesco: { type: String, required: true },
+      email: { type: String, required: true },
     },
     activo: { type: Boolean, default: true },
     fotoBase64: { type: String, default: null },

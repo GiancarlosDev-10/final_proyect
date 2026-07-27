@@ -99,6 +99,23 @@ function generarEmailProfesor(nombreCompleto: string): string {
   return email;
 }
 
+// Ficticios a propósito (dominio @ejemplo.com, no @colegio.edu.pe): sirven
+// para que el flujo de vinculación de Telegram del apoderado tenga un valor
+// con qué trabajar en todos los alumnos; el admin edita el de un alumno real
+// a un correo real desde el dashboard para probar el envío del código.
+const emailsApoderadosUsados = new Set<string>();
+function generarEmailApoderado(nombreApoderado: string): string {
+  const base = slugify(nombreApoderado);
+  let email = `${base}@ejemplo.com`;
+  let i = 2;
+  while (emailsApoderadosUsados.has(email)) {
+    email = `${base}${i}@ejemplo.com`;
+    i++;
+  }
+  emailsApoderadosUsados.add(email);
+  return email;
+}
+
 function fechaNacimiento(edadAprox: number): string {
   const anioNacimiento = ANIO - edadAprox;
   const mes = String(randomInt(1, 12)).padStart(2, "0");
@@ -417,7 +434,7 @@ async function main() {
 
   // ---------- 7. estudiantes + matrículas ----------
   const PARENTESCOS = ["Madre", "Padre", "Tutor", "Abuela", "Abuelo"];
-  const estudiantesDocs: Array<{ _id: string; documento: string; nombreCompleto: string; fechaNacimiento: string; apoderado: { nombre: string; telefono: string; parentesco: string }; activo: boolean; creadoEn: string; actualizadoEn: string }> = [];
+  const estudiantesDocs: Array<{ _id: string; documento: string; nombreCompleto: string; fechaNacimiento: string; apoderado: { nombre: string; telefono: string; parentesco: string; email: string }; activo: boolean; creadoEn: string; actualizadoEn: string }> = [];
   const matriculasDocs: Array<{ _id: string; estudianteId: string; seccionId: string; anio: number; activo: boolean; creadoEn: string; actualizadoEn: string }> = [];
 
   function edadParaGrado(nivel: "INICIAL" | "PRIMARIA" | "SECUNDARIA", grado: string): number {
@@ -432,15 +449,17 @@ async function main() {
       const genero = Math.random() < 0.5 ? "M" : "F";
       const nombreCompleto = generarNombreCompleto(genero);
       const estudianteId = generarId("EST");
+      const nombreApoderado = `${pick(NOMBRES_M.concat(NOMBRES_F))} ${nombreCompleto.split(" ").slice(1).join(" ")}`;
       estudiantesDocs.push({
         _id: estudianteId,
         documento: generarDocumento(),
         nombreCompleto,
         fechaNacimiento: fechaNacimiento(edad),
         apoderado: {
-          nombre: `${pick(NOMBRES_M.concat(NOMBRES_F))} ${nombreCompleto.split(" ").slice(1).join(" ")}`,
+          nombre: nombreApoderado,
           telefono: generarTelefono(),
           parentesco: pick(PARENTESCOS),
+          email: generarEmailApoderado(nombreApoderado),
         },
         activo: true,
         creadoEn: ahora(),

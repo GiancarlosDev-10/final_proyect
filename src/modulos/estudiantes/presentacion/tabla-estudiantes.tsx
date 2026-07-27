@@ -142,6 +142,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
     apoderadoNombre: "",
     apoderadoTelefono: "",
     apoderadoParentesco: "",
+    apoderadoEmail: "",
   });
 
   const seccionesOrdenadas = useMemo(() => [...secciones].sort(compararSecciones), [secciones]);
@@ -186,7 +187,15 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
 
   function abrirCrear() {
     setEditando(null);
-    setForm({ documento: "", nombreCompleto: "", fechaNacimiento: "", apoderadoNombre: "", apoderadoTelefono: "", apoderadoParentesco: "" });
+    setForm({
+      documento: "",
+      nombreCompleto: "",
+      fechaNacimiento: "",
+      apoderadoNombre: "",
+      apoderadoTelefono: "",
+      apoderadoParentesco: "",
+      apoderadoEmail: "",
+    });
     setFotoPreviewUrl(null);
     setAbierto(true);
   }
@@ -207,6 +216,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
       apoderadoNombre: completo.apoderado.nombre,
       apoderadoTelefono: completo.apoderado.telefono,
       apoderadoParentesco: completo.apoderado.parentesco,
+      apoderadoEmail: completo.apoderado.email,
     });
     setFotoPreviewUrl(null);
     setAbierto(true);
@@ -242,7 +252,12 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
 
   async function onSubmit() {
     setLoading(true);
-    const apoderado = { nombre: form.apoderadoNombre, telefono: form.apoderadoTelefono, parentesco: form.apoderadoParentesco };
+    const apoderado = {
+      nombre: form.apoderadoNombre,
+      telefono: form.apoderadoTelefono,
+      parentesco: form.apoderadoParentesco,
+      email: form.apoderadoEmail,
+    };
     let resultado;
 
     if (editando) {
@@ -535,6 +550,18 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
             <div className="space-y-2">
               <Label>Parentesco</Label>
               <Input value={form.apoderadoParentesco} onChange={(e) => setForm({ ...form, apoderadoParentesco: e.target.value })} placeholder="Ej: Madre, Padre, Tutor" />
+            </div>
+            <div className="space-y-2">
+              <Label>Email del apoderado</Label>
+              <Input
+                type="email"
+                value={form.apoderadoEmail}
+                onChange={(e) => setForm({ ...form, apoderadoEmail: e.target.value })}
+                placeholder="correo@ejemplo.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Se usa como segundo factor para vincular las notificaciones de asistencia por Telegram.
+              </p>
             </div>
           </div>
           <DialogFooter>

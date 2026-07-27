@@ -4,6 +4,7 @@ import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asig
 import { IBloqueHorarioRepositorio } from "@/modulos/horarios/aplicacion/i-bloque-horario-repositorio";
 import { ISesionAsistenciaRepositorio } from "@/modulos/asistencia/aplicacion/i-sesion-asistencia-repositorio";
 import { IRegistroAsistenciaRepositorio } from "@/modulos/asistencia/aplicacion/i-registro-asistencia-repositorio";
+import { INotificadorAsistenciaApoderado } from "@/modulos/asistencia/aplicacion/i-notificador-asistencia-apoderado";
 import { BloqueHorario } from "@/modulos/horarios/dominio/bloque-horario";
 import { SesionAsistencia } from "@/modulos/asistencia/dominio/sesion-asistencia";
 import { EstudianteNoEncontradoError } from "@/modulos/estudiantes/dominio/estudiante";
@@ -22,6 +23,7 @@ export interface RegistrarAsistenciaPorReconocimientoDeps {
   bloqueRepo: IBloqueHorarioRepositorio;
   sesionRepo: ISesionAsistenciaRepositorio;
   registroRepo: IRegistroAsistenciaRepositorio;
+  notificador?: INotificadorAsistenciaApoderado;
 }
 
 export interface ResultadoReconocimiento {
@@ -106,7 +108,7 @@ export async function registrarAsistenciaPorReconocimiento(
     const estado: EstadoAsistencia =
       ahora <= sesion.horaLimiteTardanza ? ESTADOS_ASISTENCIA.PRESENTE : ESTADOS_ASISTENCIA.TARDANZA;
 
-    const resultado = await marcarAsistencia(sesion.id, estudianteId, estado, deps.registroRepo);
+    const resultado = await marcarAsistencia(sesion.id, estudianteId, estado, deps.registroRepo, deps.notificador);
     if (!resultado.ok) return err(resultado.error);
 
     return ok({ estado, yaRegistrado: false, nombreCompleto: estudiante.nombreCompleto });

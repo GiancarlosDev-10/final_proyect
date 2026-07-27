@@ -11,6 +11,8 @@ import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/
 import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructura/estudiante-repositorio-mongo";
 import { SesionAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestructura/sesion-asistencia-repositorio-mongo";
 import { RegistroAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestructura/registro-asistencia-repositorio-mongo";
+import { ApoderadoVinculadoRepositorioMongo } from "@/modulos/telegram/infraestructura/apoderado-vinculado-repositorio-mongo";
+import { NotificadorAsistenciaApoderadoN8n } from "@/modulos/asistencia/infraestructura/notificador-asistencia-apoderado-n8n";
 
 import { listarBloquesDeHoy, BloqueDeHoy } from "@/modulos/asistencia/aplicacion/listar-bloques-de-hoy";
 import { obtenerBloqueParaAsistencia } from "@/modulos/asistencia/aplicacion/obtener-bloque-para-asistencia";
@@ -28,6 +30,15 @@ const matriculaRepo = new MatriculaRepositorioMongo();
 const estudianteRepo = new EstudianteRepositorioMongo();
 const sesionRepo = new SesionAsistenciaRepositorioMongo();
 const registroRepo = new RegistroAsistenciaRepositorioMongo();
+const notificadorApoderado = new NotificadorAsistenciaApoderadoN8n({
+  vinculadoRepo: new ApoderadoVinculadoRepositorioMongo(),
+  estudianteRepo,
+  sesionRepo,
+  bloqueRepo,
+  asignacionRepo,
+  cursoRepo,
+  seccionRepo,
+});
 
 export async function accionListarBloquesDeHoy(): Promise<BloqueDeHoy[]> {
   const sesion = await requerirSesion();
@@ -107,7 +118,7 @@ export async function accionMarcarAsistencia(
   const bloque = await bloqueRepo.buscarPorId(propia.bloqueHorarioId);
   if (!bloque || bloque.profesorId !== sesionUsuario.id) return { ok: false, mensaje: "No autorizado" };
 
-  const resultado = await marcarAsistencia(sesionId, estudianteId, estado, registroRepo);
+  const resultado = await marcarAsistencia(sesionId, estudianteId, estado, registroRepo, notificadorApoderado);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Asistencia actualizada" };
 }
