@@ -27,6 +27,7 @@ function partesEnLima(fecha: Date): Record<string, string> {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
     hour12: false,
     weekday: "short",
   });
@@ -48,6 +49,20 @@ export function horaActualHHMM(fecha: Date = new Date()): string {
   // Algunos motores ICU devuelven "24" para la medianoche con hour12:false.
   const hora = partes.hour === "24" ? "00" : partes.hour;
   return `${hora}:${partes.minute}`;
+}
+
+/**
+ * Igual que horaActualHHMM pero con segundos — para el reloj digital en
+ * pantalla. Corre también en el navegador (Intl.DateTimeFormat es estándar
+ * del cliente): si se usara Date.prototype.getHours() en su lugar, el reloj
+ * dependería del huso horario configurado en cada dispositivo y podría
+ * mostrar horas distintas en el PC y en el celular del profesor para el
+ * mismo instante real.
+ */
+export function horaActualHHMMSS(fecha: Date = new Date()): string {
+  const partes = partesEnLima(fecha);
+  const hora = partes.hour === "24" ? "00" : partes.hour;
+  return `${hora}:${partes.minute}:${partes.second}`;
 }
 
 export function sumarMinutos(hora: string, minutos: number): string {

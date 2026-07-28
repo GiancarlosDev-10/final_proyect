@@ -12,6 +12,7 @@ import { StatusBadge, StatusBadgeVariant } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EstadoAsistencia, ESTADOS_ASISTENCIA } from "@/config/constantes";
+import { horaActualHHMM, horaActualHHMMSS } from "@/modulos/asistencia/dominio/tiempo";
 import { BloqueDeHoy } from "@/modulos/asistencia/aplicacion/listar-bloques-de-hoy";
 import { FilaRoster } from "@/modulos/asistencia/aplicacion/listar-roster";
 import { SesionAsistenciaProps } from "@/modulos/asistencia/dominio/sesion-asistencia";
@@ -29,10 +30,6 @@ const ESTADO_INFO: Record<EstadoAsistencia | "PENDIENTE", { label: string; varia
   JUSTIFICADO: { label: "Justificado", variant: "neutral" },
   PENDIENTE: { label: "Pendiente", variant: "neutral" },
 };
-
-function horaActualHHMM(fecha: Date): string {
-  return `${String(fecha.getHours()).padStart(2, "0")}:${String(fecha.getMinutes()).padStart(2, "0")}`;
-}
 
 function estadoVentana(horaActual: string, sesion: SesionAsistenciaProps): string {
   if (horaActual < sesion.horaEntrada) return "Aún no empieza la ventana de Presente";
@@ -58,9 +55,7 @@ function horaDesdeMinutos(totalMinutos: number): string {
 }
 
 function RelojDigital({ ahora }: { ahora: Date | null }) {
-  const texto = ahora
-    ? `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}:${String(ahora.getSeconds()).padStart(2, "0")}`
-    : "--:--:--";
+  const texto = ahora ? horaActualHHMMSS(ahora) : "--:--:--";
   return (
     <div className="rounded-lg bg-neutral-900 py-7 text-center ring-1 ring-foreground/10">
       <p className="font-mono text-4xl font-bold tabular-nums text-red-500">{texto}</p>
