@@ -21,6 +21,7 @@ export interface VerificarCodigoApoderadoDTO {
 
 export interface VerificarCodigoApoderadoResultado {
   nombreEstudiante: string;
+  nombreApoderado: string;
 }
 
 export interface VerificarCodigoApoderadoRepos {
@@ -89,5 +90,5 @@ export async function verificarCodigoApoderado(
   await repos.codigoRepo.eliminar(datos.chatId);
   if (intento) await repos.intentoRepo.eliminar(datos.chatId);
 
-  return ok({ nombreEstudiante: estudiante.nombreCompleto });
+  return ok({ nombreEstudiante: estudiante.nombreCompleto, nombreApoderado: estudiante.apoderado.nombre });
 }

@@ -26,7 +26,10 @@ describe("verificarCodigoApoderado", () => {
     );
 
     expect(resultado.ok).toBe(true);
-    if (resultado.ok) expect(resultado.value.nombreEstudiante).toBe(estudiante.nombreCompleto);
+    if (resultado.ok) {
+      expect(resultado.value.nombreEstudiante).toBe(estudiante.nombreCompleto);
+      expect(resultado.value.nombreApoderado).toBe(estudiante.apoderado.nombre);
+    }
 
     const vinculo = await vinculadoRepo.buscarPorChatIdYEstudianteId("CHAT-1", "EST-1");
     expect(vinculo).not.toBeNull();
