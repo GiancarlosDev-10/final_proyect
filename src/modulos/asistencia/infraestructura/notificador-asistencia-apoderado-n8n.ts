@@ -48,6 +48,7 @@ export class NotificadorAsistenciaApoderadoN8n implements INotificadorAsistencia
 
       const payload = {
         nombreEstudiante: estudiante.nombreCompleto,
+        nombreApoderado: estudiante.apoderado.nombre,
         curso: curso?.nombre ?? "—",
         seccion: seccion ? `${seccion.grado} ${seccion.nombre}` : "—",
         hora: horaActualHHMM(),
