@@ -20,6 +20,7 @@ import { AreaProps } from "@/modulos/areas/dominio/area";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
+import { MatriculaProps } from "@/modulos/matriculas/dominio/matricula";
 import { requerirRol } from "@/compartido/lib/autorizacion";
 import { ROLES } from "@/config/constantes";
 
@@ -68,6 +69,13 @@ export async function accionListarSeccionesParaReportes(): Promise<SeccionProps[
   const repositorio = new SeccionRepositorioMongo();
   const todas = await repositorio.listar();
   return todas.map((s) => s.toPlainObject());
+}
+
+export async function accionListarMatriculasParaReportes(): Promise<MatriculaProps[]> {
+  if (!(await requerirRol(ROLES.ADMIN))) return [];
+  const repositorio = new MatriculaRepositorioMongo();
+  const todas = await repositorio.listar();
+  return todas.map((m) => m.toPlainObject());
 }
 
 export async function accionCalcularConsolidadoSeccion(datos: CalcularConsolidadoSeccionDTO): Promise<ConsolidadoSeccion | null> {

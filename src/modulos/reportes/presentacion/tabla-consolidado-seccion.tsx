@@ -208,30 +208,27 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label className="invisible">Acciones</Label>
-              {/* h-8 + items-center fuerza la misma altura exacta (2rem) que
-                  los SelectTrigger/Button de las demás columnas, en vez de
-                  depender de que el contenido interno sume esa altura por su
-                  cuenta — así no hay margen para un desfase de un par de px. */}
-              <div className="flex h-8 flex-wrap items-center gap-2">
-                {urlExcel && buscado && consolidado && (
-                  <a href={urlExcel} className={cn(buttonVariants({ variant: "outline" }), "h-8")}>
-                    <FileDown className="size-4" />
-                    Descargar Excel
-                  </a>
-                )}
-                {urlPdf && buscado && consolidado && (
-                  <a href={urlPdf} className={cn(buttonVariants({ variant: "outline" }), "h-8")}>
-                    <FileDown className="size-4" />
-                    Descargar PDF
-                  </a>
-                )}
-                <Button className="h-8" onClick={onBuscar} disabled={!seccionId || !periodoId || loading}>
-                  <Search className="size-4" />
-                  {loading ? "Calculando..." : "Ver consolidado"}
-                </Button>
-              </div>
+            {/* self-center (en vez de heredar el items-end del contenedor)
+                para que quede centrado con los Select, no pegado a su borde
+                inferior; mt-1.5 lo baja un poco más porque self-center solo
+                quedó un poco alto respecto al centro real de los Select. */}
+            <div className="mt-1.5 flex h-8 flex-wrap items-center gap-2 self-center">
+              {urlExcel && buscado && consolidado && (
+                <a href={urlExcel} className={cn(buttonVariants({ variant: "outline" }), "h-8")}>
+                  <FileDown className="size-4" />
+                  Descargar Excel
+                </a>
+              )}
+              {urlPdf && buscado && consolidado && (
+                <a href={urlPdf} className={cn(buttonVariants({ variant: "outline" }), "h-8")}>
+                  <FileDown className="size-4" />
+                  Descargar PDF
+                </a>
+              )}
+              <Button className="h-8" onClick={onBuscar} disabled={!seccionId || !periodoId || loading}>
+                <Search className="size-4" />
+                {loading ? "Calculando..." : "Ver consolidado"}
+              </Button>
             </div>
           </div>
         </CardContent>

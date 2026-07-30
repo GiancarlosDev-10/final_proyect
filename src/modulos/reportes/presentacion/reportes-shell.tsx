@@ -6,6 +6,7 @@ import { AreaProps } from "@/modulos/areas/dominio/area";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
+import { MatriculaProps } from "@/modulos/matriculas/dominio/matricula";
 import { TablaReportePromedios } from "@/modulos/reportes/presentacion/tabla-reporte-promedios";
 import { TablaConsolidadoSeccion } from "@/modulos/reportes/presentacion/tabla-consolidado-seccion";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,12 @@ interface Props {
   periodos: PeriodoProps[];
   cursos: CursoProps[];
   secciones: SeccionProps[];
+  matriculas: MatriculaProps[];
 }
 
 type Vista = "individual" | "consolidado";
 
-export function ReportesShell({ estudiantes, areas, periodos, cursos, secciones }: Props) {
+export function ReportesShell({ estudiantes, areas, periodos, cursos, secciones, matriculas }: Props) {
   const [vista, setVista] = useState<Vista>("individual");
 
   return (
@@ -57,7 +59,14 @@ export function ReportesShell({ estudiantes, areas, periodos, cursos, secciones 
       </p>
 
       {vista === "individual" ? (
-        <TablaReportePromedios estudiantes={estudiantes} areas={areas} periodos={periodos} cursos={cursos} />
+        <TablaReportePromedios
+          estudiantes={estudiantes}
+          areas={areas}
+          periodos={periodos}
+          cursos={cursos}
+          secciones={secciones}
+          matriculas={matriculas}
+        />
       ) : (
         <TablaConsolidadoSeccion secciones={secciones} periodos={periodos} cursos={cursos} estudiantes={estudiantes} />
       )}
