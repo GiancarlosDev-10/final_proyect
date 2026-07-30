@@ -17,6 +17,7 @@
     "migrar:eliminar-anio-secciones": "tsx --env-file=.env.local scripts/migrar-eliminar-anio-secciones.ts",
     "migrar:tipos-recordatorio": "tsx --env-file=.env.local scripts/migrar-tipos-recordatorio.ts",
     "migrar:emails-apoderados": "tsx --env-file=.env.local scripts/migrar-emails-apoderados.ts",
+    "seed:notas": "tsx --env-file=.env.local scripts/seed-notas.ts",
     "test": "vitest run"
   },
   "dependencies": {

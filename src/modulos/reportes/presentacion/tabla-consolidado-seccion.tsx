@@ -81,6 +81,10 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
     seccionId && periodoId
       ? `/api/reportes/consolidado-seccion/pdf?seccionId=${seccionId}&periodoId=${periodoId}&ordenUnidad=${ordenUnidad}`
       : null;
+  const urlExcel =
+    seccionId && periodoId
+      ? `/api/reportes/consolidado-seccion/excel?seccionId=${seccionId}&periodoId=${periodoId}&ordenUnidad=${ordenUnidad}`
+      : null;
 
   return (
     <div className="space-y-6">
@@ -125,6 +129,12 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                 </SelectContent>
               </Select>
             </div>
+            {urlExcel && buscado && consolidado && (
+              <a href={urlExcel} className={buttonVariants({ variant: "outline" })}>
+                <FileDown className="size-4" />
+                Descargar Excel
+              </a>
+            )}
             {urlPdf && buscado && consolidado && (
               <a href={urlPdf} className={buttonVariants({ variant: "outline" })}>
                 <FileDown className="size-4" />
