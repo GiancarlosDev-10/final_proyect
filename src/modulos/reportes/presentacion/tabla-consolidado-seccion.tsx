@@ -24,7 +24,7 @@ interface Props {
 }
 
 function formatearPromedio(valor: number | null): string {
-  return valor === null ? "—" : valor.toFixed(1);
+  return valor === null ? "—" : String(valor);
 }
 
 export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiantes }: Props) {
@@ -44,7 +44,8 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
 
   function nombrePeriodo(id: string) {
     const p = periodos.find((p) => p.id === id);
-    return p ? `${p.nombre} ${p.anio}` : "(periodo eliminado)";
+    if (!p) return "(periodo eliminado)";
+    return p.nombre.match(/\d+/)?.[0] ?? p.nombre;
   }
 
   function nombreCurso(id: string) {
@@ -76,6 +77,16 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consolidado, estudiantes]);
+
+  // Los cursos con nombre más corto van primero, para que el primer golpe de
+  // vista (antes de hacer scroll horizontal) muestre encabezados cortos; los
+  // de nombre largo (ej. "Desarrollo Personal, Ciudadanía y Cívica") quedan
+  // al final, donde ensanchar su columna no empuja al resto de la tabla.
+  const cursoIdsOrdenados = useMemo(() => {
+    if (!consolidado) return [];
+    return [...consolidado.cursoIds].sort((a, b) => nombreCurso(a).length - nombreCurso(b).length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consolidado, cursos]);
 
   const urlPdf =
     seccionId && periodoId
@@ -112,7 +123,7 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                 </SelectTrigger>
                 <SelectContent>
                   {periodos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombre} {p.anio}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{nombrePeriodo(p.id)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -161,7 +172,7 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                 <TableRow>
                   <TableHead className="w-12">N°</TableHead>
                   <TableHead className="w-56">Apellidos y Nombres</TableHead>
-                  {consolidado.cursoIds.map((cursoId) => (
+                  {cursoIdsOrdenados.map((cursoId) => (
                     <TableHead key={cursoId} className="whitespace-nowrap text-center">{nombreCurso(cursoId)}</TableHead>
                   ))}
                   <TableHead className="text-center">Puntaje</TableHead>
@@ -169,19 +180,22 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filasOrdenadas.map((fila, indice) => (
-                  <TableRow key={fila.estudianteId}>
-                    <TableCell className="text-muted-foreground">{indice + 1}</TableCell>
-                    <TableCell className="font-medium whitespace-nowrap">{apellidoNombre(nombreEstudiante(fila.estudianteId))}</TableCell>
-                    {fila.notasPorCurso.map((n) => (
-                      <TableCell key={n.cursoId} className="text-center text-muted-foreground">
-                        {n.promedio === null ? "—" : `${formatearPromedio(n.promedio)} ${n.letra}`}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-center font-semibold">{formatearPromedio(fila.puntaje)}</TableCell>
-                    <TableCell className="text-center font-semibold">{fila.ordenMerito ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
+                {filasOrdenadas.map((fila, indice) => {
+                  const notaPorCurso = new Map(fila.notasPorCurso.map((n) => [n.cursoId, n]));
+                  return (
+                    <TableRow key={fila.estudianteId}>
+                      <TableCell className="text-muted-foreground">{indice + 1}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{apellidoNombre(nombreEstudiante(fila.estudianteId))}</TableCell>
+                      {cursoIdsOrdenados.map((cursoId) => (
+                        <TableCell key={cursoId} className="text-center text-muted-foreground">
+                          {formatearPromedio(notaPorCurso.get(cursoId)?.promedio ?? null)}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-center font-semibold">{formatearPromedio(fila.puntaje)}</TableCell>
+                      <TableCell className="text-center font-semibold">{fila.ordenMerito ?? "—"}</TableCell>
+                    </TableRow>
+                  );
+                })}
                 {filasOrdenadas.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={consolidado.cursoIds.length + 4} className="h-24 text-center text-muted-foreground">

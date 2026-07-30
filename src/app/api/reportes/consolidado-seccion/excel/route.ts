@@ -3,7 +3,7 @@ import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { requerirRol } from "@/compartido/lib/autorizacion";
-import { ROLES, ETIQUETAS_NIVEL_EDUCATIVO } from "@/config/constantes";
+import { ROLES, ETIQUETAS_NIVEL_EDUCATIVO, ABREVIATURA_NIVEL_EDUCATIVO } from "@/config/constantes";
 import { calcularConsolidadoSeccion, letraDeNota } from "@/modulos/reportes/aplicacion/calcular-consolidado-seccion";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
@@ -256,7 +256,9 @@ export async function GET(request: NextRequest) {
   hoja.getColumn(colOrden).width = 14;
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const nombreArchivo = `consolidado_${seccion.grado}${seccion.nombre}_${periodo.nombre}_U${ordenUnidad}.xlsx`.replace(/\s+/g, "_");
+  const gradoSeccionNivel = `${seccion.grado.replace(/°/g, "")}${seccion.nombre}${ABREVIATURA_NIVEL_EDUCATIVO[seccion.nivel]}`;
+  const numeroPeriodo = periodo.nombre.match(/\d+/)?.[0] ?? periodo.nombre;
+  const nombreArchivo = `Consolidado_${gradoSeccionNivel}_P${numeroPeriodo}_Ud${ordenUnidad}.xlsx`.replace(/\s+/g, "_");
 
   return new NextResponse(buffer, {
     headers: {

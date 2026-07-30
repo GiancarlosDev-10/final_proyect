@@ -59,7 +59,8 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
 
   function nombrePeriodo(id: string) {
     const p = periodos.find((p) => p.id === id);
-    return p ? `${p.nombre} ${p.anio}` : "(periodo eliminado)";
+    if (!p) return "(periodo eliminado)";
+    return p.nombre.match(/\d+/)?.[0] ?? p.nombre;
   }
 
   function nombreCurso(id: string) {
@@ -105,7 +106,7 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
                 </SelectTrigger>
                 <SelectContent>
                   {periodos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombre} {p.anio}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{nombrePeriodo(p.id)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

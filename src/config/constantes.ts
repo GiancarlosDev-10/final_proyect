@@ -83,6 +83,13 @@ export const ETIQUETAS_NIVEL_EDUCATIVO: Record<NivelEducativo, string> = {
   SECUNDARIA: "Secundaria",
 };
 
+// Usada para nombres de archivo de reportes (ej. "3BSec_P2_Ud2").
+export const ABREVIATURA_NIVEL_EDUCATIVO: Record<NivelEducativo, string> = {
+  INICIAL: "Inic",
+  PRIMARIA: "Prim",
+  SECUNDARIA: "Sec",
+};
+
 export const ESTADOS_ASISTENCIA = {
   PRESENTE: "PRESENTE",
   TARDANZA: "TARDANZA",

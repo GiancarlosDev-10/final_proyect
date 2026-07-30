@@ -1,8 +1,10 @@
+import { readFileSync } from "fs";
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { requerirRol } from "@/compartido/lib/autorizacion";
-import { ROLES, ETIQUETAS_NIVEL_EDUCATIVO } from "@/config/constantes";
+import { ROLES, ETIQUETAS_NIVEL_EDUCATIVO, ABREVIATURA_NIVEL_EDUCATIVO } from "@/config/constantes";
 import { calcularConsolidadoSeccion, letraDeNota } from "@/modulos/reportes/aplicacion/calcular-consolidado-seccion";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
@@ -88,12 +90,37 @@ export async function GET(request: NextRequest) {
   doc.setFont(FUENTE);
   doc.setFontSize(14);
   doc.text("CONSOLIDADO DE NOTAS", 14, 15);
+
+  // Un campo por fila (Institución Educativa, Nivel Académico, Unidad, Grado,
+  // Tutor), igual que el Excel — antes iban 2 por línea en columnas
+  // distintas, con otro orden, lo que no calzaba con el modelo de referencia.
+  function lineaInfo(y: number, etiqueta: string, valor: string) {
+    doc.setFontSize(9);
+    doc.setFont(FUENTE, "bold");
+    const textoEtiqueta = `${etiqueta}: `;
+    doc.text(textoEtiqueta, 14, y);
+    const anchoEtiqueta = doc.getTextWidth(textoEtiqueta);
+    doc.setFont(FUENTE, "normal");
+    doc.text(valor, 14 + anchoEtiqueta, y);
+  }
   doc.setFontSize(9);
-  doc.text(`Institución Educativa: ${NOMBRE_COLEGIO}`, 14, 22);
-  doc.text(`Nivel Académico: ${ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]}`, 14, 27);
-  doc.text(`Unidad: Unidad ${ordenUnidad}`, 14, 32);
-  doc.text(`Grado: ${seccion.grado} ${seccion.nombre} de ${ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]}`, 100, 22);
-  doc.text(`Tutor: ${tutor ? apellidoNombreReporte(tutor.nombreCompleto) : "—"}`, 100, 27);
+  doc.setFont(FUENTE, "bolditalic");
+  doc.text("Datos Informativos", 14, 22);
+  lineaInfo(27, "Institución Educativa", NOMBRE_COLEGIO);
+  lineaInfo(32, "Nivel Académico", ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]);
+  lineaInfo(37, "Unidad", `Unidad ${ordenUnidad}`);
+  lineaInfo(42, "Grado", `${seccion.grado} ${seccion.nombre} de ${ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]}`);
+  lineaInfo(47, "Tutor", tutor ? apellidoNombreReporte(tutor.nombreCompleto) : "—");
+  doc.setFont(FUENTE, "normal");
+
+  // Logo del colegio arriba a la derecha, igual que en el Excel.
+  try {
+    const logoBuffer = readFileSync(path.join(process.cwd(), "src/assets/juanvelasco.png"));
+    const anchoPagina = doc.internal.pageSize.getWidth();
+    doc.addImage(logoBuffer, "PNG", anchoPagina - 14 - 25, 8, 25, 25);
+  } catch {
+    // Sin logo no se rompe el reporte — es puramente decorativo.
+  }
 
   const NUM_CURSOS = consolidado.cursoIds.length;
 
@@ -117,7 +144,7 @@ export async function GET(request: NextRequest) {
   }));
 
   autoTable(doc, {
-    startY: 38,
+    startY: 54,
     styles: { font: FUENTE, fontSize: 7, cellPadding: 1.2, lineColor: [203, 213, 225], lineWidth: 0.1 },
     headStyles: { font: FUENTE, fillColor: [30, 41, 59], minCellHeight: 32, valign: "bottom" },
     head: [headFila1, headFila2],
@@ -154,7 +181,9 @@ export async function GET(request: NextRequest) {
   });
 
   const buffer = doc.output("arraybuffer");
-  const nombreArchivo = `consolidado_${seccion.grado}${seccion.nombre}_${periodo.nombre}_U${ordenUnidad}.pdf`.replace(/\s+/g, "_");
+  const gradoSeccionNivel = `${seccion.grado.replace(/°/g, "")}${seccion.nombre}${ABREVIATURA_NIVEL_EDUCATIVO[seccion.nivel]}`;
+  const numeroPeriodo = periodo.nombre.match(/\d+/)?.[0] ?? periodo.nombre;
+  const nombreArchivo = `Consolidado_${gradoSeccionNivel}_P${numeroPeriodo}_Ud${ordenUnidad}.pdf`.replace(/\s+/g, "_");
 
   return new NextResponse(buffer, {
     headers: {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { requerirRol } from "@/compartido/lib/autorizacion";
-import { ROLES, TIPOS_NOTA } from "@/config/constantes";
+import { ROLES, TIPOS_NOTA, ABREVIATURA_NIVEL_EDUCATIVO } from "@/config/constantes";
 import { calcularNotasCurso } from "@/modulos/reportes/aplicacion/calcular-notas-curso";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
   );
 
   const tipos = Object.values(TIPOS_NOTA);
-  const totalColumnas = 1 + tipos.length + 2; // Apellidos, cada tipo, Promedio, Letra
+  const totalColumnas = 1 + tipos.length + 2; // Apellidos, cada tipo, Promedio, Nivel de Logro
   const ultimaColumna = totalColumnas;
 
   const workbook = new ExcelJS.Workbook();
@@ -119,15 +119,16 @@ export async function GET(request: NextRequest) {
   filaInfo(6, "Periodo", periodo.nombre);
   filaInfo(7, "Unidad", String(ordenUnidad));
   // Fila 8 en blanco a propósito (espacio antes de la tabla).
-  const encabezados = ["Apellidos y Nombres", ...tipos.map((t) => ETIQUETAS_TIPO[t]), "Promedio", "Letra"];
+  const encabezados = ["Apellidos y Nombres", ...tipos.map((t) => ETIQUETAS_TIPO[t]), "Promedio", "Nivel de\nLogro"];
   encabezados.forEach((texto, i) => {
     const celda = hoja.getCell(filaEncabezado, i + 1);
     celda.value = texto;
     celda.font = { name: FUENTE, bold: true, color: { argb: "FFFFFFFF" } };
     celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AZUL_ENCABEZADO } };
-    celda.alignment = { horizontal: i === 0 ? "left" : "center", vertical: "middle" };
+    celda.alignment = { horizontal: i === 0 ? "left" : "center", vertical: "middle", wrapText: true };
     celda.border = BORDE_CELDA;
   });
+  hoja.getRow(filaEncabezado).height = 30;
 
   filasOrdenadas.forEach((fila, indice) => {
     const numeroFila = filaEncabezado + 1 + indice;
@@ -169,10 +170,12 @@ export async function GET(request: NextRequest) {
     hoja.getColumn(2 + i).width = 13;
   }
   hoja.getColumn(2 + tipos.length).width = 11;
-  hoja.getColumn(3 + tipos.length).width = 9;
+  hoja.getColumn(3 + tipos.length).width = 12;
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const nombreArchivo = `notas_${curso.nombre}_${seccion.grado}${seccion.nombre}_U${ordenUnidad}.xlsx`.replace(/\s+/g, "_");
+  const gradoSeccionNivel = `${seccion.grado.replace(/°/g, "")}${seccion.nombre}${ABREVIATURA_NIVEL_EDUCATIVO[seccion.nivel]}`;
+  const numeroPeriodo = periodo.nombre.match(/\d+/)?.[0] ?? periodo.nombre;
+  const nombreArchivo = `${curso.nombre}_${gradoSeccionNivel}_P${numeroPeriodo}_Ud${ordenUnidad}.xlsx`.replace(/\s+/g, "_");
 
   return new NextResponse(buffer, {
     headers: {
