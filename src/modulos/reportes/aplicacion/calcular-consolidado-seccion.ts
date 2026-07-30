@@ -2,8 +2,23 @@ import { IMatriculaRepositorio } from "@/modulos/matriculas/aplicacion/i-matricu
 import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asignacion-repositorio";
 import { IUnidadDidacticaRepositorio } from "@/modulos/unidades-didacticas/aplicacion/i-unidad-didactica-repositorio";
 import { INotaRepositorio } from "@/modulos/notas/aplicacion/i-nota-repositorio";
+import { Nota } from "@/modulos/notas/dominio/nota";
+import { TipoNota } from "@/config/constantes";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { ErrorDominio } from "@/compartido/dominio/errores";
+
+/**
+ * Pesos de cada tipo de evaluación sobre el promedio del curso. Si al alumno
+ * le faltan notas de algún tipo en la unidad, los pesos de los tipos
+ * presentes se re-normalizan entre sí (no se penaliza como si el tipo
+ * faltante valiera 0).
+ */
+const PESOS_TIPO_NOTA: Record<TipoNota, number> = {
+  EXAMEN: 0.4,
+  TRABAJO: 0.3,
+  PRACTICA: 0.2,
+  PARTICIPACION: 0.1,
+};
 
 export interface NotaCursoConsolidado {
   cursoId: string;
@@ -33,8 +48,29 @@ export interface CalcularConsolidadoSeccionDTO {
   ordenUnidad: number;
 }
 
-function promedio(valores: number[]): number | null {
-  return valores.length ? valores.reduce((s, v) => s + v, 0) / valores.length : null;
+/**
+ * Promedio ponderado por tipo de evaluación, redondeado al entero más
+ * cercano (0.5 a favor del alumno, ej. 15.5 → 16) — así el promedio ya
+ * calculado, la letra EBR y el puntaje quedan consistentes con el número
+ * entero que se muestra en los reportes.
+ */
+function promedioPonderado(notas: Nota[]): number | null {
+  if (notas.length === 0) return null;
+
+  const valoresPorTipo = new Map<TipoNota, number[]>();
+  for (const nota of notas) {
+    valoresPorTipo.set(nota.tipo, [...(valoresPorTipo.get(nota.tipo) ?? []), nota.valor]);
+  }
+
+  let sumaPonderada = 0;
+  let sumaPesos = 0;
+  for (const [tipo, valores] of valoresPorTipo) {
+    const promedioTipo = valores.reduce((s, v) => s + v, 0) / valores.length;
+    sumaPonderada += promedioTipo * PESOS_TIPO_NOTA[tipo];
+    sumaPesos += PESOS_TIPO_NOTA[tipo];
+  }
+
+  return sumaPesos > 0 ? Math.round(sumaPonderada / sumaPesos) : null;
 }
 
 /**
@@ -90,7 +126,7 @@ export async function calcularConsolidadoSeccion(
         const notasDelEstudiante = (notasPorAsignacion.get(asignacion.id) ?? []).filter(
           (n) => n.estudianteId === matricula.estudianteId && n.unidadDidacticaId === unidadId
         );
-        const prom = promedio(notasDelEstudiante.map((n) => n.valor));
+        const prom = promedioPonderado(notasDelEstudiante);
         return { cursoId, promedio: prom, letra: letraDeNota(prom) };
       });
 

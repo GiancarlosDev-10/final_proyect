@@ -109,4 +109,86 @@ describe("calcularConsolidadoSeccion", () => {
     expect(resultado.value.filas).toHaveLength(1);
     expect(resultado.value.filas[0].estudianteId).toBe("EST-1");
   });
+
+  it("pondera el promedio por tipo de nota (examen 40%, trabajo 30%, práctica 20%, participación 10%)", async () => {
+    const matriculaRepositorio = new FakeMatriculaRepositorio([
+      crearMatricula({ estudianteId: "EST-1", seccionId: "SEC-1", anio: 2026 }),
+    ]);
+    const asignacionRepositorio = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "ASI-1", cursoId: "CUR-MATE", seccionId: "SEC-1", periodoId: "PER-1" }),
+    ]);
+    const unidadDidacticaRepositorio = new FakeUnidadDidacticaRepositorio([
+      crearUnidadDidactica({ id: "UDI-MATE-1", cursoId: "CUR-MATE", periodoId: "PER-1", orden: 1 }),
+    ]);
+    // Examen 20 (peso 0.4) + Trabajo 10 (peso 0.3) + Práctica 10 (peso 0.2) + Participación 10 (peso 0.1)
+    // = (20*0.4 + 10*0.3 + 10*0.2 + 10*0.1) / (0.4+0.3+0.2+0.1) = (8+3+2+1)/1 = 14
+    const notaRepositorio = new FakeNotaRepositorio([
+      crearNota({ id: "NOT-1", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "EXAMEN", valor: 20 }),
+      crearNota({ id: "NOT-2", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "TRABAJO", valor: 10 }),
+      crearNota({ id: "NOT-3", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "PRACTICA", valor: 10 }),
+      crearNota({ id: "NOT-4", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "PARTICIPACION", valor: 10 }),
+    ]);
+
+    const resultado = await calcularConsolidadoSeccion(
+      { seccionId: "SEC-1", periodoId: "PER-1", anio: 2026, ordenUnidad: 1 },
+      { matriculaRepositorio, asignacionRepositorio, unidadDidacticaRepositorio, notaRepositorio }
+    );
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.value.filas[0].notasPorCurso[0].promedio).toBe(14);
+  });
+
+  it("re-normaliza los pesos cuando al alumno le faltan tipos de nota en la unidad", async () => {
+    const matriculaRepositorio = new FakeMatriculaRepositorio([
+      crearMatricula({ estudianteId: "EST-1", seccionId: "SEC-1", anio: 2026 }),
+    ]);
+    const asignacionRepositorio = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "ASI-1", cursoId: "CUR-MATE", seccionId: "SEC-1", periodoId: "PER-1" }),
+    ]);
+    const unidadDidacticaRepositorio = new FakeUnidadDidacticaRepositorio([
+      crearUnidadDidactica({ id: "UDI-MATE-1", cursoId: "CUR-MATE", periodoId: "PER-1", orden: 1 }),
+    ]);
+    // Solo hay Examen (peso 0.4) y Práctica (peso 0.2) — se re-normaliza entre
+    // esos dos: (16*0.4 + 10*0.2) / (0.4+0.2) = (6.4+2)/0.6 = 14
+    const notaRepositorio = new FakeNotaRepositorio([
+      crearNota({ id: "NOT-1", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "EXAMEN", valor: 16 }),
+      crearNota({ id: "NOT-2", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "PRACTICA", valor: 10 }),
+    ]);
+
+    const resultado = await calcularConsolidadoSeccion(
+      { seccionId: "SEC-1", periodoId: "PER-1", anio: 2026, ordenUnidad: 1 },
+      { matriculaRepositorio, asignacionRepositorio, unidadDidacticaRepositorio, notaRepositorio }
+    );
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.value.filas[0].notasPorCurso[0].promedio).toBe(14);
+  });
+
+  it("redondea el promedio a favor del alumno (0.5 hacia arriba)", async () => {
+    const matriculaRepositorio = new FakeMatriculaRepositorio([
+      crearMatricula({ estudianteId: "EST-1", seccionId: "SEC-1", anio: 2026 }),
+    ]);
+    const asignacionRepositorio = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "ASI-1", cursoId: "CUR-MATE", seccionId: "SEC-1", periodoId: "PER-1" }),
+    ]);
+    const unidadDidacticaRepositorio = new FakeUnidadDidacticaRepositorio([
+      crearUnidadDidactica({ id: "UDI-MATE-1", cursoId: "CUR-MATE", periodoId: "PER-1", orden: 1 }),
+    ]);
+    // Dos prácticas: 15 y 16 → promedio crudo 15.5 → redondea a 16.
+    const notaRepositorio = new FakeNotaRepositorio([
+      crearNota({ id: "NOT-1", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "PRACTICA", valor: 15 }),
+      crearNota({ id: "NOT-2", estudianteId: "EST-1", asignacionId: "ASI-1", periodoId: "PER-1", unidadDidacticaId: "UDI-MATE-1", tipo: "PRACTICA", valor: 16 }),
+    ]);
+
+    const resultado = await calcularConsolidadoSeccion(
+      { seccionId: "SEC-1", periodoId: "PER-1", anio: 2026, ordenUnidad: 1 },
+      { matriculaRepositorio, asignacionRepositorio, unidadDidacticaRepositorio, notaRepositorio }
+    );
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.value.filas[0].notasPorCurso[0].promedio).toBe(16);
+  });
 });
