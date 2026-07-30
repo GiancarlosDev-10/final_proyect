@@ -11,6 +11,7 @@ import { accionCalcularConsolidadoSeccion } from "@/modulos/reportes/presentacio
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { compararSecciones } from "@/modulos/secciones/dominio/orden-secciones";
 import { NivelEducativo, ORDEN_NIVELES_EDUCATIVOS, ETIQUETAS_NIVEL_EDUCATIVO } from "@/config/constantes";
+import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -209,20 +210,24 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
             </div>
             <div className="space-y-2">
               <Label className="invisible">Acciones</Label>
-              <div className="flex flex-wrap gap-2">
+              {/* h-8 + items-center fuerza la misma altura exacta (2rem) que
+                  los SelectTrigger/Button de las demás columnas, en vez de
+                  depender de que el contenido interno sume esa altura por su
+                  cuenta — así no hay margen para un desfase de un par de px. */}
+              <div className="flex h-8 flex-wrap items-center gap-2">
                 {urlExcel && buscado && consolidado && (
-                  <a href={urlExcel} className={buttonVariants({ variant: "outline" })}>
+                  <a href={urlExcel} className={cn(buttonVariants({ variant: "outline" }), "h-8")}>
                     <FileDown className="size-4" />
                     Descargar Excel
                   </a>
                 )}
                 {urlPdf && buscado && consolidado && (
-                  <a href={urlPdf} className={buttonVariants({ variant: "outline" })}>
+                  <a href={urlPdf} className={cn(buttonVariants({ variant: "outline" }), "h-8")}>
                     <FileDown className="size-4" />
                     Descargar PDF
                   </a>
                 )}
-                <Button onClick={onBuscar} disabled={!seccionId || !periodoId || loading}>
+                <Button className="h-8" onClick={onBuscar} disabled={!seccionId || !periodoId || loading}>
                   <Search className="size-4" />
                   {loading ? "Calculando..." : "Ver consolidado"}
                 </Button>
