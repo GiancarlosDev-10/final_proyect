@@ -93,7 +93,8 @@ export async function GET(request: NextRequest) {
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Dashboard Colegio";
-  const hoja = workbook.addWorksheet("Notas", { views: [{ state: "frozen", ySplit: 5 }] });
+  const filaEncabezado = 9;
+  const hoja = workbook.addWorksheet("Notas", { views: [{ state: "frozen", ySplit: filaEncabezado }] });
 
   hoja.mergeCells(1, 1, 1, ultimaColumna);
   const celdaTitulo = hoja.getCell(1, 1);
@@ -102,11 +103,22 @@ export async function GET(request: NextRequest) {
   celdaTitulo.alignment = { horizontal: "center", vertical: "middle" };
   hoja.getRow(1).height = 22;
 
-  hoja.mergeCells(2, 1, 2, ultimaColumna);
-  hoja.getCell(2, 1).value = `Curso: ${curso.nombre}   |   Sección: ${seccion.grado} ${seccion.nombre}   |   Periodo: ${periodo.nombre}   |   Unidad ${ordenUnidad}`;
-  hoja.getCell(2, 1).font = { name: FUENTE, italic: true };
-
-  const filaEncabezado = 4;
+  // Fila 2 en blanco a propósito (espacio entre el título y los datos).
+  function filaInfo(numeroFila: number, etiqueta: string, valor: string) {
+    const celdaEtiqueta = hoja.getCell(numeroFila, 1);
+    celdaEtiqueta.value = etiqueta;
+    celdaEtiqueta.font = { name: FUENTE, bold: true };
+    hoja.mergeCells(numeroFila, 2, numeroFila, ultimaColumna);
+    const celdaValor = hoja.getCell(numeroFila, 2);
+    celdaValor.value = valor;
+    celdaValor.font = { name: FUENTE };
+  }
+  filaInfo(3, "Curso", curso.nombre);
+  filaInfo(4, "Grado", seccion.grado);
+  filaInfo(5, "Sección", seccion.nombre);
+  filaInfo(6, "Periodo", periodo.nombre);
+  filaInfo(7, "Unidad", String(ordenUnidad));
+  // Fila 8 en blanco a propósito (espacio antes de la tabla).
   const encabezados = ["Apellidos y Nombres", ...tipos.map((t) => ETIQUETAS_TIPO[t]), "Promedio", "Letra"];
   encabezados.forEach((texto, i) => {
     const celda = hoja.getCell(filaEncabezado, i + 1);
@@ -147,7 +159,6 @@ export async function GET(request: NextRequest) {
   const celdaNota = hoja.getCell(filaNota, 1);
   celdaNota.value =
     "Promedio = (Examen × 40% + Trabajo × 30% + Práctica × 20% + Participación × 10%). " +
-    "Si al alumno le falta algún tipo, los pesos de los tipos presentes se re-normalizan entre sí. " +
     "El resultado se redondea al entero más cercano (0.5 a favor del alumno).";
   celdaNota.font = { name: FUENTE, italic: true, size: 9 };
   celdaNota.alignment = { wrapText: true };
