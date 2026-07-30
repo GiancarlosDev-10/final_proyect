@@ -728,28 +728,32 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
               Notas de {estudianteVerNotas ? apellidoNombre(estudianteVerNotas.nombreCompleto) : ""}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto">
             {notasDelAlumnoEnVista.map((n) => (
-              <div key={n.id} className="flex items-center justify-between gap-2 rounded-md border p-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{ETIQUETAS_TIPO[n.tipo]}</Badge>
-                    <span className="truncate text-sm font-medium">{n.etiqueta}</span>
+              <Card key={n.id} size="sm" className="p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{ETIQUETAS_TIPO[n.tipo]}</Badge>
+                      <span className="truncate text-sm font-medium">{n.etiqueta}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{n.fecha}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{n.fecha}</p>
+                  <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                    <span className={`text-lg font-semibold ${n.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                      {n.valor}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => abrirEditar(n)}>
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => onEliminar(n)}>
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className={`font-semibold ${n.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                    {n.valor}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={() => abrirEditar(n)}>
-                    <Pencil className="size-3.5" />
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => onEliminar(n)}>
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
-              </div>
+              </Card>
             ))}
             {notasDelAlumnoEnVista.length === 0 && (
               <p className="p-6 text-center text-sm text-muted-foreground">
