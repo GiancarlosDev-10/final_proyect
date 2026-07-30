@@ -28,6 +28,13 @@ export const TIPOS_NOTA = {
 
 export type TipoNota = (typeof TIPOS_NOTA)[keyof typeof TIPOS_NOTA];
 
+export const ETIQUETAS_TIPO_NOTA: Record<TipoNota, string> = {
+  PRACTICA: "Práctica",
+  EXAMEN: "Examen",
+  TRABAJO: "Trabajo",
+  PARTICIPACION: "Participación",
+};
+
 export const TIPOS_RECORDATORIO = {
   REUNION: "REUNION",
   EVALUACION: "EVALUACION",

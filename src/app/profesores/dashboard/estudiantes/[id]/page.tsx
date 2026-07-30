@@ -12,15 +12,8 @@ import { NotaRepositorioMongo } from "@/modulos/notas/infraestructura/nota-repos
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { TipoNota } from "@/config/constantes";
+import { ETIQUETAS_TIPO_NOTA } from "@/config/constantes";
 import { HistorialEvaluaciones, FilaEvaluacion } from "@/app/profesores/dashboard/estudiantes/[id]/historial-evaluaciones";
-
-const ETIQUETAS_TIPO_NOTA: Record<TipoNota, string> = {
-  PRACTICA: "Práctica",
-  EXAMEN: "Examen",
-  TRABAJO: "Trabajo",
-  PARTICIPACION: "Participación",
-};
 
 const NOTA_APROBATORIA = 11;
 
@@ -109,7 +102,6 @@ export default async function DetalleEstudiantePage({ params }: { params: Promis
     cursoNombre: nombreCurso(n.asignacionId),
     periodoNombre: nombrePeriodo(n.periodoId),
     tipoEtiqueta: ETIQUETAS_TIPO_NOTA[n.tipo],
-    etiqueta: n.etiqueta,
     fecha: formatearFecha(n.fecha),
     valor: n.valor,
   }));

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ETIQUETAS_TIPO_NOTA } from "@/config/constantes";
 
 interface Props {
   asignaciones: AsignacionProps[];
@@ -38,8 +39,7 @@ function TarjetaNota({ nota, nombreEstudiante }: { nota: NotaProps; nombreEstudi
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{nombreEstudiante(nota.estudianteId)}</p>
-          <p className="truncate text-sm text-muted-foreground">{nota.etiqueta}</p>
-          <p className="truncate text-sm text-muted-foreground">{nota.tipo} · {nota.fecha}</p>
+          <p className="truncate text-sm text-muted-foreground">{ETIQUETAS_TIPO_NOTA[nota.tipo]} · {nota.fecha}</p>
         </div>
         <span className={`shrink-0 text-lg font-semibold ${nota.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
           {nota.valor}
@@ -118,9 +118,7 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
     const termino = normalizarTexto(busqueda);
     const base = !termino
       ? notas
-      : notas.filter(
-          (n) => normalizarTexto(nombreEstudiante(n.estudianteId)).includes(termino) || normalizarTexto(n.etiqueta).includes(termino)
-        );
+      : notas.filter((n) => normalizarTexto(nombreEstudiante(n.estudianteId)).includes(termino));
     return [...base].sort((a, b) => nombreEstudiante(a.estudianteId).localeCompare(nombreEstudiante(b.estudianteId), "es"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notas, busqueda, estudiantes]);
@@ -194,7 +192,7 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
             <Input
               value={busqueda}
               onChange={(e) => onCambiarBusqueda(e.target.value)}
-              placeholder="Buscar por estudiante o etiqueta..."
+              placeholder="Buscar por estudiante..."
               className="pl-8"
             />
           </div>
@@ -216,8 +214,7 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-56">Estudiante</TableHead>
-                    <TableHead className="w-32">Tipo</TableHead>
-                    <TableHead className="w-48">Etiqueta</TableHead>
+                    <TableHead className="w-40">Tipo de Prueba</TableHead>
                     <TableHead className="w-24 text-center">Valor</TableHead>
                     <TableHead className="w-32">Fecha</TableHead>
                   </TableRow>
@@ -226,8 +223,7 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
                   {notasPagina.map((n) => (
                     <TableRow key={n.id}>
                       <TableCell className="truncate font-medium">{nombreEstudiante(n.estudianteId)}</TableCell>
-                      <TableCell className="text-muted-foreground">{n.tipo}</TableCell>
-                      <TableCell className="truncate text-muted-foreground">{n.etiqueta}</TableCell>
+                      <TableCell className="text-muted-foreground">{ETIQUETAS_TIPO_NOTA[n.tipo]}</TableCell>
                       <TableCell className="text-center">
                         <span className={`font-semibold ${n.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                           {n.valor}
@@ -238,7 +234,7 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
                   ))}
                   {notasFiltradas.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                         {notas.length === 0 ? "No hay notas para esta asignación." : "Ninguna nota coincide con la búsqueda."}
                       </TableCell>
                     </TableRow>

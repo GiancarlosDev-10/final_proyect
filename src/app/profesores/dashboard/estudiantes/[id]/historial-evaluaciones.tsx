@@ -14,7 +14,6 @@ export interface FilaEvaluacion {
   cursoNombre: string;
   periodoNombre: string;
   tipoEtiqueta: string;
-  etiqueta: string;
   fecha: string;
   valor: number;
 }
@@ -36,7 +35,6 @@ export function HistorialEvaluaciones({ notas, notaAprobatoria }: Props) {
     return notas.filter(
       (n) =>
         normalizarTexto(n.cursoNombre).includes(termino) ||
-        normalizarTexto(n.etiqueta).includes(termino) ||
         normalizarTexto(n.tipoEtiqueta).includes(termino)
     );
   }, [notas, busqueda]);
@@ -67,7 +65,7 @@ export function HistorialEvaluaciones({ notas, notaAprobatoria }: Props) {
           <Input
             value={busqueda}
             onChange={(e) => onCambiarBusqueda(e.target.value)}
-            placeholder="Buscar por curso, tipo o etiqueta..."
+            placeholder="Buscar por curso o tipo de prueba..."
             className="pl-8"
           />
         </div>
@@ -78,7 +76,6 @@ export function HistorialEvaluaciones({ notas, notaAprobatoria }: Props) {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{n.cursoNombre}</p>
-                  <p className="truncate text-sm text-muted-foreground">{n.etiqueta}</p>
                   <p className="truncate text-sm text-muted-foreground">
                     {n.tipoEtiqueta} · {n.periodoNombre} · {n.fecha}
                   </p>
@@ -102,10 +99,9 @@ export function HistorialEvaluaciones({ notas, notaAprobatoria }: Props) {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-40">Curso</TableHead>
+                <TableHead className="w-48">Curso</TableHead>
                 <TableHead className="w-32">Periodo</TableHead>
-                <TableHead className="w-28">Tipo</TableHead>
-                <TableHead className="w-48">Descripción</TableHead>
+                <TableHead className="w-32">Tipo de Prueba</TableHead>
                 <TableHead className="w-28">Fecha</TableHead>
                 <TableHead className="w-20 text-center">Nota</TableHead>
               </TableRow>
@@ -116,7 +112,6 @@ export function HistorialEvaluaciones({ notas, notaAprobatoria }: Props) {
                   <TableCell className="truncate font-medium">{n.cursoNombre}</TableCell>
                   <TableCell className="truncate text-muted-foreground">{n.periodoNombre}</TableCell>
                   <TableCell className="truncate text-muted-foreground">{n.tipoEtiqueta}</TableCell>
-                  <TableCell className="truncate text-muted-foreground">{n.etiqueta}</TableCell>
                   <TableCell className="text-muted-foreground">{n.fecha}</TableCell>
                   <TableCell className="text-center">
                     <StatusBadge variant={n.valor >= notaAprobatoria ? "success" : "error"}>{n.valor}</StatusBadge>
@@ -125,7 +120,7 @@ export function HistorialEvaluaciones({ notas, notaAprobatoria }: Props) {
               ))}
               {notasFiltradas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     {notas.length === 0
                       ? "Aún no hay notas registradas para este estudiante en tus cursos."
                       : "Ninguna evaluación coincide con la búsqueda."}

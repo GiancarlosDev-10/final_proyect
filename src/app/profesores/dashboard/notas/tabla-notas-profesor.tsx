@@ -25,20 +25,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TIPOS_NOTA, TipoNota, ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo } from "@/config/constantes";
+import { TIPOS_NOTA, TipoNota, ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo, ETIQUETAS_TIPO_NOTA as ETIQUETAS_TIPO } from "@/config/constantes";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { promediosPorTipo, promedioPonderadoDesdeTipos } from "@/modulos/notas/dominio/promedio-ponderado";
 import { letraDeNota } from "@/modulos/reportes/aplicacion/calcular-consolidado-seccion";
 
 const TAMANO_PAGINA = 10;
-
-const ETIQUETAS_TIPO: Record<TipoNota, string> = {
-  PRACTICA: "Práctica",
-  EXAMEN: "Examen",
-  TRABAJO: "Trabajo",
-  PARTICIPACION: "Participación",
-};
 
 function numeroDeGrado(grado: string): number {
   const match = grado.match(/\d+/);
@@ -91,7 +84,6 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   const [form, setForm] = useState({
     estudianteId: "",
     tipo: "PRACTICA" as TipoNota,
-    etiqueta: "",
     valor: "",
     fecha: "",
   });
@@ -269,7 +261,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
 
   function abrirCrear(estudianteIdPreseleccionado?: string) {
     setEditando(null);
-    setForm({ estudianteId: estudianteIdPreseleccionado ?? "", tipo: "PRACTICA", etiqueta: "", valor: "", fecha: "" });
+    setForm({ estudianteId: estudianteIdPreseleccionado ?? "", tipo: "PRACTICA", valor: "", fecha: "" });
     setEstudianteVerNotas(null);
     setAbierto(true);
   }
@@ -279,7 +271,6 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     setForm({
       estudianteId: nota.estudianteId,
       tipo: nota.tipo,
-      etiqueta: nota.etiqueta,
       valor: nota.valor.toString(),
       fecha: nota.fecha,
     });
@@ -308,10 +299,6 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
       toast.error("Selecciona un estudiante.");
       return;
     }
-    if (!form.etiqueta.trim()) {
-      toast.error("Ingresa una etiqueta para la nota.");
-      return;
-    }
     const valor = parseFloat(form.valor);
     if (!Number.isFinite(valor) || valor < 0 || valor > 20) {
       toast.error("Ingresa un valor numérico entre 0 y 20.");
@@ -329,7 +316,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
         resultado = await accionEditarNota({
           id: editando.id,
           tipo: form.tipo,
-          etiqueta: form.etiqueta,
+          etiqueta: ETIQUETAS_TIPO[form.tipo],
           valor,
           fecha: form.fecha,
           cursoId: asignacionSeleccionada.cursoId,
@@ -343,7 +330,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
           asignacionId: asignacionSeleccionada.id,
           unidadDidacticaId: unidadSeleccionada.id,
           tipo: form.tipo,
-          etiqueta: form.etiqueta,
+          etiqueta: ETIQUETAS_TIPO[form.tipo],
           valor,
           fecha: form.fecha,
           profesorId: "",
@@ -524,7 +511,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
           <Input
             value={busqueda}
             onChange={(e) => onCambiarBusqueda(e.target.value)}
-            placeholder="Buscar por estudiante o etiqueta..."
+            placeholder="Buscar por estudiante..."
             className="pl-8"
             disabled={!asignacionSeleccionada}
           />
@@ -669,25 +656,17 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
               </div>
             )}
             <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: (v ?? "PRACTICA") as TipoNota })}>
+              <Label>Tipo de Prueba</Label>
+              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: (v ?? "PRACTICA") as TipoNota })} itemToStringLabel={(t) => ETIQUETAS_TIPO[t as TipoNota]}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(TIPOS_NOTA).map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                    <SelectItem key={t} value={t}>{ETIQUETAS_TIPO[t]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Etiqueta</Label>
-              <Input
-                value={form.etiqueta}
-                onChange={(e) => setForm({ ...form, etiqueta: e.target.value })}
-                placeholder="Ej: Práctica 1"
-              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -733,10 +712,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
               <Card key={n.id} size="sm" className="p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{ETIQUETAS_TIPO[n.tipo]}</Badge>
-                      <span className="truncate text-sm font-medium">{n.etiqueta}</span>
-                    </div>
+                    <Badge variant="outline">{ETIQUETAS_TIPO[n.tipo]}</Badge>
                     <p className="text-xs text-muted-foreground">{n.fecha}</p>
                   </div>
                   <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
