@@ -112,9 +112,10 @@ async function main() {
 
     for (const estudianteId of estudianteIds) {
       for (const unidad of unidades) {
-        // 2-3 notas por unidad, de tipos distintos (no siempre las 4).
-        const tiposElegidos = [...TIPOS_ETIQUETAS].sort(() => Math.random() - 0.5).slice(0, randomInt(2, 3));
-        for (const { tipo, etiquetas } of tiposElegidos) {
+        // Las 4, siempre — el consolidado del profesor muestra una columna
+        // por tipo, y que a unos alumnos les falte alguno se ve como un
+        // error de carga en vez de una clase real.
+        for (const { tipo, etiquetas } of TIPOS_ETIQUETAS) {
           notasDocs.push({
             _id: generarId("NOT"),
             estudianteId,

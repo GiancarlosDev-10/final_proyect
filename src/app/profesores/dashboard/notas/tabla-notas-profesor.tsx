@@ -218,13 +218,17 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   const [pagina, setPagina] = useState(1);
 
   const notasFiltradas = useMemo(() => {
+    // notas trae TODA la asignación (ambas unidades) de una sola vez — acá
+    // se acota a la unidad seleccionada, que es la que realmente importa en
+    // pantalla (cada unidad es un bimestre distinto).
+    const notasDeLaUnidad = notas.filter((n) => n.unidadDidacticaId === unidadSeleccionada?.id);
     const termino = normalizarTexto(busqueda);
-    if (!termino) return notas;
-    return notas.filter(
+    if (!termino) return notasDeLaUnidad;
+    return notasDeLaUnidad.filter(
       (n) => normalizarTexto(nombreEstudiante(n.estudianteId)).includes(termino) || normalizarTexto(n.etiqueta).includes(termino)
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notas, busqueda, estudiantes]);
+  }, [notas, busqueda, estudiantes, unidadSeleccionada]);
 
   const totalPaginas = Math.max(1, Math.ceil(notasFiltradas.length / TAMANO_PAGINA));
   const paginaActual = Math.min(pagina, totalPaginas);
@@ -236,6 +240,12 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   function onCambiarBusqueda(valor: string) {
     setBusqueda(valor);
     setPagina(1);
+  }
+
+  function mensajeSinNotas(): string {
+    if (notas.length === 0) return "No hay notas para esta asignación.";
+    if (busqueda.trim()) return "Ninguna nota coincide con la búsqueda.";
+    return "No hay notas para esta unidad.";
   }
 
   // Solo el curso puntual que el profesor tiene seleccionado — no el
@@ -520,7 +530,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
             ))}
             {notasFiltradas.length === 0 && (
               <p className="p-6 text-center text-sm text-muted-foreground">
-                {notas.length === 0 ? "No hay notas para esta asignación." : "Ninguna nota coincide con la búsqueda."}
+                {mensajeSinNotas()}
               </p>
             )}
           </div>
@@ -569,7 +579,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
                 {notasFiltradas.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                      {notas.length === 0 ? "No hay notas para esta asignación." : "Ninguna nota coincide con la búsqueda."}
+                      {mensajeSinNotas()}
                     </TableCell>
                   </TableRow>
                 )}
