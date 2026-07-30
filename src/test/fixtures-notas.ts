@@ -359,6 +359,10 @@ export class FakeNotaRepositorio implements INotaRepositorio {
     this.notas = this.notas.filter((n) => n.id !== id);
   }
 
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    this.notas = this.notas.filter((n) => n.estudianteId !== estudianteId);
+  }
+
   todas(): Nota[] {
     return this.notas;
   }
@@ -536,6 +540,10 @@ export class FakeMatriculaRepositorio implements IMatriculaRepositorio {
   async eliminar(id: string): Promise<void> {
     this.matriculas = this.matriculas.filter((m) => m.id !== id);
   }
+
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    this.matriculas = this.matriculas.filter((m) => m.estudianteId !== estudianteId);
+  }
 }
 
 export function crearTelegramChat(overrides: Partial<TelegramChatProps> = {}): TelegramChat {
@@ -645,6 +653,10 @@ export class FakeRegistroAsistenciaRepositorio implements IRegistroAsistenciaRep
   async actualizar(registro: RegistroAsistencia): Promise<void> {
     this.registros = this.registros.map((r) => (r.id === registro.id ? registro : r));
   }
+
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    this.registros = this.registros.filter((r) => r.estudianteId !== estudianteId);
+  }
 }
 
 export function crearCodigoApoderado(overrides: Partial<CodigoApoderadoProps> = {}): CodigoApoderado {
@@ -698,6 +710,10 @@ export class FakeApoderadoVinculadoRepositorio implements IApoderadoVinculadoRep
   async vincular(vinculo: ApoderadoVinculado): Promise<void> {
     const yaExiste = this.vinculos.some((v) => v.chatId === vinculo.chatId && v.estudianteId === vinculo.estudianteId);
     if (!yaExiste) this.vinculos = [...this.vinculos, vinculo];
+  }
+
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    this.vinculos = this.vinculos.filter((v) => v.estudianteId !== estudianteId);
   }
 }
 

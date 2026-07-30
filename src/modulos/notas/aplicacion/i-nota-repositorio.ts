@@ -9,4 +9,5 @@ export interface INotaRepositorio {
   crear(nota: Nota): Promise<void>;
   actualizar(nota: Nota): Promise<void>;
   eliminar(id: string): Promise<void>;
+  eliminarPorEstudiante(estudianteId: string): Promise<void>;
 }

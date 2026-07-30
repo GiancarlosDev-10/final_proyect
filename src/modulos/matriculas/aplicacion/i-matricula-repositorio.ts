@@ -9,4 +9,5 @@ export interface IMatriculaRepositorio {
   crear(matricula: Matricula): Promise<void>;
   actualizar(matricula: Matricula): Promise<void>;
   eliminar(id: string): Promise<void>;
+  eliminarPorEstudiante(estudianteId: string): Promise<void>;
 }

@@ -51,4 +51,9 @@ export class RegistroAsistenciaRepositorioMongo implements IRegistroAsistenciaRe
       actualizadoEn: registro.actualizadoEn,
     });
   }
+
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    await conectarMongoDB();
+    await RegistroAsistenciaModel.deleteMany({ estudianteId });
+  }
 }

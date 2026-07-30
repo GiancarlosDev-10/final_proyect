@@ -104,4 +104,9 @@ export class MatriculaRepositorioMongo implements IMatriculaRepositorio {
     await conectarMongoDB();
     await MatriculaModel.findByIdAndDelete(id);
   }
+
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    await conectarMongoDB();
+    await MatriculaModel.deleteMany({ estudianteId });
+  }
 }

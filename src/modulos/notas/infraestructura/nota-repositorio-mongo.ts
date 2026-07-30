@@ -128,4 +128,9 @@ export class NotaRepositorioMongo implements INotaRepositorio {
     await conectarMongoDB();
     await NotaModel.findByIdAndDelete(id);
   }
+
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    await conectarMongoDB();
+    await NotaModel.deleteMany({ estudianteId });
+  }
 }

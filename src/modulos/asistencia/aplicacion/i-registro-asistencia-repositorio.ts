@@ -5,4 +5,5 @@ export interface IRegistroAsistenciaRepositorio {
   listarPorSesion(sesionId: string): Promise<RegistroAsistencia[]>;
   crear(registro: RegistroAsistencia): Promise<void>;
   actualizar(registro: RegistroAsistencia): Promise<void>;
+  eliminarPorEstudiante(estudianteId: string): Promise<void>;
 }

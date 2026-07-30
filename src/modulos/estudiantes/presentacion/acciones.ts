@@ -2,6 +2,9 @@
 
 import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructura/estudiante-repositorio-mongo";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
+import { NotaRepositorioMongo } from "@/modulos/notas/infraestructura/nota-repositorio-mongo";
+import { RegistroAsistenciaRepositorioMongo } from "@/modulos/asistencia/infraestructura/registro-asistencia-repositorio-mongo";
+import { ApoderadoVinculadoRepositorioMongo } from "@/modulos/telegram/infraestructura/apoderado-vinculado-repositorio-mongo";
 import { listarEstudiantesPorSeccion, EstudianteResumen } from "@/modulos/estudiantes/aplicacion/listar-estudiantes-por-seccion";
 import { crearEstudiante, CrearEstudianteDTO } from "@/modulos/estudiantes/aplicacion/crear-estudiante";
 import { crearEstudianteEnSeccion, CrearEstudianteEnSeccionDTO } from "@/modulos/estudiantes/aplicacion/crear-estudiante-en-seccion";
@@ -56,8 +59,13 @@ export async function accionActualizarEstudiante(datos: ActualizarEstudianteDTO)
 
 export async function accionEliminarEstudiante(id: string): Promise<{ ok: boolean; mensaje: string }> {
   if (!(await requerirRol(ROLES.ADMIN))) return { ok: false, mensaje: "No autorizado" };
-  const repositorio = new EstudianteRepositorioMongo();
-  const resultado = await eliminarEstudiante(id, repositorio);
+  const resultado = await eliminarEstudiante(id, {
+    estudianteRepo: new EstudianteRepositorioMongo(),
+    matriculaRepo: new MatriculaRepositorioMongo(),
+    notaRepo: new NotaRepositorioMongo(),
+    registroAsistenciaRepo: new RegistroAsistenciaRepositorioMongo(),
+    apoderadoVinculadoRepo: new ApoderadoVinculadoRepositorioMongo(),
+  });
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
-  return { ok: true, mensaje: "Estudiante eliminado correctamente" };
+  return { ok: true, mensaje: "Estudiante eliminado correctamente (junto con sus matrículas, notas, asistencia y vínculo de Telegram)" };
 }

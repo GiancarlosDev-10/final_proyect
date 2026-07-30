@@ -526,7 +526,11 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
             </div>
             <div className="space-y-2">
               <Label>Nombre completo</Label>
-              <Input value={form.nombreCompleto} onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })} />
+              <Input
+                value={form.nombreCompleto}
+                onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })}
+                placeholder="Ej: Juan Pérez García"
+              />
             </div>
             <div className="space-y-2">
               <Label>Fecha de nacimiento</Label>

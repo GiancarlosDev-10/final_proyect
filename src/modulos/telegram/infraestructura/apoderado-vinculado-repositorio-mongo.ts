@@ -27,4 +27,9 @@ export class ApoderadoVinculadoRepositorioMongo implements IApoderadoVinculadoRe
       { upsert: true }
     );
   }
+
+  async eliminarPorEstudiante(estudianteId: string): Promise<void> {
+    await conectarMongoDB();
+    await ApoderadoVinculadoModel.deleteMany({ estudianteId });
+  }
 }
