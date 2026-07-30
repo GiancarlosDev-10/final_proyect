@@ -16,6 +16,7 @@ import {
 } from "@/modulos/estudiantes/presentacion/acciones";
 import { NIVELES_EDUCATIVOS, ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo } from "@/config/constantes";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,7 +91,7 @@ function TarjetaEstudiante({
     <Card className="p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-medium">{estudiante.nombreCompleto}</p>
+          <p className="truncate font-medium">{apellidoNombre(estudiante.nombreCompleto)}</p>
           <p className="truncate text-sm text-muted-foreground">Documento: {estudiante.documento}</p>
           <p className="truncate text-sm text-muted-foreground">Apoderado: {estudiante.apoderado.nombre}</p>
         </div>
@@ -310,10 +311,12 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
 
   const estudiantesFiltrados = useMemo(() => {
     const termino = normalizarTexto(busqueda);
-    if (!termino) return estudiantes;
-    return estudiantes.filter(
-      (e) => normalizarTexto(e.nombreCompleto).includes(termino) || normalizarTexto(e.documento).includes(termino)
-    );
+    const base = !termino
+      ? estudiantes
+      : estudiantes.filter(
+          (e) => normalizarTexto(e.nombreCompleto).includes(termino) || normalizarTexto(e.documento).includes(termino)
+        );
+    return [...base].sort((a, b) => apellidoNombre(a.nombreCompleto).localeCompare(apellidoNombre(b.nombreCompleto), "es"));
   }, [estudiantes, busqueda]);
 
   const totalPaginas = Math.max(1, Math.ceil(estudiantesFiltrados.length / TAMANO_PAGINA));
@@ -405,7 +408,7 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
                 <TableBody>
                   {estudiantesPagina.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell className="truncate font-medium">{e.nombreCompleto}</TableCell>
+                      <TableCell className="truncate font-medium">{apellidoNombre(e.nombreCompleto)}</TableCell>
                       <TableCell className="truncate text-muted-foreground">{e.documento}</TableCell>
                       <TableCell className="truncate text-muted-foreground">{e.apoderado.nombre}</TableCell>
                       <TableCell className="text-center">
