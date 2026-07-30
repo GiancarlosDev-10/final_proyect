@@ -480,6 +480,43 @@ export function TablaEstudiantes({ secciones, seccionInicialId, estudiantesInici
             <DialogTitle>{editando ? "Editar Estudiante" : "Nuevo Estudiante"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {!editando && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Nivel</Label>
+                  <Select
+                    value={nivel}
+                    onValueChange={(v) => v && onCambiarNivel(v as NivelEducativo)}
+                    itemToStringLabel={(v) => ETIQUETAS_NIVEL_EDUCATIVO[v as NivelEducativo]}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Nivel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ORDEN_NIVELES_EDUCATIVOS.map((n) => (
+                        <SelectItem key={n} value={n}>{ETIQUETAS_NIVEL_EDUCATIVO[n]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Sección</Label>
+                  <Select value={seccionId} onValueChange={(v) => v && onCambiarSeccion(v)} itemToStringLabel={nombreSeccionSeleccionada}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sección" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {seccionesDelNivel.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.grado} {s.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="col-span-2 text-xs text-muted-foreground">
+                  El alumno se creará matriculado en la sección elegida acá arriba.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Documento</Label>
               <Input value={form.documento} onChange={(e) => setForm({ ...form, documento: e.target.value })} placeholder="DNI" />

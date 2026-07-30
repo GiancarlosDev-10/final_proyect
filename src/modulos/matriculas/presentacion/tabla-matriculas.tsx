@@ -24,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo } from "@/config/constantes";
 
 interface Props {
   matriculas: MatriculaProps[];
@@ -93,6 +94,9 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
     seccionId: "",
     anio: new Date().getFullYear().toString(),
   });
+  // Solo para el diálogo: filtra qué secciones se ofrecen, para no mezclar
+  // Inicial/Primaria/Secundaria en una sola lista larga.
+  const [nivelDialogo, setNivelDialogo] = useState<NivelEducativo | "">("");
 
   function nombreEstudiante(id: string) {
     const e = estudiantes.find((e) => e.id === id);
@@ -109,6 +113,16 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
     () => [...estudiantes].sort((a, b) => apellidoNombre(a.nombreCompleto).localeCompare(apellidoNombre(b.nombreCompleto), "es")),
     [estudiantes]
   );
+
+  const seccionesDelNivelDialogo = useMemo(
+    () => secciones.filter((s) => s.nivel === nivelDialogo),
+    [secciones, nivelDialogo]
+  );
+
+  function onCambiarNivelDialogo(nuevoNivel: NivelEducativo) {
+    setNivelDialogo(nuevoNivel);
+    setForm((f) => ({ ...f, seccionId: "" }));
+  }
 
   const matriculasFiltradas = useMemo(() => {
     const termino = normalizarTexto(busqueda);
@@ -140,12 +154,14 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
   function abrirCrear() {
     setEditando(null);
     setForm({ estudianteId: "", seccionId: "", anio: new Date().getFullYear().toString() });
+    setNivelDialogo("");
     setAbierto(true);
   }
 
   function abrirEditar(matricula: MatriculaProps) {
     setEditando(matricula);
     setForm({ estudianteId: matricula.estudianteId, seccionId: matricula.seccionId, anio: matricula.anio.toString() });
+    setNivelDialogo(secciones.find((s) => s.id === matricula.seccionId)?.nivel ?? "");
     setAbierto(true);
   }
 
@@ -333,18 +349,42 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
                 <p className="text-xs text-muted-foreground">No se puede cambiar el estudiante de una matrícula existente.</p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Sección</Label>
-              <Select value={form.seccionId} onValueChange={(v) => setForm({ ...form, seccionId: v ?? "" })} itemToStringLabel={nombreSeccion}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar sección" />
-                </SelectTrigger>
-                <SelectContent>
-                  {secciones.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.grado} {s.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Nivel</Label>
+                <Select
+                  value={nivelDialogo}
+                  onValueChange={(v) => v && onCambiarNivelDialogo(v as NivelEducativo)}
+                  itemToStringLabel={(v) => (v ? ETIQUETAS_NIVEL_EDUCATIVO[v as NivelEducativo] : "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Nivel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORDEN_NIVELES_EDUCATIVOS.map((n) => (
+                      <SelectItem key={n} value={n}>{ETIQUETAS_NIVEL_EDUCATIVO[n]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Sección</Label>
+                <Select
+                  value={form.seccionId}
+                  onValueChange={(v) => setForm({ ...form, seccionId: v ?? "" })}
+                  itemToStringLabel={nombreSeccion}
+                  disabled={!nivelDialogo}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sección" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {seccionesDelNivelDialogo.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.grado} {s.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Año</Label>
