@@ -29,22 +29,9 @@ const BORDE_FINO = { style: "thin" as const, color: { argb: BORDE_GRIS } };
 const BORDE_CELDA = { top: BORDE_FINO, left: BORDE_FINO, bottom: BORDE_FINO, right: BORDE_FINO };
 
 // Conducta no existe como concepto real en el sistema todavía (no hay UI para
-// cargarla) — se simula un valor determinístico por alumno (mismo valor en
-// cada descarga, no cambia solo) para que el reporte se vea completo.
-function hashTexto(texto: string): number {
-  let h = 0;
-  for (let i = 0; i < texto.length; i++) h = (h * 31 + texto.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-function conductaSimulada(estudianteId: string): number {
-  const h = hashTexto(`${estudianteId}-conducta`);
-  const r = (h % 1000) / 1000;
-  if (r < 0.2) return 18 + (h % 3); // AD
-  if (r < 0.75) return 14 + (h % 4); // A
-  if (r < 0.95) return 11 + (h % 3); // B
-  return 8 + (h % 3); // C (poco frecuente)
-}
+// cargarla) — se simula fija en 17 (A) para todos, para que el reporte se
+// vea completo sin necesidad de un módulo nuevo.
+const CONDUCTA_SIMULADA = 17;
 
 export async function GET(request: NextRequest) {
   const sesion = await requerirSesion();
@@ -126,10 +113,11 @@ export async function GET(request: NextRequest) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Dashboard Colegio";
 
-  // Columnas: N°, Apellidos y Nombres, (Nota, Letra) × cada curso, Conducta, Puntaje, Orden de Mérito.
+  // Columnas: N°, Apellidos y Nombres, (Nota, Letra) × cada curso, (Nota, Letra) Conducta, Puntaje, Orden de Mérito.
   const NUM_CURSOS = consolidado.cursoIds.length;
-  const colConducta = 3 + NUM_CURSOS * 2;
-  const colPuntaje = colConducta + 1;
+  const colConductaNota = 3 + NUM_CURSOS * 2;
+  const colConductaLetra = colConductaNota + 1;
+  const colPuntaje = colConductaLetra + 1;
   const colOrden = colPuntaje + 1;
   const ultimaColumna = colOrden;
 
@@ -148,15 +136,23 @@ export async function GET(request: NextRequest) {
   celdaTitulo.alignment = { horizontal: "center", vertical: "middle" };
   hoja.getRow(1).height = 24;
 
+  // La etiqueta se fusiona en columnas A+B (no solo A) para tener ancho de
+  // sobra sin depender de qué tan angosta necesite ser la columna A para el
+  // "N°" de la tabla de abajo — son la misma columna física, pero el merge
+  // usa el ancho combinado de A+B, así ninguna de las dos necesita ser ancha
+  // por sí sola.
+  const COLUMNA_FIN_ETIQUETA = 2;
   function filaInfo(numeroFila: number, etiqueta: string, valor: string) {
+    hoja.mergeCells(numeroFila, 1, numeroFila, COLUMNA_FIN_ETIQUETA);
     const celdaEtiqueta = hoja.getCell(numeroFila, 1);
     celdaEtiqueta.value = etiqueta;
     celdaEtiqueta.font = { name: FUENTE, bold: true };
-    hoja.mergeCells(numeroFila, 2, numeroFila, Math.max(2, ultimaColumna - 3));
-    const celdaValor = hoja.getCell(numeroFila, 2);
+    hoja.mergeCells(numeroFila, COLUMNA_FIN_ETIQUETA + 1, numeroFila, Math.max(COLUMNA_FIN_ETIQUETA + 1, ultimaColumna - 3));
+    const celdaValor = hoja.getCell(numeroFila, COLUMNA_FIN_ETIQUETA + 1);
     celdaValor.value = valor;
     celdaValor.font = { name: FUENTE };
   }
+  hoja.mergeCells(2, 1, 2, COLUMNA_FIN_ETIQUETA);
   const celdaDatosInfo = hoja.getCell(2, 1);
   celdaDatosInfo.value = "Datos Informativos";
   celdaDatosInfo.font = { name: FUENTE, bold: true, italic: true };
@@ -165,9 +161,6 @@ export async function GET(request: NextRequest) {
   filaInfo(5, "Unidad", `Unidad ${ordenUnidad}`);
   filaInfo(6, "Grado", `${seccion.grado} ${seccion.nombre} de ${ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]}`);
   filaInfo(7, "Tutor", tutor ? apellidoNombreReporte(tutor.nombreCompleto) : "—");
-
-  // Ancho suficiente para que "Institución Educativa" no se vea cortado.
-  hoja.getColumn(1).width = 24;
 
   // Logo del colegio, arriba a la derecha del bloque de datos informativos.
   try {
@@ -193,9 +186,16 @@ export async function GET(request: NextRequest) {
   }
   encabezadoVertical(1, "N°");
   encabezadoVertical(2, "Apellidos y Nombres");
-  encabezadoVertical(colConducta, "Conducta");
   encabezadoVertical(colPuntaje, "Puntaje");
   encabezadoVertical(colOrden, "Orden de\nMérito");
+
+  // Conducta tiene 2 columnas (nota/letra) igual que un curso, pero no
+  // pertenece al bloque "CURSOS" — se muestra como un bloque propio de 2×2,
+  // sin rotar, igual que N° y Apellidos y Nombres.
+  hoja.mergeCells(filaCursosHeader, colConductaNota, filaColumnas, colConductaLetra);
+  const celdaConducta = hoja.getCell(filaCursosHeader, colConductaNota);
+  celdaConducta.value = "Conducta";
+  celdaConducta.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
   hoja.mergeCells(filaCursosHeader, 3, filaCursosHeader, 2 + NUM_CURSOS * 2);
   const celdaCursos = hoja.getCell(filaCursosHeader, 3);
@@ -225,8 +225,7 @@ export async function GET(request: NextRequest) {
   filasOrdenadas.forEach((fila, indice) => {
     const numeroFila = filaColumnas + 1 + indice;
     const esFranjaGris = indice % 2 === 1;
-    const conducta = conductaSimulada(fila.estudianteId);
-    const letraConducta = letraDeNota(conducta);
+    const letraConducta = letraDeNota(CONDUCTA_SIMULADA);
 
     function escribirCelda(columna: number, valor: string | number, opciones: { negrita?: boolean; color?: string } = {}) {
       const celda = hoja.getCell(numeroFila, columna);
@@ -249,18 +248,20 @@ export async function GET(request: NextRequest) {
       escribirCelda(columnaNota + 1, n.letra ?? "—", { negrita: true, color });
     });
 
-    const colorConducta = conducta < 11 ? ROJO_DESAPROBADO : VERDE_APROBADO;
-    escribirCelda(colConducta, `${conducta} ${letraConducta}`, { negrita: true, color: colorConducta });
+    escribirCelda(colConductaNota, CONDUCTA_SIMULADA, { negrita: true, color: VERDE_APROBADO });
+    escribirCelda(colConductaLetra, letraConducta ?? "—", { negrita: true, color: VERDE_APROBADO });
 
     escribirCelda(colPuntaje, fila.puntaje ?? "—", { negrita: true });
     escribirCelda(colOrden, fila.ordenMerito ?? "—", { negrita: true });
   });
 
+  hoja.getColumn(1).width = 6;
   hoja.getColumn(2).width = 30;
   for (let i = 0; i < NUM_CURSOS * 2; i++) {
     hoja.getColumn(3 + i).width = 6;
   }
-  hoja.getColumn(colConducta).width = 12;
+  hoja.getColumn(colConductaNota).width = 7;
+  hoja.getColumn(colConductaLetra).width = 7;
   hoja.getColumn(colPuntaje).width = 12;
   hoja.getColumn(colOrden).width = 14;
 

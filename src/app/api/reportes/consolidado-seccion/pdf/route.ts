@@ -20,19 +20,9 @@ const NOMBRE_COLEGIO = "Colegio Juan Velasco Alvarado";
 // la más parecida visualmente sin tener que empaquetar una fuente TTF aparte.
 const FUENTE = "helvetica";
 
-function hashTexto(texto: string): number {
-  let h = 0;
-  for (let i = 0; i < texto.length; i++) h = (h * 31 + texto.charCodeAt(i)) >>> 0;
-  return h;
-}
-function conductaSimulada(estudianteId: string): number {
-  const h = hashTexto(`${estudianteId}-conducta`);
-  const r = (h % 1000) / 1000;
-  if (r < 0.2) return 18 + (h % 3);
-  if (r < 0.75) return 14 + (h % 4);
-  if (r < 0.95) return 11 + (h % 3);
-  return 8 + (h % 3);
-}
+// Conducta no existe como concepto real en el sistema todavía (no hay UI para
+// cargarla) — se simula fija en 17 (A) para todos.
+const CONDUCTA_SIMULADA = 17;
 
 export async function GET(request: NextRequest) {
   if (!(await requerirRol(ROLES.ADMIN))) {
@@ -114,7 +104,9 @@ export async function GET(request: NextRequest) {
     { content: "N°", rowSpan: 2, styles: { valign: "middle" as const, halign: "center" as const } },
     { content: "Apellidos y Nombres", rowSpan: 2, styles: { valign: "middle" as const } },
     { content: "CURSOS", colSpan: NUM_CURSOS * 2, styles: { halign: "center" as const } },
-    { content: "Conducta", rowSpan: 2, styles: { valign: "middle" as const, halign: "center" as const } },
+    // Conducta tiene 2 columnas (nota/letra) igual que un curso, pero no
+    // pertenece al bloque "CURSOS" — un solo bloque 2×2, sin rotar.
+    { content: "Conducta", colSpan: 2, rowSpan: 2, styles: { valign: "middle" as const, halign: "center" as const } },
     { content: "Puntaje", rowSpan: 2, styles: { valign: "middle" as const, halign: "center" as const } },
     { content: "Orden de\nMérito", rowSpan: 2, styles: { valign: "middle" as const, halign: "center" as const } },
   ];
@@ -129,17 +121,15 @@ export async function GET(request: NextRequest) {
     styles: { font: FUENTE, fontSize: 7, cellPadding: 1.2, lineColor: [203, 213, 225], lineWidth: 0.1 },
     headStyles: { font: FUENTE, fillColor: [30, 41, 59], minCellHeight: 32, valign: "bottom" },
     head: [headFila1, headFila2],
-    body: filasOrdenadas.map((fila, indice) => {
-      const conducta = conductaSimulada(fila.estudianteId);
-      return [
-        String(indice + 1),
-        apellidoNombreReporte(nombreEstudiante(fila.estudianteId)),
-        ...fila.notasPorCurso.flatMap((n) => [n.promedio === null ? "—" : String(n.promedio), n.letra ?? "—"]),
-        `${conducta} ${letraDeNota(conducta)}`,
-        fila.puntaje === null ? "—" : String(fila.puntaje),
-        fila.ordenMerito === null ? "—" : String(fila.ordenMerito),
-      ];
-    }),
+    body: filasOrdenadas.map((fila, indice) => [
+      String(indice + 1),
+      apellidoNombreReporte(nombreEstudiante(fila.estudianteId)),
+      ...fila.notasPorCurso.flatMap((n) => [n.promedio === null ? "—" : String(n.promedio), n.letra ?? "—"]),
+      String(CONDUCTA_SIMULADA),
+      letraDeNota(CONDUCTA_SIMULADA) ?? "—",
+      fila.puntaje === null ? "—" : String(fila.puntaje),
+      fila.ordenMerito === null ? "—" : String(fila.ordenMerito),
+    ]),
     // Las celdas de nombre de curso (fila 2 del head) se dibujan giradas 90°
     // a mano — jspdf-autotable no soporta texto rotado de forma nativa. Se
     // vacía el texto propio de la celda en didParseCell y se redibuja rotado
