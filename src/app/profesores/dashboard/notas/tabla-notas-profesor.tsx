@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, MoreVertical, FileDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, FileDown, Search, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { NotaProps } from "@/modulos/notas/dominio/nota";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
+import { MatriculaProps } from "@/modulos/matriculas/dominio/matricula";
 import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 import {
   accionListarNotasPorAsignacionProfesor,
@@ -24,16 +25,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { TIPOS_NOTA, TipoNota, ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo } from "@/config/constantes";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
+import { promediosPorTipo, promedioPonderadoDesdeTipos } from "@/modulos/notas/dominio/promedio-ponderado";
+import { letraDeNota } from "@/modulos/reportes/aplicacion/calcular-consolidado-seccion";
 
 const TAMANO_PAGINA = 10;
+
+const ETIQUETAS_TIPO: Record<TipoNota, string> = {
+  PRACTICA: "Práctica",
+  EXAMEN: "Examen",
+  TRABAJO: "Trabajo",
+  PARTICIPACION: "Participación",
+};
 
 function numeroDeGrado(grado: string): number {
   const match = grado.match(/\d+/);
@@ -47,58 +52,42 @@ interface Props {
   cursos: CursoProps[];
   secciones: SeccionProps[];
   unidadesDidacticas: UnidadDidacticaProps[];
+  matriculas: MatriculaProps[];
 }
 
-function TarjetaNotaProfesor({
-  nota,
-  nombreEstudiante,
-  onEditar,
-  onEliminar,
-}: {
-  nota: NotaProps;
-  nombreEstudiante: (id: string) => string;
-  onEditar: (nota: NotaProps) => void;
-  onEliminar: (nota: NotaProps) => void;
-}) {
+interface FilaRosterNotas {
+  estudiante: EstudianteProps;
+  porTipo: Record<TipoNota, number | null>;
+  promedio: number | null;
+  letra: string | null;
+}
+
+function TarjetaAlumnoNotas({ fila, onVerNotas }: { fila: FilaRosterNotas; onVerNotas: (estudiante: EstudianteProps) => void }) {
   return (
     <Card className="p-3">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-medium">{nombreEstudiante(nota.estudianteId)}</p>
-          <p className="truncate text-sm text-muted-foreground">{nota.etiqueta}</p>
-          <p className="truncate text-sm text-muted-foreground">{nota.tipo} · {nota.fecha}</p>
+          <p className="truncate font-medium">{apellidoNombre(fila.estudiante.nombreCompleto)}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {fila.promedio === null ? "Sin notas todavía" : `Promedio: ${fila.promedio} (${fila.letra})`}
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <span className={`text-lg font-semibold ${nota.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-            {nota.valor}
-          </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
-              <MoreVertical className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEditar(nota)}>
-                <Pencil className="size-4" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem variant="destructive" onClick={() => onEliminar(nota)}>
-                <Trash2 className="size-4" />
-                Eliminar
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <Button variant="outline" size="sm" onClick={() => onVerNotas(fila.estudiante)} className="shrink-0">
+          <Eye className="size-3.5" />
+          Ver notas
+        </Button>
       </div>
     </Card>
   );
 }
 
-export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos, secciones, unidadesDidacticas }: Props) {
+export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos, secciones, unidadesDidacticas, matriculas }: Props) {
   const [notas, setNotas] = useState<NotaProps[]>([]);
   const [loadingNotas, setLoadingNotas] = useState(false);
   const [abierto, setAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState<NotaProps | null>(null);
+  const [estudianteVerNotas, setEstudianteVerNotas] = useState<EstudianteProps | null>(null);
   const [form, setForm] = useState({
     estudianteId: "",
     tipo: "PRACTICA" as TipoNota,
@@ -169,6 +158,22 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     );
   }, [unidadesDidacticas, asignacionSeleccionada, ordenUnidad]);
 
+  // Solo los alumnos matriculados en la sección de la asignación elegida —
+  // antes se ofrecía el colegio entero en el selector de "Registrar nota".
+  const estudiantesDeLaAsignacion = useMemo(() => {
+    if (!asignacionSeleccionada) return [];
+    const periodo = periodos.find((p) => p.id === asignacionSeleccionada.periodoId);
+    if (!periodo) return [];
+    const idsMatriculados = new Set(
+      matriculas
+        .filter((m) => m.seccionId === asignacionSeleccionada.seccionId && m.activo && m.anio === periodo.anio)
+        .map((m) => m.estudianteId)
+    );
+    return estudiantes
+      .filter((e) => idsMatriculados.has(e.id))
+      .sort((a, b) => apellidoNombre(a.nombreCompleto).localeCompare(apellidoNombre(b.nombreCompleto), "es"));
+  }, [estudiantes, matriculas, asignacionSeleccionada, periodos]);
+
   // Se dispara desde los onChange de Curso/Sección/Periodo (no con un
   // useEffect) para no violar react-hooks/set-state-in-effect, y porque de
   // todos modos es una reacción directa a la interacción del usuario.
@@ -217,24 +222,32 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   const [busqueda, setBusqueda] = useState("");
   const [pagina, setPagina] = useState(1);
 
-  const notasFiltradas = useMemo(() => {
-    // notas trae TODA la asignación (ambas unidades) de una sola vez — acá
-    // se acota a la unidad seleccionada, que es la que realmente importa en
-    // pantalla (cada unidad es un bimestre distinto).
-    const notasDeLaUnidad = notas.filter((n) => n.unidadDidacticaId === unidadSeleccionada?.id);
-    const termino = normalizarTexto(busqueda);
-    if (!termino) return notasDeLaUnidad;
-    return notasDeLaUnidad.filter(
-      (n) => normalizarTexto(nombreEstudiante(n.estudianteId)).includes(termino) || normalizarTexto(n.etiqueta).includes(termino)
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notas, busqueda, estudiantes, unidadSeleccionada]);
+  // notas trae TODA la asignación (ambas unidades) de una sola vez — acá se
+  // acota a la unidad seleccionada (cada unidad es un bimestre distinto) y se
+  // arma una fila por alumno matriculado (no una fila por nota), reusando la
+  // misma lógica de promedio ponderado que el Excel del profesor.
+  const filasRoster: FilaRosterNotas[] = useMemo(() => {
+    return estudiantesDeLaAsignacion.map((estudiante) => {
+      const notasDelAlumno = notas.filter(
+        (n) => n.estudianteId === estudiante.id && n.unidadDidacticaId === unidadSeleccionada?.id
+      );
+      const porTipo = promediosPorTipo(notasDelAlumno);
+      const promedio = promedioPonderadoDesdeTipos(porTipo);
+      return { estudiante, porTipo, promedio, letra: letraDeNota(promedio) };
+    });
+  }, [estudiantesDeLaAsignacion, notas, unidadSeleccionada]);
 
-  const totalPaginas = Math.max(1, Math.ceil(notasFiltradas.length / TAMANO_PAGINA));
+  const filasFiltradas = useMemo(() => {
+    const termino = normalizarTexto(busqueda);
+    if (!termino) return filasRoster;
+    return filasRoster.filter((f) => normalizarTexto(f.estudiante.nombreCompleto).includes(termino));
+  }, [filasRoster, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filasFiltradas.length / TAMANO_PAGINA));
   const paginaActual = Math.min(pagina, totalPaginas);
-  const notasPagina = useMemo(
-    () => notasFiltradas.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
-    [notasFiltradas, paginaActual]
+  const filasPagina = useMemo(
+    () => filasFiltradas.slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA),
+    [filasFiltradas, paginaActual]
   );
 
   function onCambiarBusqueda(valor: string) {
@@ -242,10 +255,10 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     setPagina(1);
   }
 
-  function mensajeSinNotas(): string {
-    if (notas.length === 0) return "No hay notas para esta asignación.";
-    if (busqueda.trim()) return "Ninguna nota coincide con la búsqueda.";
-    return "No hay notas para esta unidad.";
+  function mensajeSinAlumnos(): string {
+    if (estudiantesDeLaAsignacion.length === 0) return "No hay alumnos matriculados en esta sección.";
+    if (busqueda.trim()) return "Ningún alumno coincide con la búsqueda.";
+    return "No hay alumnos para mostrar.";
   }
 
   // Solo el curso puntual que el profesor tiene seleccionado — no el
@@ -254,9 +267,10 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     ? `/api/reportes/notas-curso/excel?asignacionId=${asignacionSeleccionada.id}&ordenUnidad=${ordenUnidad}`
     : null;
 
-  function abrirCrear() {
+  function abrirCrear(estudianteIdPreseleccionado?: string) {
     setEditando(null);
-    setForm({ estudianteId: "", tipo: "PRACTICA", etiqueta: "", valor: "", fecha: "" });
+    setForm({ estudianteId: estudianteIdPreseleccionado ?? "", tipo: "PRACTICA", etiqueta: "", valor: "", fecha: "" });
+    setEstudianteVerNotas(null);
     setAbierto(true);
   }
 
@@ -269,8 +283,20 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
       valor: nota.valor.toString(),
       fecha: nota.fecha,
     });
+    setEstudianteVerNotas(null);
     setAbierto(true);
   }
+
+  function abrirVerNotas(estudiante: EstudianteProps) {
+    setEstudianteVerNotas(estudiante);
+  }
+
+  const notasDelAlumnoEnVista = useMemo(() => {
+    if (!estudianteVerNotas) return [];
+    return notas
+      .filter((n) => n.estudianteId === estudianteVerNotas.id && n.unidadDidacticaId === unidadSeleccionada?.id)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }, [notas, estudianteVerNotas, unidadSeleccionada]);
 
   async function onSubmit() {
     if (!asignacionSeleccionada) return;
@@ -361,7 +387,8 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   }
 
   function nombreEstudiante(id: string) {
-    return estudiantes.find((e) => e.id === id)?.nombreCompleto || "(estudiante eliminado)";
+    const e = estudiantes.find((e) => e.id === id);
+    return e ? apellidoNombre(e.nombreCompleto) : "(estudiante eliminado)";
   }
 
   function nombrePeriodo(id: string) {
@@ -385,7 +412,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
           <p className="text-sm text-muted-foreground">Registra y consulta las notas de tus asignaciones.</p>
         </div>
         {asignacionSeleccionada && unidadSeleccionada && (
-          <Button onClick={abrirCrear}>
+          <Button onClick={() => abrirCrear()}>
             <Plus className="size-4" />
             Registrar nota
           </Button>
@@ -525,12 +552,12 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
       {!loadingNotas && asignacionSeleccionada && (
         <>
           <div className="space-y-3 md:hidden">
-            {notasPagina.map((n) => (
-              <TarjetaNotaProfesor key={n.id} nota={n} nombreEstudiante={nombreEstudiante} onEditar={abrirEditar} onEliminar={onEliminar} />
+            {filasPagina.map((fila) => (
+              <TarjetaAlumnoNotas key={fila.estudiante.id} fila={fila} onVerNotas={abrirVerNotas} />
             ))}
-            {notasFiltradas.length === 0 && (
+            {filasFiltradas.length === 0 && (
               <p className="p-6 text-center text-sm text-muted-foreground">
-                {mensajeSinNotas()}
+                {mensajeSinAlumnos()}
               </p>
             )}
           </div>
@@ -541,45 +568,45 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-56">Estudiante</TableHead>
-                  <TableHead className="w-28">Tipo</TableHead>
-                  <TableHead className="w-40">Etiqueta</TableHead>
-                  <TableHead className="w-20 text-center">Valor</TableHead>
-                  <TableHead className="w-28">Fecha</TableHead>
-                  <TableHead className="w-56 text-center">Acciones</TableHead>
+                  {Object.values(TIPOS_NOTA).map((t) => (
+                    <TableHead key={t} className="w-24 text-center">{ETIQUETAS_TIPO[t]}</TableHead>
+                  ))}
+                  <TableHead className="w-24 text-center">Promedio</TableHead>
+                  <TableHead className="w-32 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {notasPagina.map((n) => (
-                  <TableRow key={n.id}>
-                    <TableCell className="truncate font-medium">{nombreEstudiante(n.estudianteId)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{n.tipo}</Badge>
-                    </TableCell>
-                    <TableCell className="truncate text-muted-foreground">{n.etiqueta}</TableCell>
+                {filasPagina.map((fila) => (
+                  <TableRow key={fila.estudiante.id}>
+                    <TableCell className="truncate font-medium">{apellidoNombre(fila.estudiante.nombreCompleto)}</TableCell>
+                    {Object.values(TIPOS_NOTA).map((t) => (
+                      <TableCell key={t} className="text-center text-muted-foreground">
+                        {fila.porTipo[t] ?? "—"}
+                      </TableCell>
+                    ))}
                     <TableCell className="text-center">
-                      <span className={`font-semibold ${n.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                        {n.valor}
-                      </span>
+                      {fila.promedio === null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className={`font-semibold ${fila.promedio >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                          {fila.promedio} ({fila.letra})
+                        </span>
+                      )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{n.fecha}</TableCell>
                     <TableCell>
-                      <div className="flex justify-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => abrirEditar(n)}>
-                          <Pencil className="size-3.5" />
-                          Editar
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => onEliminar(n)}>
-                          <Trash2 className="size-3.5" />
-                          Eliminar
+                      <div className="flex justify-center">
+                        <Button variant="outline" size="sm" onClick={() => abrirVerNotas(fila.estudiante)}>
+                          <Eye className="size-3.5" />
+                          Ver notas
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {notasFiltradas.length === 0 && (
+                {filasFiltradas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                      {mensajeSinNotas()}
+                    <TableCell colSpan={Object.values(TIPOS_NOTA).length + 3} className="h-24 text-center text-muted-foreground">
+                      {mensajeSinAlumnos()}
                     </TableCell>
                   </TableRow>
                 )}
@@ -588,11 +615,11 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
           </CardContent>
           </Card>
 
-          {notasFiltradas.length > 0 && (
+          {filasFiltradas.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">
                 Mostrando {(paginaActual - 1) * TAMANO_PAGINA + 1}–
-                {Math.min(paginaActual * TAMANO_PAGINA, notasFiltradas.length)} de {notasFiltradas.length} notas
+                {Math.min(paginaActual * TAMANO_PAGINA, filasFiltradas.length)} de {filasFiltradas.length} alumnos
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -634,8 +661,8 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
                     <SelectValue placeholder="Seleccionar estudiante" />
                   </SelectTrigger>
                   <SelectContent>
-                    {estudiantes.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.nombreCompleto}</SelectItem>
+                    {estudiantesDeLaAsignacion.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{apellidoNombre(e.nombreCompleto)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -689,6 +716,58 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
             </Button>
             <Button onClick={onSubmit} disabled={loading}>
               {loading ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={estudianteVerNotas !== null} onOpenChange={(abierto) => !abierto && setEstudianteVerNotas(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Notas de {estudianteVerNotas ? apellidoNombre(estudianteVerNotas.nombreCompleto) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {notasDelAlumnoEnVista.map((n) => (
+              <div key={n.id} className="flex items-center justify-between gap-2 rounded-md border p-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{ETIQUETAS_TIPO[n.tipo]}</Badge>
+                    <span className="truncate text-sm font-medium">{n.etiqueta}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{n.fecha}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className={`font-semibold ${n.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    {n.valor}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => abrirEditar(n)}>
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => onEliminar(n)}>
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {notasDelAlumnoEnVista.length === 0 && (
+              <p className="p-6 text-center text-sm text-muted-foreground">
+                Este alumno todavía no tiene notas registradas en esta unidad.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEstudianteVerNotas(null)}>
+              Cerrar
+            </Button>
+            <Button
+              onClick={() => {
+                if (estudianteVerNotas) abrirCrear(estudianteVerNotas.id);
+              }}
+            >
+              <Plus className="size-4" />
+              Agregar nota
             </Button>
           </DialogFooter>
         </DialogContent>

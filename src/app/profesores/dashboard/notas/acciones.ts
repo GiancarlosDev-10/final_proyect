@@ -7,6 +7,7 @@ import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructur
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
 import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/seccion-repositorio-mongo";
+import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { UnidadDidacticaRepositorioMongo } from "@/modulos/unidades-didacticas/infraestructura/unidad-didactica-repositorio-mongo";
 import { registrarNota, RegistrarNotaDTO } from "@/modulos/notas/aplicacion/registrar-nota";
 import { editarNota, EditarNotaDTO } from "@/modulos/notas/aplicacion/editar-nota";
@@ -17,6 +18,7 @@ import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
+import { MatriculaProps } from "@/modulos/matriculas/dominio/matricula";
 import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unidad-didactica";
 
 export async function accionListarMisAsignaciones(): Promise<AsignacionProps[]> {
@@ -62,6 +64,12 @@ export async function accionListarUnidadesDidacticasProfesor(): Promise<UnidadDi
   const repositorio = new UnidadDidacticaRepositorioMongo();
   const todas = await repositorio.listar();
   return todas.map((u) => u.toPlainObject());
+}
+
+export async function accionListarMatriculasProfesor(): Promise<MatriculaProps[]> {
+  const repositorio = new MatriculaRepositorioMongo();
+  const todas = await repositorio.listar();
+  return todas.map((m) => m.toPlainObject());
 }
 
 export async function accionRegistrarNota(datos: RegistrarNotaDTO): Promise<{ ok: boolean; mensaje: string }> {

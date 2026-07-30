@@ -7,6 +7,7 @@ import {
   accionListarCursosProfesor,
   accionListarSeccionesProfesor,
   accionListarUnidadesDidacticasProfesor,
+  accionListarMatriculasProfesor,
 } from "@/app/profesores/dashboard/notas/acciones";
 import { TablaNotasProfesor } from "@/app/profesores/dashboard/notas/tabla-notas-profesor";
 
@@ -16,13 +17,14 @@ export default async function NotasProfesorPage() {
     redirect("/auth/login");
   }
 
-  const [asignaciones, estudiantes, periodos, cursos, secciones, unidadesDidacticas] = await Promise.all([
+  const [asignaciones, estudiantes, periodos, cursos, secciones, unidadesDidacticas, matriculas] = await Promise.all([
     accionListarMisAsignaciones(),
     accionListarEstudiantesProfesor(),
     accionListarPeriodosProfesor(),
     accionListarCursosProfesor(),
     accionListarSeccionesProfesor(),
     accionListarUnidadesDidacticasProfesor(),
+    accionListarMatriculasProfesor(),
   ]);
 
   return (
@@ -33,6 +35,7 @@ export default async function NotasProfesorPage() {
       cursos={cursos}
       secciones={secciones}
       unidadesDidacticas={unidadesDidacticas}
+      matriculas={matriculas}
     />
   );
 }

@@ -1,5 +1,10 @@
-import { Nota } from "@/modulos/notas/dominio/nota";
 import { TipoNota, TIPOS_NOTA } from "@/config/constantes";
+
+/** Estructural, no `Nota` — así también acepta `NotaProps` tal cual llega del cliente. */
+interface NotaConTipoYValor {
+  tipo: TipoNota;
+  valor: number;
+}
 
 /**
  * Pesos de cada tipo de evaluación sobre el promedio de un curso. Si al
@@ -15,7 +20,7 @@ export const PESOS_TIPO_NOTA: Record<TipoNota, number> = {
 };
 
 /** Promedio simple de las notas de cada tipo — null si el alumno no tiene ninguna de ese tipo. */
-export function promediosPorTipo(notas: Nota[]): Record<TipoNota, number | null> {
+export function promediosPorTipo(notas: NotaConTipoYValor[]): Record<TipoNota, number | null> {
   const resultado = {} as Record<TipoNota, number | null>;
   for (const tipo of Object.values(TIPOS_NOTA)) resultado[tipo] = null;
 
@@ -45,7 +50,7 @@ export function promedioPonderadoDesdeTipos(porTipo: Record<TipoNota, number | n
   return sumaPesos > 0 ? Math.round(sumaPonderada / sumaPesos) : null;
 }
 
-export function promedioPonderado(notas: Nota[]): number | null {
+export function promedioPonderado(notas: NotaConTipoYValor[]): number | null {
   if (notas.length === 0) return null;
   return promedioPonderadoDesdeTipos(promediosPorTipo(notas));
 }
