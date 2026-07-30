@@ -10,6 +10,7 @@ import { ConsolidadoSeccion } from "@/modulos/reportes/aplicacion/calcular-conso
 import { accionCalcularConsolidadoSeccion } from "@/modulos/reportes/presentacion/acciones";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { compararSecciones } from "@/modulos/secciones/dominio/orden-secciones";
+import { NivelEducativo, ORDEN_NIVELES_EDUCATIVOS, ETIQUETAS_NIVEL_EDUCATIVO } from "@/config/constantes";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +28,14 @@ function formatearPromedio(valor: number | null): string {
   return valor === null ? "—" : String(valor);
 }
 
+function numeroDeGrado(grado: string): number {
+  const match = grado.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
 export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiantes }: Props) {
+  const [nivelFiltro, setNivelFiltro] = useState<NivelEducativo | "">("");
+  const [gradoFiltro, setGradoFiltro] = useState("");
   const [seccionId, setSeccionId] = useState("");
   const [periodoId, setPeriodoId] = useState("");
   const [ordenUnidad, setOrdenUnidad] = useState<"1" | "2">("1");
@@ -36,6 +44,35 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
   const [buscado, setBuscado] = useState(false);
 
   const seccionesOrdenadas = useMemo(() => [...secciones].sort(compararSecciones), [secciones]);
+
+  // Nivel → Grado → Sección: "1°" existe tanto en Primaria como en Secundaria,
+  // así que sin el nivel de por medio elegir la sección correcta es ambiguo.
+  const nivelesDisponibles = useMemo(() => {
+    const niveles = new Set(secciones.map((s) => s.nivel));
+    return ORDEN_NIVELES_EDUCATIVOS.filter((n) => niveles.has(n));
+  }, [secciones]);
+
+  const gradosDisponibles = useMemo(() => {
+    const base = nivelFiltro ? secciones.filter((s) => s.nivel === nivelFiltro) : secciones;
+    return [...new Set(base.map((s) => s.grado))].sort((a, b) => numeroDeGrado(a) - numeroDeGrado(b));
+  }, [secciones, nivelFiltro]);
+
+  const seccionesFiltradas = useMemo(() => {
+    return seccionesOrdenadas.filter(
+      (s) => (!nivelFiltro || s.nivel === nivelFiltro) && (!gradoFiltro || s.grado === gradoFiltro)
+    );
+  }, [seccionesOrdenadas, nivelFiltro, gradoFiltro]);
+
+  function onCambiarNivel(valor: string) {
+    setNivelFiltro(valor as NivelEducativo | "");
+    setGradoFiltro("");
+    setSeccionId("");
+  }
+
+  function onCambiarGrado(valor: string) {
+    setGradoFiltro(valor);
+    setSeccionId("");
+  }
 
   function nombreSeccion(id: string) {
     const s = secciones.find((s) => s.id === id);
@@ -101,7 +138,37 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
     <div className="space-y-6">
       <Card>
         <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="w-36 space-y-2">
+              <Label>Nivel</Label>
+              <Select
+                value={nivelFiltro}
+                onValueChange={(v) => onCambiarNivel(v ?? "")}
+                itemToStringLabel={(n) => (n ? ETIQUETAS_NIVEL_EDUCATIVO[n as NivelEducativo] : "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Nivel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {nivelesDisponibles.map((n) => (
+                    <SelectItem key={n} value={n}>{ETIQUETAS_NIVEL_EDUCATIVO[n]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-28 space-y-2">
+              <Label>Grado</Label>
+              <Select value={gradoFiltro} onValueChange={(v) => onCambiarGrado(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Grado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gradosDisponibles.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="min-w-0 flex-1 space-y-2">
               <Label>Sección</Label>
               <Select value={seccionId} onValueChange={(v) => setSeccionId(v ?? "")} itemToStringLabel={nombreSeccion}>
@@ -109,7 +176,7 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                   <SelectValue placeholder="Seleccionar sección" />
                 </SelectTrigger>
                 <SelectContent>
-                  {seccionesOrdenadas.map((s) => (
+                  {seccionesFiltradas.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.grado} {s.nombre}</SelectItem>
                   ))}
                 </SelectContent>
@@ -140,22 +207,27 @@ export function TablaConsolidadoSeccion({ secciones, periodos, cursos, estudiant
                 </SelectContent>
               </Select>
             </div>
-            {urlExcel && buscado && consolidado && (
-              <a href={urlExcel} className={buttonVariants({ variant: "outline" })}>
-                <FileDown className="size-4" />
-                Descargar Excel
-              </a>
-            )}
-            {urlPdf && buscado && consolidado && (
-              <a href={urlPdf} className={buttonVariants({ variant: "outline" })}>
-                <FileDown className="size-4" />
-                Descargar PDF
-              </a>
-            )}
-            <Button onClick={onBuscar} disabled={!seccionId || !periodoId || loading}>
-              <Search className="size-4" />
-              {loading ? "Calculando..." : "Ver consolidado"}
-            </Button>
+            <div className="space-y-2">
+              <Label className="invisible">Acciones</Label>
+              <div className="flex flex-wrap gap-2">
+                {urlExcel && buscado && consolidado && (
+                  <a href={urlExcel} className={buttonVariants({ variant: "outline" })}>
+                    <FileDown className="size-4" />
+                    Descargar Excel
+                  </a>
+                )}
+                {urlPdf && buscado && consolidado && (
+                  <a href={urlPdf} className={buttonVariants({ variant: "outline" })}>
+                    <FileDown className="size-4" />
+                    Descargar PDF
+                  </a>
+                )}
+                <Button onClick={onBuscar} disabled={!seccionId || !periodoId || loading}>
+                  <Search className="size-4" />
+                  {loading ? "Calculando..." : "Ver consolidado"}
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
