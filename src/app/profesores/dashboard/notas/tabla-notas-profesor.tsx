@@ -81,6 +81,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState<NotaProps | null>(null);
   const [estudianteVerNotas, setEstudianteVerNotas] = useState<EstudianteProps | null>(null);
+  const [estudianteBloqueado, setEstudianteBloqueado] = useState(false);
   const [form, setForm] = useState({
     estudianteId: "",
     tipo: "PRACTICA" as TipoNota,
@@ -262,6 +263,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
   function abrirCrear(estudianteIdPreseleccionado?: string) {
     setEditando(null);
     setForm({ estudianteId: estudianteIdPreseleccionado ?? "", tipo: "PRACTICA", valor: "", fecha: "" });
+    setEstudianteBloqueado(Boolean(estudianteIdPreseleccionado));
     setEstudianteVerNotas(null);
     setAbierto(true);
   }
@@ -643,7 +645,12 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
             {!editando && (
               <div className="space-y-2">
                 <Label>Estudiante</Label>
-                <Select value={form.estudianteId} onValueChange={(v) => setForm({ ...form, estudianteId: v ?? "" })} itemToStringLabel={nombreEstudiante}>
+                <Select
+                  value={form.estudianteId}
+                  onValueChange={(v) => setForm({ ...form, estudianteId: v ?? "" })}
+                  itemToStringLabel={nombreEstudiante}
+                  disabled={estudianteBloqueado}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Seleccionar estudiante" />
                   </SelectTrigger>
@@ -653,6 +660,11 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
                     ))}
                   </SelectContent>
                 </Select>
+                {estudianteBloqueado && (
+                  <p className="text-xs text-muted-foreground">
+                    Ya estás registrando una nota para este alumno desde &quot;Ver notas&quot;.
+                  </p>
+                )}
               </div>
             )}
             <div className="space-y-2">
