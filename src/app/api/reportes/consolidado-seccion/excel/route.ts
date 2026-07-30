@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
-import { requerirSesion } from "@/compartido/lib/autorizacion";
+import { requerirRol } from "@/compartido/lib/autorizacion";
 import { ROLES, ETIQUETAS_NIVEL_EDUCATIVO } from "@/config/constantes";
 import { calcularConsolidadoSeccion, letraDeNota } from "@/modulos/reportes/aplicacion/calcular-consolidado-seccion";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
@@ -33,9 +33,12 @@ const BORDE_CELDA = { top: BORDE_FINO, left: BORDE_FINO, bottom: BORDE_FINO, rig
 // vea completo sin necesidad de un módulo nuevo.
 const CONDUCTA_SIMULADA = 17;
 
+// El consolidado junta TODOS los cursos de la sección (de cualquier
+// profesor) — es la libreta completa del alumno, por eso es exclusivo del
+// admin. El profesor tiene su propio reporte acotado a su curso en
+// /api/reportes/notas-curso/excel.
 export async function GET(request: NextRequest) {
-  const sesion = await requerirSesion();
-  if (!sesion || (sesion.rol !== ROLES.ADMIN && sesion.rol !== ROLES.PROFESOR)) {
+  if (!(await requerirRol(ROLES.ADMIN))) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
@@ -49,19 +52,6 @@ export async function GET(request: NextRequest) {
   }
 
   const asignacionRepositorio = new AsignacionRepositorioMongo();
-
-  // Un profesor solo puede exportar el consolidado de una sección donde
-  // efectivamente dicta algún curso este periodo (no cualquier sección). El
-  // admin no tiene esa restricción, puede exportar cualquier sección.
-  if (sesion.rol === ROLES.PROFESOR) {
-    const misAsignaciones = await asignacionRepositorio.listarPorProfesor(sesion.id);
-    const dictaEnEstaSeccion = misAsignaciones.some(
-      (a) => a.seccionId === seccionId && a.periodoId === periodoId && a.activo
-    );
-    if (!dictaEnEstaSeccion) {
-      return NextResponse.json({ error: "No tienes una asignación activa en esta sección y periodo" }, { status: 403 });
-    }
-  }
 
   const seccionRepositorio = new SeccionRepositorioMongo();
   const periodoRepositorio = new PeriodoRepositorioMongo();

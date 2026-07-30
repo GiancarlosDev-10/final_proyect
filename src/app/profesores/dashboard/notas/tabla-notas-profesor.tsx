@@ -148,9 +148,6 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     );
   }, [misSecciones, nivelFiltro, gradoFiltro]);
 
-  // Curso solo decide qué asignación calificar aquí abajo; el Excel (más
-  // abajo) exporta TODOS los cursos de la Sección+Periodo+Unidad elegidos,
-  // sin importar qué Curso esté seleccionado en este mismo selector.
   const asignacionSeleccionada = useMemo(() => {
     if (!cursoFiltroId || !seccionFiltroId || !periodoFiltroId) return null;
     return (
@@ -241,10 +238,11 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
     setPagina(1);
   }
 
-  const urlExcel =
-    seccionFiltroId && periodoFiltroId
-      ? `/api/reportes/consolidado-seccion/excel?seccionId=${seccionFiltroId}&periodoId=${periodoFiltroId}&ordenUnidad=${ordenUnidad}`
-      : null;
+  // Solo el curso puntual que el profesor tiene seleccionado — no el
+  // consolidado de toda la sección, eso es exclusivo del admin.
+  const urlExcel = asignacionSeleccionada
+    ? `/api/reportes/notas-curso/excel?asignacionId=${asignacionSeleccionada.id}&ordenUnidad=${ordenUnidad}`
+    : null;
 
   function abrirCrear() {
     setEditando(null);
