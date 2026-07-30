@@ -60,7 +60,8 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
   const [pagina, setPagina] = useState(1);
 
   function nombreEstudiante(id: string) {
-    return estudiantes.find((e) => e.id === id)?.nombreCompleto || "(estudiante eliminado)";
+    const e = estudiantes.find((e) => e.id === id);
+    return e ? apellidoNombre(e.nombreCompleto) : "(estudiante eliminado)";
   }
 
   function nombreProfesor(id: string) {
@@ -115,10 +116,12 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
 
   const notasFiltradas = useMemo(() => {
     const termino = normalizarTexto(busqueda);
-    if (!termino) return notas;
-    return notas.filter(
-      (n) => normalizarTexto(nombreEstudiante(n.estudianteId)).includes(termino) || normalizarTexto(n.etiqueta).includes(termino)
-    );
+    const base = !termino
+      ? notas
+      : notas.filter(
+          (n) => normalizarTexto(nombreEstudiante(n.estudianteId)).includes(termino) || normalizarTexto(n.etiqueta).includes(termino)
+        );
+    return [...base].sort((a, b) => nombreEstudiante(a.estudianteId).localeCompare(nombreEstudiante(b.estudianteId), "es"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notas, busqueda, estudiantes]);
 

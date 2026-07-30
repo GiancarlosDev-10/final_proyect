@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { EstudianteProps } from "@/modulos/estudiantes/dominio/estudiante";
 import { AreaProps } from "@/modulos/areas/dominio/area";
@@ -8,6 +8,7 @@ import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { PromedioArea } from "@/modulos/reportes/aplicacion/calcular-promedio-area";
 import { accionCalcularPromedioArea } from "@/modulos/reportes/presentacion/acciones";
+import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,8 +44,14 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
   }
 
   function nombreEstudiante(id: string) {
-    return estudiantes.find((e) => e.id === id)?.nombreCompleto || "(estudiante eliminado)";
+    const e = estudiantes.find((e) => e.id === id);
+    return e ? apellidoNombre(e.nombreCompleto) : "(estudiante eliminado)";
   }
+
+  const estudiantesOrdenados = useMemo(
+    () => [...estudiantes].sort((a, b) => apellidoNombre(a.nombreCompleto).localeCompare(apellidoNombre(b.nombreCompleto), "es")),
+    [estudiantes]
+  );
 
   function nombreArea(id: string) {
     return areas.find((a) => a.id === id)?.nombre || "(área eliminada)";
@@ -71,8 +78,8 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos }: 
                   <SelectValue placeholder="Seleccionar estudiante" />
                 </SelectTrigger>
                 <SelectContent>
-                  {estudiantes.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.nombreCompleto}</SelectItem>
+                  {estudiantesOrdenados.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{apellidoNombre(e.nombreCompleto)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
