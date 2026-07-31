@@ -1,6 +1,6 @@
 import { IBloqueHorarioRepositorio } from "@/modulos/horarios/aplicacion/i-bloque-horario-repositorio";
 import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asignacion-repositorio";
-import { BloqueHorario, BloqueHorarioSuperpuestoError } from "@/modulos/horarios/dominio/bloque-horario";
+import { BloqueHorario, BloqueHorarioSuperpuestoError, SeccionOcupadaEnHorarioError } from "@/modulos/horarios/dominio/bloque-horario";
 import { AsignacionNoEncontradaError } from "@/modulos/asignaciones/dominio/asignacion";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { generarId } from "@/compartido/lib/uuid";
@@ -25,9 +25,21 @@ export async function crearBloqueHorario(
     return err(new AsignacionNoEncontradaError(datos.asignacionId));
   }
 
-  const bloquesExistentes = await repositorio.listarPorProfesor(datos.profesorId);
-  const seSuperpone = bloquesExistentes.some((b) => b.seSuperponeCon(datos.diaSemana, datos.horaInicio, datos.horaFin));
-  if (seSuperpone) return err(new BloqueHorarioSuperpuestoError());
+  const bloquesDelProfesor = await repositorio.listarPorProfesor(datos.profesorId);
+  const seSuperponeProfesor = bloquesDelProfesor.some((b) => b.seSuperponeCon(datos.diaSemana, datos.horaInicio, datos.horaFin));
+  if (seSuperponeProfesor) return err(new BloqueHorarioSuperpuestoError());
+
+  // Aunque el profesor esté libre, el aula (la sección) no puede tener dos
+  // clases distintas al mismo tiempo — se compara contra los bloques de las
+  // demás asignaciones activas de esa misma sección y periodo (con
+  // profesores distintos, típicamente).
+  const todasAsignaciones = await asignacionRepositorio.listar();
+  const asignacionesDeLaSeccion = todasAsignaciones.filter(
+    (a) => a.seccionId === asignacion.seccionId && a.periodoId === asignacion.periodoId && a.activo && a.id !== asignacion.id
+  );
+  const bloquesDeLaSeccion = await repositorio.listarPorAsignaciones(asignacionesDeLaSeccion.map((a) => a.id));
+  const seSuperponeSeccion = bloquesDeLaSeccion.some((b) => b.seSuperponeCon(datos.diaSemana, datos.horaInicio, datos.horaFin));
+  if (seSuperponeSeccion) return err(new SeccionOcupadaEnHorarioError());
 
   try {
     const ahora = new Date().toISOString();

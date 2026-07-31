@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreVertical, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreVertical, Search, ChevronLeft, ChevronRight, ChevronDown, CalendarClock } from "lucide-react";
 import { AsignacionProps } from "@/modulos/asignaciones/dominio/asignacion";
 import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
@@ -19,6 +19,7 @@ import { BloqueHorarioProps } from "@/modulos/horarios/dominio/bloque-horario";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
 import { ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_DIAS_SEMANA, ETIQUETAS_DIA_SEMANA, PERIODOS_HORARIO, DiaSemana } from "@/config/constantes";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +64,7 @@ function TarjetaGrupo({
   nombrePeriodo,
   textoSecciones,
   onEditar,
+  onHorarios,
   onEliminar,
 }: {
   grupo: GrupoAsignacion;
@@ -71,6 +73,7 @@ function TarjetaGrupo({
   nombrePeriodo: (id: string) => string;
   textoSecciones: (grupo: GrupoAsignacion) => string;
   onEditar: (grupo: GrupoAsignacion) => void;
+  onHorarios: (grupo: GrupoAsignacion) => void;
   onEliminar: (grupo: GrupoAsignacion) => void;
 }) {
   const todasActivas = grupo.miembros.every((m) => m.activo);
@@ -90,6 +93,10 @@ function TarjetaGrupo({
             <DropdownMenuItem onClick={() => onEditar(grupo)}>
               <Pencil className="size-4" />
               Editar secciones
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onHorarios(grupo)}>
+              <CalendarClock className="size-4" />
+              Horarios
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={() => onEliminar(grupo)}>
               <Trash2 className="size-4" />
@@ -122,34 +129,29 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
   const [guardando, setGuardando] = useState(false);
   const [grupoEditando, setGrupoEditando] = useState<GrupoAsignacion | null>(null);
   const [form, setForm] = useState({ profesorId: "", cursoId: "", periodoId: "", seccionIds: [] as string[] });
-  const [borradorPorSeccion, setBorradorPorSeccion] = useState<Record<string, string>>({});
 
-  // Solo las secciones que ya estaban en el grupo (antes de este envío) tienen
-  // una Asignación real en la BD — a una recién marcada todavía no se le puede
-  // asignar horario porque no existe su asignacionId hasta guardar.
+  // Solo las secciones que ya estaban en el grupo (antes de este envío) se
+  // quitan de "a agregar" — el resto (recién marcadas) hay que crearlas.
   const idsOriginales = useMemo(
     () => (grupoEditando ? grupoEditando.miembros.map((m) => m.seccionId) : []),
     [grupoEditando]
   );
 
-  function asignacionIdDeSeccion(seccionId: string): string | null {
-    return (
-      asignaciones.find(
-        (a) =>
-          a.profesorId === form.profesorId &&
-          a.cursoId === form.cursoId &&
-          a.periodoId === form.periodoId &&
-          a.seccionId === seccionId
-      )?.id ?? null
-    );
-  }
+  // "Horarios" es un modal aparte (no parte de "Editar secciones") porque un
+  // profesor puede dictar el mismo curso a 10 secciones a la vez, y meter el
+  // horario de las 10 en el mismo diálogo lo volvía interminable. Acá cada
+  // sección es una fila colapsable (acordeón), una a la vez.
+  const [horarioAbierto, setHorarioAbierto] = useState(false);
+  const [grupoHorarios, setGrupoHorarios] = useState<GrupoAsignacion | null>(null);
+  const [seccionExpandida, setSeccionExpandida] = useState<string | null>(null);
+  const [borradorPorSeccion, setBorradorPorSeccion] = useState<Record<string, string>>({});
 
   // El horario es del profesor, no del curso — dos clases (aunque sean de
   // cursos distintos) no pueden compartir día y hora. Por eso se compara
   // contra TODOS los bloques del profesor, no solo los de esta asignación.
   const bloquesDelProfesor = useMemo(
-    () => bloques.filter((b) => b.profesorId === form.profesorId),
-    [bloques, form.profesorId]
+    () => bloques.filter((b) => b.profesorId === grupoHorarios?.profesorId),
+    [bloques, grupoHorarios]
   );
 
   const opcionesLibres = useMemo(() => {
@@ -165,20 +167,26 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
     return libres;
   }, [bloquesDelProfesor]);
 
-  async function onAgregarBloque(seccionId: string) {
+  function abrirHorarios(grupo: GrupoAsignacion) {
+    setGrupoHorarios(grupo);
+    setSeccionExpandida(null);
+    setBorradorPorSeccion({});
+    setHorarioAbierto(true);
+  }
+
+  async function onAgregarBloque(asignacionId: string, seccionId: string) {
+    if (!grupoHorarios) return;
     const valor = borradorPorSeccion[seccionId];
     if (!valor) {
       toast.error("Elige un horario disponible.");
       return;
     }
-    const asignacionId = asignacionIdDeSeccion(seccionId);
-    if (!asignacionId) return;
     const [dia, horaInicio] = valor.split("|");
     const periodo = PERIODOS_HORARIO.find((p) => p.horaInicio === horaInicio);
     if (!periodo) return;
 
     const resultado = await accionCrearBloqueHorarioAdmin({
-      profesorId: form.profesorId,
+      profesorId: grupoHorarios.profesorId,
       asignacionId,
       diaSemana: dia as DiaSemana,
       horaInicio: periodo.horaInicio,
@@ -194,7 +202,8 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
   }
 
   async function onEliminarBloque(bloqueId: string) {
-    const resultado = await accionEliminarBloqueHorarioAdmin({ id: bloqueId, profesorId: form.profesorId });
+    if (!grupoHorarios) return;
+    const resultado = await accionEliminarBloqueHorarioAdmin({ id: bloqueId, profesorId: grupoHorarios.profesorId });
     if (resultado.ok) {
       toast.success(resultado.mensaje);
       router.refresh();
@@ -306,7 +315,6 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
       periodoId: filtroPeriodoId !== TODOS_LOS_PERIODOS ? filtroPeriodoId : "",
       seccionIds: [],
     });
-    setBorradorPorSeccion({});
     setAbierto(true);
   }
 
@@ -318,7 +326,6 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
       periodoId: grupo.periodoId,
       seccionIds: grupo.miembros.map((m) => m.seccionId),
     });
-    setBorradorPorSeccion({});
     setAbierto(true);
   }
 
@@ -423,6 +430,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
             nombrePeriodo={nombrePeriodo}
             textoSecciones={textoSecciones}
             onEditar={abrirEditar}
+            onHorarios={abrirHorarios}
             onEliminar={onEliminarGrupo}
           />
         ))}
@@ -443,7 +451,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                 <TableHead className="w-64">Secciones</TableHead>
                 <TableHead className="w-28">Periodo</TableHead>
                 <TableHead className="w-24 text-center">Estado</TableHead>
-                <TableHead className="w-56 text-center">Acciones</TableHead>
+                <TableHead className="w-72 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -463,10 +471,14 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-center gap-2">
+                      <div className="flex flex-wrap justify-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => abrirEditar(g)}>
                           <Pencil className="size-3.5" />
                           Editar
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => abrirHorarios(g)}>
+                          <CalendarClock className="size-3.5" />
+                          Horarios
                         </Button>
                         <Button variant="destructive" size="sm" onClick={() => onEliminarGrupo(g)}>
                           <Trash2 className="size-3.5" />
@@ -595,35 +607,64 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                 ))}
               </div>
             </div>
-            {/* Solo en "Editar secciones": el día/hora es un concepto aparte
-                (BloqueHorario) que cuelga de una Asignación ya existente, así
-                que una sección recién marcada en este mismo envío todavía no
-                tiene id propio para colgarle un horario. */}
-            {grupoEditando && form.seccionIds.length > 0 && (
-              <div className="space-y-2">
-                <Label>Horarios por sección</Label>
-                <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border p-2">
-                  {form.seccionIds.map((seccionId) => {
-                    if (!idsOriginales.includes(seccionId)) {
-                      return (
-                        <div key={seccionId} className="rounded-md border border-dashed p-2 text-xs text-muted-foreground">
-                          {nombreSeccion(seccionId)}: guarda primero para poder asignarle horario.
-                        </div>
-                      );
-                    }
-                    const asignacionId = asignacionIdDeSeccion(seccionId);
-                    const bloquesSeccion = asignacionId
-                      ? bloquesDelProfesor
-                          .filter((b) => b.asignacionId === asignacionId)
-                          .sort(
-                            (a, b) =>
-                              ORDEN_DIAS_SEMANA.indexOf(a.diaSemana) - ORDEN_DIAS_SEMANA.indexOf(b.diaSemana) ||
-                              a.horaInicio.localeCompare(b.horaInicio)
-                          )
-                      : [];
-                    return (
-                      <div key={seccionId} className="space-y-2 rounded-md border p-2">
-                        <p className="text-sm font-medium">{nombreSeccion(seccionId)}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAbierto(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={onGuardar}
+              disabled={guardando || !form.profesorId || !form.cursoId || !form.periodoId || form.seccionIds.length === 0}
+            >
+              {guardando ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={horarioAbierto} onOpenChange={setHorarioAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Horarios de {grupoHorarios ? nombreProfesor(grupoHorarios.profesorId) : ""} — {grupoHorarios ? nombreCurso(grupoHorarios.cursoId) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[28rem] space-y-2 overflow-y-auto">
+            {grupoHorarios?.miembros
+              .slice()
+              .sort((a, b) => nombreSeccion(a.seccionId).localeCompare(nombreSeccion(b.seccionId), "es"))
+              .map((miembro) => {
+                const bloquesSeccion = bloquesDelProfesor
+                  .filter((b) => b.asignacionId === miembro.id)
+                  .sort(
+                    (a, b) =>
+                      ORDEN_DIAS_SEMANA.indexOf(a.diaSemana) - ORDEN_DIAS_SEMANA.indexOf(b.diaSemana) ||
+                      a.horaInicio.localeCompare(b.horaInicio)
+                  );
+                const expandida = seccionExpandida === miembro.seccionId;
+                return (
+                  <div key={miembro.id} className="rounded-md border">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 p-2 text-left hover:bg-muted/60"
+                      onClick={() => setSeccionExpandida(expandida ? null : miembro.seccionId)}
+                    >
+                      <span className="text-sm font-medium">{nombreSeccion(miembro.seccionId)}</span>
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        {bloquesSeccion.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">Sin horario</span>
+                        ) : (
+                          bloquesSeccion.map((b) => (
+                            <Badge key={b.id} variant="outline" className="text-[10px]">
+                              {ETIQUETAS_DIA_SEMANA[b.diaSemana].slice(0, 3)} {b.horaInicio}
+                            </Badge>
+                          ))
+                        )}
+                        <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", expandida && "rotate-180")} />
+                      </div>
+                    </button>
+                    {expandida && (
+                      <div className="space-y-2 border-t p-2">
                         {bloquesSeccion.length === 0 && (
                           <p className="text-xs text-muted-foreground">Sin horario asignado todavía.</p>
                         )}
@@ -643,8 +684,10 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                         ))}
                         <div className="flex gap-2">
                           <Select
-                            value={borradorPorSeccion[seccionId] ?? ""}
-                            onValueChange={(v) => setBorradorPorSeccion((prev) => ({ ...prev, [seccionId]: v ?? "" }))}
+                            value={borradorPorSeccion[miembro.seccionId] ?? ""}
+                            onValueChange={(v) =>
+                              setBorradorPorSeccion((prev) => ({ ...prev, [miembro.seccionId]: v ?? "" }))
+                            }
                             disabled={opcionesLibres.length === 0}
                             itemToStringLabel={(v) => {
                               if (!v) return "";
@@ -668,28 +711,21 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => onAgregarBloque(seccionId)}
-                            disabled={!borradorPorSeccion[seccionId]}
+                            onClick={() => onAgregarBloque(miembro.id, miembro.seccionId)}
+                            disabled={!borradorPorSeccion[miembro.seccionId]}
                           >
                             Agregar
                           </Button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                    )}
+                  </div>
+                );
+              })}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAbierto(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={onGuardar}
-              disabled={guardando || !form.profesorId || !form.cursoId || !form.periodoId || form.seccionIds.length === 0}
-            >
-              {guardando ? "Guardando..." : "Guardar"}
+            <Button variant="outline" onClick={() => setHorarioAbierto(false)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -39,6 +39,49 @@ describe("crearBloqueHorario", () => {
     if (!resultado.ok) expect(resultado.error.codigo).toBe("BLOQUE_HORARIO_SUPERPUESTO");
   });
 
+  it("retorna error si la sección ya tiene otra clase (de otro profesor) en ese día y horario", async () => {
+    const repo = new FakeBloqueHorarioRepositorio([
+      crearBloqueHorarioFixture({
+        id: "BLH-OTRA-CLASE",
+        asignacionId: "AS-OTRO-CURSO",
+        profesorId: "PROF-OTRO",
+        diaSemana: DIAS_SEMANA.MARTES,
+        horaInicio: "09:00",
+        horaFin: "09:45",
+      }),
+    ]);
+    const asignacionRepo = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "AS-1", profesorId: "PROF-1", seccionId: "SEC-1", periodoId: "PER-1" }),
+      crearAsignacion({ id: "AS-OTRO-CURSO", profesorId: "PROF-OTRO", cursoId: "CUR-OTRO", seccionId: "SEC-1", periodoId: "PER-1" }),
+    ]);
+
+    const resultado = await crearBloqueHorario(DATOS_BASE, repo, asignacionRepo);
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("SECCION_OCUPADA_EN_HORARIO");
+  });
+
+  it("no bloquea por sección si la clase que se superpone es de otra sección o periodo", async () => {
+    const repo = new FakeBloqueHorarioRepositorio([
+      crearBloqueHorarioFixture({
+        id: "BLH-OTRA-SECCION",
+        asignacionId: "AS-OTRA-SECCION",
+        profesorId: "PROF-OTRO",
+        diaSemana: DIAS_SEMANA.MARTES,
+        horaInicio: "09:00",
+        horaFin: "09:45",
+      }),
+    ]);
+    const asignacionRepo = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "AS-1", profesorId: "PROF-1", seccionId: "SEC-1", periodoId: "PER-1" }),
+      crearAsignacion({ id: "AS-OTRA-SECCION", profesorId: "PROF-OTRO", cursoId: "CUR-OTRO", seccionId: "SEC-2", periodoId: "PER-1" }),
+    ]);
+
+    const resultado = await crearBloqueHorario(DATOS_BASE, repo, asignacionRepo);
+
+    expect(resultado.ok).toBe(true);
+  });
+
   it("crea el bloque si la asignación es propia y no hay superposición", async () => {
     const repo = new FakeBloqueHorarioRepositorio([]);
     const asignacionRepo = new FakeAsignacionRepositorio([crearAsignacion({ id: "AS-1", profesorId: "PROF-1" })]);

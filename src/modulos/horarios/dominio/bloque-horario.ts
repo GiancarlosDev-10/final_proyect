@@ -22,6 +22,13 @@ export class BloqueHorarioSuperpuestoError extends ErrorDominio {
   }
 }
 
+export class SeccionOcupadaEnHorarioError extends ErrorDominio {
+  readonly codigo = "SECCION_OCUPADA_EN_HORARIO";
+  constructor() {
+    super("Esa sección ya tiene otra clase asignada en ese día y horario.");
+  }
+}
+
 export interface BloqueHorarioProps {
   id: string;
   asignacionId: string;
