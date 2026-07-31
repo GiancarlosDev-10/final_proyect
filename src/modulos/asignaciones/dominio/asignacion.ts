@@ -14,6 +14,13 @@ export class AsignacionInactivaError extends ErrorDominio {
   }
 }
 
+export class AsignacionYaExisteError extends ErrorDominio {
+  readonly codigo = "ASIGNACION_YA_EXISTE";
+  constructor() {
+    super("Ese profesor ya tiene una asignación activa para ese curso, sección y periodo.");
+  }
+}
+
 export interface AsignacionProps {
   id: string;
   profesorId: string;

@@ -142,6 +142,25 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
     [grupoEditando]
   );
 
+  // Solo aplica en "Nueva Asignación" (grupoEditando null): si el profesor ya
+  // dicta este curso en esta sección y periodo, marcarla de nuevo solo iba a
+  // fallar contra el índice único con el error crudo de Mongo — mejor
+  // deshabilitarla acá y mandar al admin a "Editar secciones"/"Horarios".
+  const seccionIdsYaAsignadas = useMemo(() => {
+    if (grupoEditando || !form.profesorId || !form.cursoId || !form.periodoId) return new Set<string>();
+    return new Set(
+      asignaciones
+        .filter(
+          (a) =>
+            a.profesorId === form.profesorId &&
+            a.cursoId === form.cursoId &&
+            a.periodoId === form.periodoId &&
+            a.activo
+        )
+        .map((a) => a.seccionId)
+    );
+  }, [asignaciones, grupoEditando, form.profesorId, form.cursoId, form.periodoId]);
+
   // "Horarios" es un modal aparte (no parte de "Editar secciones") porque un
   // profesor puede dictar el mismo curso a 10 secciones a la vez, y meter el
   // horario de las 10 en el mismo diálogo lo volvía interminable. Acá cada
@@ -607,15 +626,28 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
             <div className="space-y-2">
               <Label>Secciones ({form.seccionIds.length} seleccionadas)</Label>
               <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border p-2">
-                {seccionesOrdenadas.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-muted/60">
-                    <Checkbox
-                      checked={form.seccionIds.includes(s.id)}
-                      onCheckedChange={() => toggleSeccion(s.id)}
-                    />
-                    <span>{ETIQUETAS_NIVEL_EDUCATIVO[s.nivel]} · {s.grado} {s.nombre}</span>
-                  </label>
-                ))}
+                {seccionesOrdenadas.map((s) => {
+                  const yaAsignada = seccionIdsYaAsignadas.has(s.id);
+                  return (
+                    <label
+                      key={s.id}
+                      className={cn(
+                        "flex items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-muted/60",
+                        yaAsignada && "cursor-not-allowed opacity-50 hover:bg-transparent"
+                      )}
+                    >
+                      <Checkbox
+                        checked={form.seccionIds.includes(s.id)}
+                        onCheckedChange={() => toggleSeccion(s.id)}
+                        disabled={yaAsignada}
+                      />
+                      <span>
+                        {ETIQUETAS_NIVEL_EDUCATIVO[s.nivel]} · {s.grado} {s.nombre}
+                        {yaAsignada && " (ya asignada — usa \"Editar secciones\"/\"Horarios\")"}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           </div>
