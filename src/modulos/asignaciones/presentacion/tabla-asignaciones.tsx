@@ -11,9 +11,14 @@ import { SeccionProps } from "@/modulos/secciones/dominio/seccion";
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { compararSecciones } from "@/modulos/secciones/dominio/orden-secciones";
 import { accionCrearAsignacion, accionEliminarAsignacion } from "@/modulos/asignaciones/presentacion/acciones";
+import {
+  accionCrearBloqueHorarioAdmin,
+  accionEliminarBloqueHorarioAdmin,
+} from "@/modulos/horarios/presentacion/acciones";
+import { BloqueHorarioProps } from "@/modulos/horarios/dominio/bloque-horario";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
-import { ETIQUETAS_NIVEL_EDUCATIVO } from "@/config/constantes";
+import { ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_DIAS_SEMANA, ETIQUETAS_DIA_SEMANA, PERIODOS_HORARIO, DiaSemana } from "@/config/constantes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +41,7 @@ interface Props {
   cursos: CursoProps[];
   secciones: SeccionProps[];
   periodos: PeriodoProps[];
+  bloques: BloqueHorarioProps[];
 }
 
 interface GrupoAsignacion {
@@ -103,7 +109,7 @@ function TarjetaGrupo({
   );
 }
 
-export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones, periodos }: Props) {
+export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones, periodos, bloques }: Props) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -116,6 +122,86 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
   const [guardando, setGuardando] = useState(false);
   const [grupoEditando, setGrupoEditando] = useState<GrupoAsignacion | null>(null);
   const [form, setForm] = useState({ profesorId: "", cursoId: "", periodoId: "", seccionIds: [] as string[] });
+  const [borradorPorSeccion, setBorradorPorSeccion] = useState<Record<string, string>>({});
+
+  // Solo las secciones que ya estaban en el grupo (antes de este envío) tienen
+  // una Asignación real en la BD — a una recién marcada todavía no se le puede
+  // asignar horario porque no existe su asignacionId hasta guardar.
+  const idsOriginales = useMemo(
+    () => (grupoEditando ? grupoEditando.miembros.map((m) => m.seccionId) : []),
+    [grupoEditando]
+  );
+
+  function asignacionIdDeSeccion(seccionId: string): string | null {
+    return (
+      asignaciones.find(
+        (a) =>
+          a.profesorId === form.profesorId &&
+          a.cursoId === form.cursoId &&
+          a.periodoId === form.periodoId &&
+          a.seccionId === seccionId
+      )?.id ?? null
+    );
+  }
+
+  // El horario es del profesor, no del curso — dos clases (aunque sean de
+  // cursos distintos) no pueden compartir día y hora. Por eso se compara
+  // contra TODOS los bloques del profesor, no solo los de esta asignación.
+  const bloquesDelProfesor = useMemo(
+    () => bloques.filter((b) => b.profesorId === form.profesorId),
+    [bloques, form.profesorId]
+  );
+
+  const opcionesLibres = useMemo(() => {
+    const libres: { dia: DiaSemana; periodo: (typeof PERIODOS_HORARIO)[number] }[] = [];
+    for (const dia of ORDEN_DIAS_SEMANA) {
+      for (const periodo of PERIODOS_HORARIO) {
+        const ocupado = bloquesDelProfesor.some(
+          (b) => b.diaSemana === dia && b.horaInicio < periodo.horaFin && periodo.horaInicio < b.horaFin
+        );
+        if (!ocupado) libres.push({ dia, periodo });
+      }
+    }
+    return libres;
+  }, [bloquesDelProfesor]);
+
+  async function onAgregarBloque(seccionId: string) {
+    const valor = borradorPorSeccion[seccionId];
+    if (!valor) {
+      toast.error("Elige un horario disponible.");
+      return;
+    }
+    const asignacionId = asignacionIdDeSeccion(seccionId);
+    if (!asignacionId) return;
+    const [dia, horaInicio] = valor.split("|");
+    const periodo = PERIODOS_HORARIO.find((p) => p.horaInicio === horaInicio);
+    if (!periodo) return;
+
+    const resultado = await accionCrearBloqueHorarioAdmin({
+      profesorId: form.profesorId,
+      asignacionId,
+      diaSemana: dia as DiaSemana,
+      horaInicio: periodo.horaInicio,
+      horaFin: periodo.horaFin,
+    });
+    if (resultado.ok) {
+      toast.success(resultado.mensaje);
+      setBorradorPorSeccion((prev) => ({ ...prev, [seccionId]: "" }));
+      router.refresh();
+    } else {
+      toast.error(resultado.mensaje);
+    }
+  }
+
+  async function onEliminarBloque(bloqueId: string) {
+    const resultado = await accionEliminarBloqueHorarioAdmin({ id: bloqueId, profesorId: form.profesorId });
+    if (resultado.ok) {
+      toast.success(resultado.mensaje);
+      router.refresh();
+    } else {
+      toast.error(resultado.mensaje);
+    }
+  }
 
   function nombreProfesor(id: string) {
     const p = profesores.find((p) => p.id === id);
@@ -220,6 +306,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
       periodoId: filtroPeriodoId !== TODOS_LOS_PERIODOS ? filtroPeriodoId : "",
       seccionIds: [],
     });
+    setBorradorPorSeccion({});
     setAbierto(true);
   }
 
@@ -231,6 +318,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
       periodoId: grupo.periodoId,
       seccionIds: grupo.miembros.map((m) => m.seccionId),
     });
+    setBorradorPorSeccion({});
     setAbierto(true);
   }
 
@@ -245,7 +333,6 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
 
   async function onGuardar() {
     setGuardando(true);
-    const idsOriginales = grupoEditando ? grupoEditando.miembros.map((m) => m.seccionId) : [];
     const aAgregar = form.seccionIds.filter((id) => !idsOriginales.includes(id));
     const aQuitar = grupoEditando ? grupoEditando.miembros.filter((m) => !form.seccionIds.includes(m.seccionId)) : [];
 
@@ -508,6 +595,91 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                 ))}
               </div>
             </div>
+            {/* Solo en "Editar secciones": el día/hora es un concepto aparte
+                (BloqueHorario) que cuelga de una Asignación ya existente, así
+                que una sección recién marcada en este mismo envío todavía no
+                tiene id propio para colgarle un horario. */}
+            {grupoEditando && form.seccionIds.length > 0 && (
+              <div className="space-y-2">
+                <Label>Horarios por sección</Label>
+                <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border p-2">
+                  {form.seccionIds.map((seccionId) => {
+                    if (!idsOriginales.includes(seccionId)) {
+                      return (
+                        <div key={seccionId} className="rounded-md border border-dashed p-2 text-xs text-muted-foreground">
+                          {nombreSeccion(seccionId)}: guarda primero para poder asignarle horario.
+                        </div>
+                      );
+                    }
+                    const asignacionId = asignacionIdDeSeccion(seccionId);
+                    const bloquesSeccion = asignacionId
+                      ? bloquesDelProfesor
+                          .filter((b) => b.asignacionId === asignacionId)
+                          .sort(
+                            (a, b) =>
+                              ORDEN_DIAS_SEMANA.indexOf(a.diaSemana) - ORDEN_DIAS_SEMANA.indexOf(b.diaSemana) ||
+                              a.horaInicio.localeCompare(b.horaInicio)
+                          )
+                      : [];
+                    return (
+                      <div key={seccionId} className="space-y-2 rounded-md border p-2">
+                        <p className="text-sm font-medium">{nombreSeccion(seccionId)}</p>
+                        {bloquesSeccion.length === 0 && (
+                          <p className="text-xs text-muted-foreground">Sin horario asignado todavía.</p>
+                        )}
+                        {bloquesSeccion.map((b) => (
+                          <div key={b.id} className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs">
+                            <span>{ETIQUETAS_DIA_SEMANA[b.diaSemana]} {b.horaInicio} - {b.horaFin}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label="Quitar horario"
+                              onClick={() => onEliminarBloque(b.id)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                        <div className="flex gap-2">
+                          <Select
+                            value={borradorPorSeccion[seccionId] ?? ""}
+                            onValueChange={(v) => setBorradorPorSeccion((prev) => ({ ...prev, [seccionId]: v ?? "" }))}
+                            disabled={opcionesLibres.length === 0}
+                            itemToStringLabel={(v) => {
+                              if (!v) return "";
+                              const [dia, horaInicio] = v.split("|");
+                              const periodo = PERIODOS_HORARIO.find((p) => p.horaInicio === horaInicio);
+                              return periodo ? `${ETIQUETAS_DIA_SEMANA[dia as DiaSemana]} ${periodo.horaInicio} - ${periodo.horaFin}` : "";
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={opcionesLibres.length === 0 ? "Sin horarios libres" : "Elegir horario disponible"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {opcionesLibres.map(({ dia, periodo }) => (
+                                <SelectItem key={`${dia}|${periodo.horaInicio}`} value={`${dia}|${periodo.horaInicio}`}>
+                                  {ETIQUETAS_DIA_SEMANA[dia]} {periodo.horaInicio} - {periodo.horaFin}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAgregarBloque(seccionId)}
+                            disabled={!borradorPorSeccion[seccionId]}
+                          >
+                            Agregar
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAbierto(false)}>

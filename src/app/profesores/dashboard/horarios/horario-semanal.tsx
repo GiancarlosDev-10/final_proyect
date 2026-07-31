@@ -14,7 +14,7 @@ import { COLORES_TIPO_RECORDATORIO } from "@/modulos/recordatorios/presentacion/
 import { accionMoverRecordatorio } from "@/app/profesores/dashboard/recordatorios/acciones";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ORDEN_DIAS_SEMANA, PERIODOS_HORARIO, DiaSemana, PeriodoHorario } from "@/config/constantes";
+import { ORDEN_DIAS_SEMANA, ETIQUETAS_DIA_SEMANA, PERIODOS_HORARIO, PeriodoHorario } from "@/config/constantes";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -24,14 +24,6 @@ interface Props {
   secciones: SeccionProps[];
   recordatorios: RecordatorioProps[];
 }
-
-const ETIQUETAS_DIA: Record<DiaSemana, string> = {
-  LUNES: "Lunes",
-  MARTES: "Martes",
-  MIERCOLES: "Miércoles",
-  JUEVES: "Jueves",
-  VIERNES: "Viernes",
-};
 
 function obtenerLunes(fecha: Date): Date {
   const copia = new Date(fecha);
@@ -153,7 +145,7 @@ export function HorarioSemanal({ bloques, asignaciones, cursos, secciones, recor
             <div className="border-b border-sidebar-border bg-sidebar p-2 text-left text-xs font-medium text-sidebar-foreground">Hora</div>
             {dias.map(({ dia, fecha }) => (
               <div key={dia} className="border-b border-sidebar-border bg-sidebar p-2 text-center">
-                <div className="font-medium text-sidebar-foreground">{ETIQUETAS_DIA[dia]}</div>
+                <div className="font-medium text-sidebar-foreground">{ETIQUETAS_DIA_SEMANA[dia]}</div>
                 <div className="text-xs font-normal text-sidebar-foreground/70">{formatearEtiqueta(fecha)}</div>
               </div>
             ))}

@@ -63,6 +63,14 @@ export const ORDEN_DIAS_SEMANA: DiaSemana[] = [
   DIAS_SEMANA.VIERNES,
 ];
 
+export const ETIQUETAS_DIA_SEMANA: Record<DiaSemana, string> = {
+  LUNES: "Lunes",
+  MARTES: "Martes",
+  MIERCOLES: "Miércoles",
+  JUEVES: "Jueves",
+  VIERNES: "Viernes",
+};
+
 export const NIVELES_EDUCATIVOS = {
   INICIAL: "INICIAL",
   PRIMARIA: "PRIMARIA",
