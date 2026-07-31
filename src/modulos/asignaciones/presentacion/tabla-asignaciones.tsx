@@ -62,6 +62,7 @@ function TarjetaGrupo({
   nombreProfesor,
   nombreCurso,
   nombrePeriodo,
+  mostrarPeriodo,
   textoSecciones,
   onEditar,
   onHorarios,
@@ -71,6 +72,7 @@ function TarjetaGrupo({
   nombreProfesor: (id: string) => string;
   nombreCurso: (id: string) => string;
   nombrePeriodo: (id: string) => string;
+  mostrarPeriodo: boolean;
   textoSecciones: (grupo: GrupoAsignacion) => string;
   onEditar: (grupo: GrupoAsignacion) => void;
   onHorarios: (grupo: GrupoAsignacion) => void;
@@ -82,7 +84,10 @@ function TarjetaGrupo({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{nombreProfesor(grupo.profesorId)}</p>
-          <p className="truncate text-sm text-muted-foreground">{nombreCurso(grupo.cursoId)} · {nombrePeriodo(grupo.periodoId)}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {nombreCurso(grupo.cursoId)}
+            {mostrarPeriodo ? ` · ${nombrePeriodo(grupo.periodoId)}` : ""}
+          </p>
           <p className="truncate text-sm text-muted-foreground">{textoSecciones(grupo)}</p>
         </div>
         <DropdownMenu>
@@ -428,6 +433,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
             nombreProfesor={nombreProfesor}
             nombreCurso={nombreCurso}
             nombrePeriodo={nombrePeriodo}
+            mostrarPeriodo={filtroPeriodoId === TODOS_LOS_PERIODOS}
             textoSecciones={textoSecciones}
             onEditar={abrirEditar}
             onHorarios={abrirHorarios}
@@ -449,7 +455,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                 <TableHead className="w-48">Profesor</TableHead>
                 <TableHead className="w-40">Curso</TableHead>
                 <TableHead className="w-64">Secciones</TableHead>
-                <TableHead className="w-28">Periodo</TableHead>
+                {filtroPeriodoId === TODOS_LOS_PERIODOS && <TableHead className="w-28">Periodo</TableHead>}
                 <TableHead className="w-24 text-center">Estado</TableHead>
                 <TableHead className="w-72 text-center">Acciones</TableHead>
               </TableRow>
@@ -462,7 +468,9 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                     <TableCell className="truncate font-medium">{nombreProfesor(g.profesorId)}</TableCell>
                     <TableCell className="truncate text-muted-foreground">{nombreCurso(g.cursoId)}</TableCell>
                     <TableCell className="truncate text-muted-foreground">{textoSecciones(g)}</TableCell>
-                    <TableCell className="truncate text-muted-foreground">{nombrePeriodo(g.periodoId)}</TableCell>
+                    {filtroPeriodoId === TODOS_LOS_PERIODOS && (
+                      <TableCell className="truncate text-muted-foreground">{nombrePeriodo(g.periodoId)}</TableCell>
+                    )}
                     <TableCell className="text-center">
                       {todasActivas ? (
                         <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Activo</Badge>
@@ -491,7 +499,10 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
               })}
               {gruposFiltrados.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={filtroPeriodoId === TODOS_LOS_PERIODOS ? 6 : 5}
+                    className="h-24 text-center text-muted-foreground"
+                  >
                     {grupos.length === 0 ? "No hay asignaciones registradas." : "Ninguna asignación coincide con el filtro."}
                   </TableCell>
                 </TableRow>
