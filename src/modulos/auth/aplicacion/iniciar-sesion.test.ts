@@ -23,6 +23,16 @@ describe("iniciarSesion", () => {
     expect(resultado.ok).toBe(true);
   });
 
+  it("autentica sin importar mayúsculas/espacios en el email tipeado (antes fallaba si no coincidía exacto)", async () => {
+    const usuario = await usuarioConPassword("Clave#2026", { email: "admin@colegio.edu.pe" });
+    const usuarioRepo = new FakeUsuarioRepositorio([usuario]);
+    const intentoRepo = new FakeLoginIntentoRepositorio();
+
+    const resultado = await iniciarSesion("  Admin@Colegio.edu.pe  ", "Clave#2026", usuarioRepo, intentoRepo);
+
+    expect(resultado.ok).toBe(true);
+  });
+
   it("rechaza un email inexistente sin crear un registro de intentos", async () => {
     const usuarioRepo = new FakeUsuarioRepositorio([]);
     const intentoRepo = new FakeLoginIntentoRepositorio();

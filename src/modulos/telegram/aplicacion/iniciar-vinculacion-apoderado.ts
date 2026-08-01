@@ -2,7 +2,13 @@ import { randomInt } from "node:crypto";
 import { IEstudianteRepositorio } from "@/modulos/estudiantes/aplicacion/i-estudiante-repositorio";
 import { ICodigoApoderadoRepositorio } from "@/modulos/telegram/aplicacion/i-codigo-apoderado-repositorio";
 import { IApoderadoIntentoRepositorio } from "@/modulos/telegram/aplicacion/i-apoderado-intento-repositorio";
-import { CodigoApoderado, MINUTOS_EXPIRACION_CODIGO_APODERADO, EstudianteSinEmailApoderadoError } from "@/modulos/telegram/dominio/codigo-apoderado";
+import {
+  CodigoApoderado,
+  MINUTOS_EXPIRACION_CODIGO_APODERADO,
+  SEGUNDOS_COOLDOWN_REENVIO_CODIGO_APODERADO,
+  EstudianteSinEmailApoderadoError,
+  CodigoApoderadoRecienEnviadoError,
+} from "@/modulos/telegram/dominio/codigo-apoderado";
 import {
   ApoderadoIntento,
   MAX_INTENTOS_FALLIDOS_APODERADO,
@@ -79,6 +85,19 @@ export async function iniciarVinculacionApoderado(
     if (debeBloquear) return err(new ChatApoderadoBloqueadoError(nuevoIntento.bloqueadoHasta!));
     if (!estudiante || !estudiante.activo) return err(new EstudianteNoEncontradoError(datos.dniEstudiante));
     return err(new EstudianteSinEmailApoderadoError());
+  }
+
+  // Único límite del "camino feliz": aunque el DNI sea válido, no se genera
+  // (ni se reenvía por email) un código nuevo si ya se envió uno hace poco
+  // para este chat — sin esto, un DNI válido conocido permitía bombardear el
+  // correo del apoderado y enumerar DNIs sin activar nunca el bloqueo normal.
+  const codigoPendiente = await repos.codigoRepo.buscarPorChatId(datos.chatId);
+  if (codigoPendiente && !codigoPendiente.estaExpirado(ahora)) {
+    const segundosTranscurridos = (ahora.getTime() - new Date(codigoPendiente.creadoEn).getTime()) / 1000;
+    if (segundosTranscurridos < SEGUNDOS_COOLDOWN_REENVIO_CODIGO_APODERADO) {
+      const segundosRestantes = Math.ceil(SEGUNDOS_COOLDOWN_REENVIO_CODIGO_APODERADO - segundosTranscurridos);
+      return err(new CodigoApoderadoRecienEnviadoError(segundosRestantes));
+    }
   }
 
   const codigo = generarCodigo();

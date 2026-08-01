@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { calcularPromedioCurso } from "@/modulos/reportes/aplicacion/calcular-promedio-curso";
+import { TIPOS_NOTA } from "@/config/constantes";
 import {
   crearAsignacion,
   crearNota,
@@ -37,6 +38,27 @@ describe("calcularPromedioCurso", () => {
       { unidadDidacticaId: "UDI-2", orden: 2, promedio: 18 },
     ]);
     expect(resultado.value.promedioBimestral).toBe(16.5);
+  });
+
+  it("pondera por tipo de nota en vez de promediar todo por igual (antes ignoraba el tipo)", async () => {
+    const asignacionRepo = new FakeAsignacionRepositorio([crearAsignacion({ id: "AS-1", cursoId: "CUR-1", periodoId: "PER-1" })]);
+    const unidadRepo = new FakeUnidadDidacticaRepositorio([
+      crearUnidadDidactica({ id: "UDI-1", cursoId: "CUR-1", periodoId: "PER-1", orden: 1 }),
+    ]);
+    // Examen 20 (40%), Trabajo 10 (30%), Práctica 10 (20%), Participación 10 (10%)
+    // → ponderado = 20*.4+10*.3+10*.2+10*.1 = 14. El promedio simple daría 12.5.
+    const notaRepo = new FakeNotaRepositorio([
+      crearNota({ id: "NOT-1", asignacionId: "AS-1", unidadDidacticaId: "UDI-1", tipo: TIPOS_NOTA.EXAMEN, valor: 20 }),
+      crearNota({ id: "NOT-2", asignacionId: "AS-1", unidadDidacticaId: "UDI-1", tipo: TIPOS_NOTA.TRABAJO, valor: 10 }),
+      crearNota({ id: "NOT-3", asignacionId: "AS-1", unidadDidacticaId: "UDI-1", tipo: TIPOS_NOTA.PRACTICA, valor: 10 }),
+      crearNota({ id: "NOT-4", asignacionId: "AS-1", unidadDidacticaId: "UDI-1", tipo: TIPOS_NOTA.PARTICIPACION, valor: 10 }),
+    ]);
+
+    const resultado = await calcularPromedioCurso(DATOS_BASE, notaRepo, asignacionRepo, unidadRepo);
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.value.promediosPorUnidad).toEqual([{ unidadDidacticaId: "UDI-1", orden: 1, promedio: 14 }]);
   });
 
   it("marca como null la unidad sin notas y la excluye del promedio bimestral", async () => {

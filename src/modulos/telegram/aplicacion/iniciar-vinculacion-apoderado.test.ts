@@ -6,6 +6,7 @@ import {
   FakeCodigoApoderadoRepositorio,
   FakeApoderadoIntentoRepositorio,
   crearApoderadoIntento,
+  crearCodigoApoderado,
 } from "@/test/fixtures-notas";
 
 describe("iniciarVinculacionApoderado", () => {
@@ -79,6 +80,59 @@ describe("iniciarVinculacionApoderado", () => {
     if (!resultado.ok) expect(resultado.error.codigo).toBe("CHAT_BLOQUEADO");
     const intento = await intentoRepo.buscarPorChatId("CHAT-1");
     expect(intento?.bloqueadoHasta).toBeDefined();
+  });
+
+  it("rechaza pedir un código nuevo si ya se envió uno hace poco para este chat, aunque el DNI sea válido (evita spam/enumeración)", async () => {
+    const estudiante = crearEstudiante({ documento: "71000001" });
+    const estudianteRepo = new FakeEstudianteRepositorio([estudiante]);
+    const codigoRepo = new FakeCodigoApoderadoRepositorio([
+      crearCodigoApoderado({ chatId: "CHAT-1", creadoEn: new Date().toISOString() }),
+    ]);
+    const intentoRepo = new FakeApoderadoIntentoRepositorio();
+
+    const resultado = await iniciarVinculacionApoderado(
+      { chatId: "CHAT-1", dniEstudiante: "71000001" },
+      { estudianteRepo, codigoRepo, intentoRepo }
+    );
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("CODIGO_RECIEN_ENVIADO");
+  });
+
+  it("sí permite un código nuevo si el cooldown ya pasó", async () => {
+    const estudiante = crearEstudiante({ documento: "71000001" });
+    const estudianteRepo = new FakeEstudianteRepositorio([estudiante]);
+    const codigoRepo = new FakeCodigoApoderadoRepositorio([
+      crearCodigoApoderado({ chatId: "CHAT-1", creadoEn: new Date(Date.now() - 61_000).toISOString() }),
+    ]);
+    const intentoRepo = new FakeApoderadoIntentoRepositorio();
+
+    const resultado = await iniciarVinculacionApoderado(
+      { chatId: "CHAT-1", dniEstudiante: "71000001" },
+      { estudianteRepo, codigoRepo, intentoRepo }
+    );
+
+    expect(resultado.ok).toBe(true);
+  });
+
+  it("sí permite un código nuevo si el anterior ya expiró (aunque el cooldown de 60s no haya pasado)", async () => {
+    const estudiante = crearEstudiante({ documento: "71000001" });
+    const estudianteRepo = new FakeEstudianteRepositorio([estudiante]);
+    const codigoRepo = new FakeCodigoApoderadoRepositorio([
+      crearCodigoApoderado({
+        chatId: "CHAT-1",
+        creadoEn: new Date().toISOString(),
+        expiresAt: new Date(Date.now() - 1_000).toISOString(),
+      }),
+    ]);
+    const intentoRepo = new FakeApoderadoIntentoRepositorio();
+
+    const resultado = await iniciarVinculacionApoderado(
+      { chatId: "CHAT-1", dniEstudiante: "71000001" },
+      { estudianteRepo, codigoRepo, intentoRepo }
+    );
+
+    expect(resultado.ok).toBe(true);
   });
 
   it("rechaza mientras el chat está bloqueado, incluso con un DNI válido", async () => {

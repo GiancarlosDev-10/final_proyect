@@ -178,18 +178,33 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
     [bloques, grupoHorarios]
   );
 
-  const opcionesLibres = useMemo(() => {
+  // Por sección (no un solo listado compartido): un horario puede estar
+  // libre para el profesor pero ya ocupado en ESA sección por otra clase (de
+  // otro profesor) — antes solo se miraba el choque de profesor acá, así que
+  // el admin podía ver un horario como "libre" y recién enterarse del choque
+  // de sección al confirmar "Agregar" (el backend sí lo bloqueaba bien, esto
+  // es para que la propia lista ya no lo ofrezca como opción).
+  function opcionesLibresParaSeccion(miembro: AsignacionProps): { dia: DiaSemana; periodo: (typeof PERIODOS_HORARIO)[number] }[] {
+    const asignacionesDeLaSeccion = asignaciones.filter(
+      (a) => a.seccionId === miembro.seccionId && a.periodoId === miembro.periodoId && a.activo && a.id !== miembro.id
+    );
+    const idsAsignacionesDeLaSeccion = new Set(asignacionesDeLaSeccion.map((a) => a.id));
+    const bloquesDeLaSeccion = bloques.filter((b) => idsAsignacionesDeLaSeccion.has(b.asignacionId));
+
     const libres: { dia: DiaSemana; periodo: (typeof PERIODOS_HORARIO)[number] }[] = [];
     for (const dia of ORDEN_DIAS_SEMANA) {
       for (const periodo of PERIODOS_HORARIO) {
-        const ocupado = bloquesDelProfesor.some(
+        const ocupadoPorProfesor = bloquesDelProfesor.some(
           (b) => b.diaSemana === dia && b.horaInicio < periodo.horaFin && periodo.horaInicio < b.horaFin
         );
-        if (!ocupado) libres.push({ dia, periodo });
+        const ocupadoPorSeccion = bloquesDeLaSeccion.some(
+          (b) => b.diaSemana === dia && b.horaInicio < periodo.horaFin && periodo.horaInicio < b.horaFin
+        );
+        if (!ocupadoPorProfesor && !ocupadoPorSeccion) libres.push({ dia, periodo });
       }
     }
     return libres;
-  }, [bloquesDelProfesor]);
+  }
 
   function abrirHorarios(grupo: GrupoAsignacion) {
     setGrupoHorarios(grupo);
@@ -685,6 +700,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                       a.horaInicio.localeCompare(b.horaInicio)
                   );
                 const expandida = seccionExpandida === miembro.seccionId;
+                const opcionesLibresSeccion = expandida ? opcionesLibresParaSeccion(miembro) : [];
                 return (
                   <div key={miembro.id} className="rounded-md border">
                     <button
@@ -731,7 +747,7 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                             onValueChange={(v) =>
                               setBorradorPorSeccion((prev) => ({ ...prev, [miembro.seccionId]: v ?? "" }))
                             }
-                            disabled={opcionesLibres.length === 0}
+                            disabled={opcionesLibresSeccion.length === 0}
                             itemToStringLabel={(v) => {
                               if (!v) return "";
                               const [dia, horaInicio] = v.split("|");
@@ -740,10 +756,10 @@ export function TablaAsignaciones({ asignaciones, profesores, cursos, secciones,
                             }}
                           >
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder={opcionesLibres.length === 0 ? "Sin horarios libres" : "Elegir horario disponible"} />
+                              <SelectValue placeholder={opcionesLibresSeccion.length === 0 ? "Sin horarios libres" : "Elegir horario disponible"} />
                             </SelectTrigger>
                             <SelectContent>
-                              {opcionesLibres.map(({ dia, periodo }) => (
+                              {opcionesLibresSeccion.map(({ dia, periodo }) => (
                                 <SelectItem key={`${dia}|${periodo.horaInicio}`} value={`${dia}|${periodo.horaInicio}`}>
                                   {ETIQUETAS_DIA_SEMANA[dia]} {periodo.horaInicio} - {periodo.horaFin}
                                 </SelectItem>

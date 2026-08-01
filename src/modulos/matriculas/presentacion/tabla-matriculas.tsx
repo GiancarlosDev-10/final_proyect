@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -93,6 +94,7 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
     estudianteId: "",
     seccionId: "",
     anio: new Date().getFullYear().toString(),
+    activo: true,
   });
   // Solo para el diálogo: filtra qué secciones se ofrecen, para no mezclar
   // Inicial/Primaria/Secundaria en una sola lista larga.
@@ -113,6 +115,19 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
     () => [...estudiantes].sort((a, b) => apellidoNombre(a.nombreCompleto).localeCompare(apellidoNombre(b.nombreCompleto), "es")),
     [estudiantes]
   );
+
+  // Solo para "Nueva Matrícula": el backend ya rechaza una segunda matrícula
+  // activa del mismo alumno en el mismo año (MatriculaDuplicadaError), pero
+  // antes el desplegable ofrecía igual a los ~250+ alumnos sin distinguir
+  // quién ya tiene matrícula ese año, dejando que el admin lo intentara para
+  // recién enterarse al guardar.
+  const estudiantesDisponiblesParaMatricular = useMemo(() => {
+    const anio = parseInt(form.anio);
+    const idsYaMatriculados = new Set(
+      matriculas.filter((m) => m.activo && m.anio === anio).map((m) => m.estudianteId)
+    );
+    return estudiantesOrdenados.filter((e) => !idsYaMatriculados.has(e.id));
+  }, [estudiantesOrdenados, matriculas, form.anio]);
 
   const seccionesDelNivelDialogo = useMemo(
     () => secciones.filter((s) => s.nivel === nivelDialogo),
@@ -153,14 +168,19 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
 
   function abrirCrear() {
     setEditando(null);
-    setForm({ estudianteId: "", seccionId: "", anio: new Date().getFullYear().toString() });
+    setForm({ estudianteId: "", seccionId: "", anio: new Date().getFullYear().toString(), activo: true });
     setNivelDialogo("");
     setAbierto(true);
   }
 
   function abrirEditar(matricula: MatriculaProps) {
     setEditando(matricula);
-    setForm({ estudianteId: matricula.estudianteId, seccionId: matricula.seccionId, anio: matricula.anio.toString() });
+    setForm({
+      estudianteId: matricula.estudianteId,
+      seccionId: matricula.seccionId,
+      anio: matricula.anio.toString(),
+      activo: matricula.activo,
+    });
     setNivelDialogo(secciones.find((s) => s.id === matricula.seccionId)?.nivel ?? "");
     setAbierto(true);
   }
@@ -174,7 +194,7 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
         id: editando.id,
         seccionId: form.seccionId,
         anio: parseInt(form.anio),
-        activo: editando.activo,
+        activo: form.activo,
       });
     } else {
       resultado = await accionCrearMatricula({
@@ -340,13 +360,15 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
                   <SelectValue placeholder="Seleccionar estudiante" />
                 </SelectTrigger>
                 <SelectContent>
-                  {estudiantesOrdenados.map((e) => (
+                  {(editando ? estudiantesOrdenados : estudiantesDisponiblesParaMatricular).map((e) => (
                     <SelectItem key={e.id} value={e.id}>{apellidoNombre(e.nombreCompleto)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {editando && (
+              {editando ? (
                 <p className="text-xs text-muted-foreground">No se puede cambiar el estudiante de una matrícula existente.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Solo se muestran alumnos sin matrícula activa en el año {form.anio}.</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -394,6 +416,15 @@ export function TablaMatriculas({ matriculas, estudiantes, secciones }: Props) {
                 onChange={(e) => setForm({ ...form, anio: e.target.value })}
               />
             </div>
+            {editando && (
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={form.activo}
+                  onCheckedChange={(checked) => setForm({ ...form, activo: checked === true })}
+                />
+                Matrícula activa
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAbierto(false)}>

@@ -10,15 +10,12 @@ import {
 } from "@/modulos/auth/dominio/login-intento";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { Usuario } from "@/modulos/usuarios/dominio/usuario";
+import { normalizarEmail } from "@/modulos/usuarios/dominio/normalizar-email";
 
 // Hash bcrypt (costo 10) de una contraseña inexistente, usado solo para que
 // el "no existe este email" tome un tiempo similar a una comparación real y
 // no sirva para enumerar cuentas por timing.
 const HASH_DUMMY_PARA_TIMING = "$2b$10$Y39Ju7j0akoDIqkDX7oB8.KMKIOn1U8xPb9bbaYNaqJ.CswTiiWsi";
-
-function normalizarEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
 
 export async function iniciarSesion(
   email: string,
@@ -28,7 +25,10 @@ export async function iniciarSesion(
 ): Promise<Result<Usuario>> {
   const ahora = new Date();
   const emailKey = normalizarEmail(email);
-  const usuario = await repositorio.buscarPorEmail(email);
+  // Antes se buscaba con el email tal cual (sin normalizar): si el usuario
+  // tipeaba una capitalización distinta a como quedó guardado, el login
+  // fallaba aunque la contraseña fuera correcta.
+  const usuario = await repositorio.buscarPorEmail(emailKey);
 
   if (!usuario) {
     await bcrypt.compare(password, HASH_DUMMY_PARA_TIMING);

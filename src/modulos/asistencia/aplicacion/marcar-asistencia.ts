@@ -6,6 +6,11 @@ import { generarId } from "@/compartido/lib/uuid";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { ErrorDominio } from "@/compartido/dominio/errores";
 
+/** Código de MongoDB para violación de índice único (choque de {sesionId, estudianteId}). */
+function esErrorDeDuplicado(e: unknown): boolean {
+  return typeof e === "object" && e !== null && "code" in e && (e as { code?: unknown }).code === 11000;
+}
+
 /**
  * Try/catch propio, separado del que gobierna el Result principal: aunque el
  * notificador no debería lanzar nunca (ver INotificadorAsistenciaApoderado),
@@ -65,7 +70,25 @@ export async function marcarAsistencia(
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
-    await repositorio.crear(nuevo);
+
+    try {
+      await repositorio.crear(nuevo);
+    } catch (e) {
+      // Entre el buscarPorSesionYEstudiante de arriba y este crear() otra
+      // petición concurrente (doble clic, o dos frames de la cámara) pudo
+      // haber creado el registro primero — antes, el choque contra el índice
+      // único {sesionId,estudianteId} se propagaba tal cual (E11000 crudo) al
+      // toast del profesor. Se resuelve como una actualización sobre el
+      // registro que sí ganó la carrera, en vez de fallar.
+      if (!esErrorDeDuplicado(e)) throw e;
+      const ganador = await repositorio.buscarPorSesionYEstudiante(sesionId, estudianteId);
+      if (!ganador) throw e;
+      const actualizado = new RegistroAsistencia({ ...nuevo.toPlainObject(), id: ganador.id });
+      await repositorio.actualizar(actualizado);
+      if (esTransicionAPresente) await notificarSinRomperNada(notificador, estudianteId, sesionId);
+      return ok(actualizado);
+    }
+
     if (esTransicionAPresente) await notificarSinRomperNada(notificador, estudianteId, sesionId);
     return ok(nuevo);
   } catch (e) {

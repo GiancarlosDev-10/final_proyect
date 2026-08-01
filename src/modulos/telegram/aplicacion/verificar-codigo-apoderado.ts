@@ -13,6 +13,7 @@ import {
 import { EstudianteNoEncontradoError } from "@/modulos/estudiantes/dominio/estudiante";
 import { generarId } from "@/compartido/lib/uuid";
 import { Result, ok, err } from "@/compartido/lib/result";
+import { compararSecretoTimingSafe } from "@/compartido/lib/comparar-secreto";
 
 export interface VerificarCodigoApoderadoDTO {
   chatId: string;
@@ -57,7 +58,7 @@ export async function verificarCodigoApoderado(
     return err(new CodigoApoderadoExpiradoError());
   }
 
-  if (codigoGuardado.codigo !== datos.codigo) {
+  if (!compararSecretoTimingSafe(datos.codigo, codigoGuardado.codigo)) {
     const intentosPrevios = intento?.intentosFallidos ?? 0;
     const intentosFallidos = intentosPrevios + 1;
     const debeBloquear = intentosFallidos >= MAX_INTENTOS_FALLIDOS_APODERADO;

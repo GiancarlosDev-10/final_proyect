@@ -5,6 +5,7 @@ import {
   EmailDuplicadoError,
   UltimoAdministradorError,
 } from "@/modulos/usuarios/dominio/usuario";
+import { normalizarEmail } from "@/modulos/usuarios/dominio/normalizar-email";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { Rol, ROLES } from "@/config/constantes";
 
@@ -23,9 +24,10 @@ export async function actualizarUsuario(
   const usuario = await repositorio.buscarPorId(datos.id);
   if (!usuario) return err(new UsuarioNoEncontradoError(datos.id));
 
-  if (datos.email !== usuario.email) {
-    const existe = await repositorio.buscarPorEmail(datos.email);
-    if (existe) return err(new EmailDuplicadoError(datos.email));
+  const email = normalizarEmail(datos.email);
+  if (email !== usuario.email) {
+    const existe = await repositorio.buscarPorEmail(email);
+    if (existe) return err(new EmailDuplicadoError(email));
   }
 
   // Si este usuario era el admin activo, y el cambio le quita el rol o lo
@@ -43,7 +45,7 @@ export async function actualizarUsuario(
 
   const usuarioActualizado = new Usuario({
     id: usuario.id,
-    email: datos.email,
+    email,
     passwordHash: usuario.passwordHash,
     rol: datos.rol,
     nombreCompleto: datos.nombreCompleto,

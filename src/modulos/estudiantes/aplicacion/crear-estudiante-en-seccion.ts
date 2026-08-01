@@ -26,7 +26,15 @@ export async function crearEstudianteEnSeccion(
     { estudianteId: resultado.value.id, seccionId: datos.seccionId, anio: datos.anio },
     deps.matriculaRepo
   );
-  if (!resultadoMatricula.ok) return err(resultadoMatricula.error);
+  if (!resultadoMatricula.ok) {
+    // Sin este rollback, el estudiante quedaba huérfano (creado, sin
+    // matrícula) y su documento (DNI, único) consumido silenciosamente —
+    // nadie podía reintentar con el mismo DNI hasta limpiar a mano en Mongo.
+    // No hay transacciones multi-documento en este sistema, así que se
+    // deshace el primer paso explícitamente en vez de dejarlo a medias.
+    await deps.estudianteRepo.eliminar(resultado.value.id);
+    return err(resultadoMatricula.error);
+  }
 
   return ok(resultado.value);
 }

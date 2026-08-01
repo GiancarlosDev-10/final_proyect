@@ -59,7 +59,8 @@ export async function accionMoverBloqueHorario(datos: MoverBloqueHorarioInput): 
   if (!(await requerirRol(ROLES.ADMIN))) return { ok: false, mensaje: "No autorizado" };
 
   const repositorio = new BloqueHorarioRepositorioMongo();
-  const resultado = await moverBloqueHorario(datos, repositorio);
+  const asignacionRepo = new AsignacionRepositorioMongo();
+  const resultado = await moverBloqueHorario(datos, repositorio, asignacionRepo);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Horario actualizado" };
 }

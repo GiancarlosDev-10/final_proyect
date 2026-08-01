@@ -3,6 +3,7 @@ import { IAsignacionRepositorio } from "@/modulos/asignaciones/aplicacion/i-asig
 import { IUnidadDidacticaRepositorio } from "@/modulos/unidades-didacticas/aplicacion/i-unidad-didactica-repositorio";
 import { Asignacion } from "@/modulos/asignaciones/dominio/asignacion";
 import { Nota } from "@/modulos/notas/dominio/nota";
+import { promedioPonderado } from "@/modulos/notas/dominio/promedio-ponderado";
 import { Result, ok, err } from "@/compartido/lib/result";
 import { ErrorDominio } from "@/compartido/dominio/errores";
 
@@ -24,7 +25,13 @@ export interface CalcularPromedioCursoDTO {
   periodoId: string;
 }
 
-function promedio(valores: number[]): number | null {
+// Solo para combinar los 2 promedios de unidad ya ponderados en uno
+// bimestral — el promedio DENTRO de cada unidad usa promedioPonderado
+// (Examen 40% / Trabajo 30% / Práctica 20% / Participación 10%), igual que
+// el consolidado del admin y el reporte del profesor. Antes este archivo
+// promediaba nota.valor sin mirar el tipo, dando un número distinto al de
+// esos otros dos reportes para el mismo alumno/curso.
+function promedioSimple(valores: number[]): number | null {
   return valores.length ? valores.reduce((suma, v) => suma + v, 0) / valores.length : null;
 }
 
@@ -57,10 +64,10 @@ export async function calcularPromedioCurso(
 
     const promediosPorUnidad: PromedioPorUnidad[] = unidades.map((unidad) => {
       const notasUnidad = notasDelCurso.filter((n) => n.unidadDidacticaId === unidad.id);
-      return { unidadDidacticaId: unidad.id, orden: unidad.orden, promedio: promedio(notasUnidad.map((n) => n.valor)) };
+      return { unidadDidacticaId: unidad.id, orden: unidad.orden, promedio: promedioPonderado(notasUnidad) };
     });
 
-    const promedioBimestral = promedio(
+    const promedioBimestral = promedioSimple(
       promediosPorUnidad.map((p) => p.promedio).filter((v): v is number => v !== null)
     );
 

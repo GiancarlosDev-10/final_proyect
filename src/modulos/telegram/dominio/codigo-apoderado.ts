@@ -2,6 +2,13 @@ import { ErrorDominio } from "@/compartido/dominio/errores";
 
 export const MINUTOS_EXPIRACION_CODIGO_APODERADO = 15;
 
+// Antes, un DNI VÁLIDO no tenía ningún límite: se podía pedir un código
+// nuevo (y reenviar el email) sin parar, ya que solo los DNIs inválidos
+// sumaban al contador de intentos fallidos. Esto permitía tanto bombardear
+// el correo del apoderado como enumerar DNIs válidos (por el email
+// enmascarado en la respuesta) sin nunca activar el bloqueo de 5 intentos.
+export const SEGUNDOS_COOLDOWN_REENVIO_CODIGO_APODERADO = 60;
+
 export class EstudianteSinEmailApoderadoError extends ErrorDominio {
   readonly codigo = "SIN_EMAIL_APODERADO";
   constructor() {
@@ -27,6 +34,13 @@ export class CodigoApoderadoIncorrectoError extends ErrorDominio {
   readonly codigo = "CODIGO_INCORRECTO";
   constructor() {
     super("El código ingresado no es correcto.");
+  }
+}
+
+export class CodigoApoderadoRecienEnviadoError extends ErrorDominio {
+  readonly codigo = "CODIGO_RECIEN_ENVIADO";
+  constructor(segundosRestantes: number) {
+    super(`Ya se envió un código a este chat. Espera ${segundosRestantes} segundos antes de pedir uno nuevo.`);
   }
 }
 

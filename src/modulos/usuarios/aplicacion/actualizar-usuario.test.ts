@@ -31,6 +31,33 @@ describe("actualizarUsuario", () => {
     if (!resultado.ok) expect(resultado.error.codigo).toBe("EMAIL_DUPLICADO");
   });
 
+  it("retorna error si el nuevo email ya lo usa otro usuario, sin importar mayúsculas/espacios", async () => {
+    const repo = new FakeUsuarioRepositorio([
+      crearUsuario({ id: "USR-1", email: "uno@colegio.edu.pe" }),
+      crearUsuario({ id: "USR-2", email: "dos@colegio.edu.pe" }),
+    ]);
+
+    const resultado = await actualizarUsuario(
+      { id: "USR-1", email: "  Dos@Colegio.edu.pe  ", nombreCompleto: "X", rol: ROLES.PROFESOR, activo: true },
+      repo
+    );
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("EMAIL_DUPLICADO");
+  });
+
+  it("guarda el email normalizado al editar", async () => {
+    const repo = new FakeUsuarioRepositorio([crearUsuario({ id: "USR-1", email: "uno@colegio.edu.pe" })]);
+
+    const resultado = await actualizarUsuario(
+      { id: "USR-1", email: "  Otro@Colegio.edu.pe  ", nombreCompleto: "X", rol: ROLES.PROFESOR, activo: true },
+      repo
+    );
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.email).toBe("otro@colegio.edu.pe");
+  });
+
   it("impide que el único administrador activo se quite el rol de ADMIN", async () => {
     const repo = new FakeUsuarioRepositorio([crearUsuario({ id: "USR-ADMIN", email: "admin@colegio.edu.pe", rol: ROLES.ADMIN, activo: true })]);
 
