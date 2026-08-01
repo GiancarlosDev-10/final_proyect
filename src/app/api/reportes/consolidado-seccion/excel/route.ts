@@ -13,7 +13,6 @@ import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/sec
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
 import { EstudianteRepositorioMongo } from "@/modulos/estudiantes/infraestructura/estudiante-repositorio-mongo";
-import { UsuarioRepositorioMongo } from "@/modulos/usuarios/infraestructura/usuario-repositorio-mongo";
 import { apellidoNombreReporte } from "@/compartido/lib/formatear-nombre";
 
 const NOMBRE_COLEGIO = "Colegio Juan Velasco Alvarado";
@@ -57,7 +56,6 @@ export async function GET(request: NextRequest) {
   const periodoRepositorio = new PeriodoRepositorioMongo();
   const cursoRepositorio = new CursoRepositorioMongo();
   const estudianteRepositorio = new EstudianteRepositorioMongo();
-  const usuarioRepositorio = new UsuarioRepositorioMongo();
 
   const [seccion, periodo] = await Promise.all([
     seccionRepositorio.buscarPorId(seccionId),
@@ -81,20 +79,12 @@ export async function GET(request: NextRequest) {
   }
   const consolidado = resultado.value;
 
-  const [cursos, estudiantes, todasAsignaciones] = await Promise.all([
+  const [cursos, estudiantes] = await Promise.all([
     Promise.all(consolidado.cursoIds.map((id) => cursoRepositorio.buscarPorId(id))),
     estudianteRepositorio.listar(),
-    asignacionRepositorio.listar(),
   ]);
   const nombreCurso = (id: string) => cursos.find((c) => c?.id === id)?.nombre ?? "(curso eliminado)";
   const nombreEstudiante = (id: string) => estudiantes.find((e) => e.id === id)?.nombreCompleto ?? "(estudiante eliminado)";
-
-  // "Tutor" no es un campo real de Sección todavía — se toma como el primer
-  // profesor con una asignación activa en esta sección/periodo.
-  const asignacionSeccion = todasAsignaciones.find(
-    (a) => a.seccionId === seccionId && a.periodoId === periodoId && a.activo
-  );
-  const tutor = asignacionSeccion ? await usuarioRepositorio.buscarPorId(asignacionSeccion.profesorId) : null;
 
   const filasOrdenadas = [...consolidado.filas].sort((a, b) =>
     apellidoNombreReporte(nombreEstudiante(a.estudianteId)).localeCompare(apellidoNombreReporte(nombreEstudiante(b.estudianteId)), "es")
@@ -150,7 +140,12 @@ export async function GET(request: NextRequest) {
   filaInfo(4, "Nivel Académico", ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]);
   filaInfo(5, "Unidad", `Unidad ${ordenUnidad}`);
   filaInfo(6, "Grado", `${seccion.grado} ${seccion.nombre} de ${ETIQUETAS_NIVEL_EDUCATIVO[seccion.nivel]}`);
-  filaInfo(7, "Tutor", tutor ? apellidoNombreReporte(tutor.nombreCompleto) : "—");
+  // El sistema no tiene todavía un concepto real de "tutor de sección"
+  // (profesor a cargo del salón, distinto de los profesores de cada curso) —
+  // antes se adivinaba con el primer profesor que tuviera una asignación
+  // activa acá, lo cual podía mostrar a cualquiera de los ~13 profesores de
+  // la sección sin ningún criterio real. Mejor mostrar "—" que un dato falso.
+  filaInfo(7, "Tutor", "—");
 
   // Logo del colegio, arriba a la derecha del bloque de datos informativos.
   try {
