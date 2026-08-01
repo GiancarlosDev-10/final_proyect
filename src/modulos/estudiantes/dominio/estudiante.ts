@@ -7,6 +7,13 @@ export class EstudianteNoEncontradoError extends ErrorDominio {
   }
 }
 
+export class DocumentoDuplicadoError extends ErrorDominio {
+  readonly codigo = "DOCUMENTO_DUPLICADO";
+  constructor() {
+    super("Ya existe un estudiante registrado con ese documento (DNI).");
+  }
+}
+
 export interface ApoderadoProps {
   nombre: string;
   telefono: string;

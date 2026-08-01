@@ -1,7 +1,12 @@
 import { IUsuarioRepositorio } from "@/modulos/usuarios/aplicacion/i-usuario-repositorio";
-import { Usuario, UsuarioNoEncontradoError, EmailDuplicadoError } from "@/modulos/usuarios/dominio/usuario";
+import {
+  Usuario,
+  UsuarioNoEncontradoError,
+  EmailDuplicadoError,
+  UltimoAdministradorError,
+} from "@/modulos/usuarios/dominio/usuario";
 import { Result, ok, err } from "@/compartido/lib/result";
-import { Rol } from "@/config/constantes";
+import { Rol, ROLES } from "@/config/constantes";
 
 export interface ActualizarUsuarioDTO {
   id: string;
@@ -21,6 +26,17 @@ export async function actualizarUsuario(
   if (datos.email !== usuario.email) {
     const existe = await repositorio.buscarPorEmail(datos.email);
     if (existe) return err(new EmailDuplicadoError(datos.email));
+  }
+
+  // Si este usuario era el admin activo, y el cambio le quita el rol o lo
+  // desactiva, hay que verificar que quede al menos otro admin activo — sin
+  // esto, un admin podía autodesactivarse (o cambiarse el rol) y dejar el
+  // sistema sin nadie que pueda revertirlo desde la app.
+  const dejaDeSerAdminActivo = usuario.rol === ROLES.ADMIN && usuario.activo && (datos.rol !== ROLES.ADMIN || !datos.activo);
+  if (dejaDeSerAdminActivo) {
+    const todos = await repositorio.listar();
+    const quedanOtrosAdmins = todos.some((u) => u.id !== usuario.id && u.rol === ROLES.ADMIN && u.activo);
+    if (!quedanOtrosAdmins) return err(new UltimoAdministradorError());
   }
 
   const ahora = new Date().toISOString();

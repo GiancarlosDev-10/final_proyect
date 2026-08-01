@@ -223,6 +223,10 @@ export class FakeBloqueHorarioRepositorio implements IBloqueHorarioRepositorio {
   async eliminar(id: string): Promise<void> {
     this.bloques = this.bloques.filter((b) => b.id !== id);
   }
+
+  async eliminarPorAsignacion(asignacionId: string): Promise<void> {
+    this.bloques = this.bloques.filter((b) => b.asignacionId !== asignacionId);
+  }
 }
 
 export function crearRecordatorio(overrides: Partial<RecordatorioProps> = {}): Recordatorio {

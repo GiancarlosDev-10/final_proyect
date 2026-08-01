@@ -85,4 +85,9 @@ export class BloqueHorarioRepositorioMongo implements IBloqueHorarioRepositorio 
     await conectarMongoDB();
     await BloqueHorarioModel.findByIdAndDelete(id);
   }
+
+  async eliminarPorAsignacion(asignacionId: string): Promise<void> {
+    await conectarMongoDB();
+    await BloqueHorarioModel.deleteMany({ asignacionId });
+  }
 }

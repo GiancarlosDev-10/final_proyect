@@ -114,14 +114,13 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
   // abierta, para que las marcas que haga la cámara aparezcan solas.
   useEffect(() => {
     const sesionId = sesion?.id;
-    const seccionId = bloqueSeleccionado?.seccionId;
-    if (!sesionId || !seccionId) return;
+    if (!sesionId || !bloqueSeleccionado) return;
     const intervalo = setInterval(async () => {
-      const filas = await accionListarRoster(sesionId, seccionId);
+      const filas = await accionListarRoster(sesionId);
       setRoster(filas);
     }, 2000);
     return () => clearInterval(intervalo);
-  }, [sesion?.id, bloqueSeleccionado?.seccionId]);
+  }, [sesion?.id, bloqueSeleccionado]);
 
   async function seleccionarBloque(bloque: BloqueDeHoy) {
     setCargando(true);
@@ -140,7 +139,7 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
       horaLimiteTardanza: resultado.sesion.horaLimiteTardanza,
       horaCierre: resultado.sesion.horaCierre,
     });
-    const filas = await accionListarRoster(resultado.sesion.id, bloque.seccionId);
+    const filas = await accionListarRoster(resultado.sesion.id);
     setRoster(filas);
     setCargando(false);
   }
@@ -177,7 +176,7 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
       toast.error(resultado.mensaje);
       return;
     }
-    const filas = await accionListarRoster(sesion.id, bloqueSeleccionado.seccionId);
+    const filas = await accionListarRoster(sesion.id);
     setRoster(filas);
   }
 

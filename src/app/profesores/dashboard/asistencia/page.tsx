@@ -43,7 +43,7 @@ export default async function AsistenciaProfesorPage({
     const resultado = await accionAbrirSesion(bloques[0].bloqueHorarioId);
     if (resultado.ok) {
       sesionInicial = resultado.sesion;
-      rosterInicial = await accionListarRoster(resultado.sesion.id, bloques[0].seccionId);
+      rosterInicial = await accionListarRoster(resultado.sesion.id);
     }
   }
 

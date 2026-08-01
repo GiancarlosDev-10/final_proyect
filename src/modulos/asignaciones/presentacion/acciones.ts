@@ -1,6 +1,7 @@
 "use server";
 
 import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
+import { BloqueHorarioRepositorioMongo } from "@/modulos/horarios/infraestructura/bloque-horario-repositorio-mongo";
 import { UsuarioRepositorioMongo } from "@/modulos/usuarios/infraestructura/usuario-repositorio-mongo";
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
 import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/seccion-repositorio-mongo";
@@ -85,7 +86,8 @@ export async function accionActualizarAsignacion(datos: ActualizarAsignacionDTO)
 export async function accionEliminarAsignacion(id: string): Promise<{ ok: boolean; mensaje: string }> {
   if (!(await requerirRol(ROLES.ADMIN))) return { ok: false, mensaje: "No autorizado" };
   const repositorio = new AsignacionRepositorioMongo();
-  const resultado = await eliminarAsignacion(id, repositorio);
+  const bloqueHorarioRepositorio = new BloqueHorarioRepositorioMongo();
+  const resultado = await eliminarAsignacion(id, repositorio, bloqueHorarioRepositorio);
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Asignación eliminada correctamente" };
 }

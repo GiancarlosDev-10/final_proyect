@@ -36,6 +36,20 @@ export class PinTelegramInvalidoError extends ErrorDominio {
   }
 }
 
+export class PinTelegramDuplicadoError extends ErrorDominio {
+  readonly codigo = "PIN_TELEGRAM_DUPLICADO";
+  constructor() {
+    super("Otro profesor ya usa ese PIN. Elige uno distinto.");
+  }
+}
+
+export class UltimoAdministradorError extends ErrorDominio {
+  readonly codigo = "ULTIMO_ADMINISTRADOR";
+  constructor() {
+    super("No puedes quitarle el rol de administrador o desactivar al único administrador activo del sistema.");
+  }
+}
+
 export interface UsuarioProps {
   id: string;
   email: string;

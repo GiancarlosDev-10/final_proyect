@@ -92,7 +92,13 @@ export async function accionActualizarUmbrales(datos: {
   return { ok: true, sesion: resultado.value.toPlainObject() };
 }
 
-export async function accionListarRoster(sesionId: string, seccionId: string): Promise<FilaRoster[]> {
+// seccionId ya NO se recibe del cliente: antes se pasaba tal cual y se usaba
+// directo para listar matrículas, así que un profesor autenticado (con
+// cualquier sesión propia válida, para pasar el primer chequeo) podía pedir
+// el roster de una sección ajena solo cambiando ese parámetro. Ahora se
+// deriva server-side desde el bloque→asignación de la sesión, igual que ya
+// se hacía con el profesorId.
+export async function accionListarRoster(sesionId: string): Promise<FilaRoster[]> {
   const sesionUsuario = await requerirSesion();
   if (!sesionUsuario) return [];
 
@@ -100,8 +106,10 @@ export async function accionListarRoster(sesionId: string, seccionId: string): P
   if (!propia) return [];
   const bloque = await bloqueRepo.buscarPorId(propia.bloqueHorarioId);
   if (!bloque || bloque.profesorId !== sesionUsuario.id) return [];
+  const asignacion = await asignacionRepo.buscarPorId(bloque.asignacionId);
+  if (!asignacion) return [];
 
-  const resultado = await listarRoster(sesionId, seccionId, { sesionRepo, matriculaRepo, estudianteRepo, registroRepo });
+  const resultado = await listarRoster(sesionId, asignacion.seccionId, { sesionRepo, matriculaRepo, estudianteRepo, registroRepo });
   return resultado.ok ? resultado.value : [];
 }
 

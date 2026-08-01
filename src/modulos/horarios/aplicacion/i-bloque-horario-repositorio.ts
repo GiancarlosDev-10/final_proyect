@@ -7,4 +7,5 @@ export interface IBloqueHorarioRepositorio {
   crear(bloque: BloqueHorario): Promise<void>;
   actualizar(bloque: BloqueHorario): Promise<void>;
   eliminar(id: string): Promise<void>;
+  eliminarPorAsignacion(asignacionId: string): Promise<void>;
 }
