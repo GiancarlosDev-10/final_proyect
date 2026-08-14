@@ -1,6 +1,8 @@
 "use server";
 
 import { CursoRepositorioMongo } from "@/modulos/cursos/infraestructura/curso-repositorio-mongo";
+import { UnidadDidacticaRepositorioMongo } from "@/modulos/unidades-didacticas/infraestructura/unidad-didactica-repositorio-mongo";
+import { AsignacionRepositorioMongo } from "@/modulos/asignaciones/infraestructura/asignacion-repositorio-mongo";
 import { listarCursos } from "@/modulos/cursos/aplicacion/listar-cursos";
 import { crearCurso, CrearCursoDTO } from "@/modulos/cursos/aplicacion/crear-curso";
 import { actualizarCurso, ActualizarCursoDTO } from "@/modulos/cursos/aplicacion/actualizar-curso";
@@ -36,7 +38,12 @@ export async function accionActualizarCurso(datos: ActualizarCursoDTO): Promise<
 export async function accionEliminarCurso(id: string): Promise<{ ok: boolean; mensaje: string }> {
   if (!(await requerirRol(ROLES.ADMIN))) return { ok: false, mensaje: "No autorizado" };
   const repositorio = new CursoRepositorioMongo();
-  const resultado = await eliminarCurso(id, repositorio);
+  const resultado = await eliminarCurso(
+    id,
+    repositorio,
+    new UnidadDidacticaRepositorioMongo(),
+    new AsignacionRepositorioMongo()
+  );
   if (!resultado.ok) return { ok: false, mensaje: resultado.error.message };
   return { ok: true, mensaje: "Curso eliminado correctamente" };
 }

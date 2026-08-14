@@ -121,7 +121,11 @@ export function TablaReportePromedios({ estudiantes, areas, periodos, cursos, se
   function nombrePeriodo(id: string) {
     const p = periodos.find((p) => p.id === id);
     if (!p) return "(periodo eliminado)";
-    return p.nombre.match(/\d+/)?.[0] ?? p.nombre;
+    // Se incluye el año porque puede haber más de un periodo con el mismo
+    // número (ej. "Periodo 1" de dos años distintos) — sin el año, ambos
+    // se ven idénticos en el desplegable y no hay forma de distinguirlos.
+    const numero = p.nombre.match(/\d+/)?.[0] ?? p.nombre;
+    return `${numero} (${p.anio})`;
   }
 
   function nombreCurso(id: string) {

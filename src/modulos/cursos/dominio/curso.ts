@@ -7,6 +7,15 @@ export class CursoNoEncontradoError extends ErrorDominio {
   }
 }
 
+export class CursoEnUsoError extends ErrorDominio {
+  readonly codigo = "CURSO_EN_USO";
+  constructor() {
+    super(
+      "No se puede eliminar el curso porque tiene Unidades Didácticas o Asignaciones registradas. Elimínalas primero."
+    );
+  }
+}
+
 export interface CursoProps {
   id: string;
   nombre: string;
