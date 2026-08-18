@@ -7,6 +7,7 @@ import { ScanFace, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Hora24Input } from "@/components/ui/hora-24-input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge, StatusBadgeVariant } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -340,24 +341,21 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
                         <Label className="text-xs" title="Al cambiarla, el límite de tardanza y el cierre se mueven con ella.">
                           Hora de entrada
                         </Label>
-                        <Input
-                          type="time"
+                        <Hora24Input
                           value={umbralesForm?.horaEntrada ?? ""}
                           onChange={(e) => cambiarHoraEntrada(e.target.value)}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Límite de tardanza</Label>
-                        <Input
-                          type="time"
+                        <Hora24Input
                           value={umbralesForm?.horaLimiteTardanza ?? ""}
                           onChange={(e) => setUmbralesForm((prev) => prev && { ...prev, horaLimiteTardanza: e.target.value })}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Cierre de sesión</Label>
-                        <Input
-                          type="time"
+                        <Hora24Input
                           value={umbralesForm?.horaCierre ?? ""}
                           onChange={(e) => setUmbralesForm((prev) => prev && { ...prev, horaCierre: e.target.value })}
                         />
