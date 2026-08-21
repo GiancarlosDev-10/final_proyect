@@ -24,45 +24,73 @@ describe("moverBloqueHorario", () => {
     if (!resultado.ok) expect(resultado.error.codigo).toBe("BLOQUE_HORARIO_NO_ENCONTRADO");
   });
 
-  it("retorna error si el destino se superpone con otro bloque del mismo profesor", async () => {
+  it("retorna error si el destino se superpone con otro bloque del mismo profesor en el mismo periodo", async () => {
+    // Ambos bloques cuelgan de asignaciones del mismo profesor y periodo —
+    // es la situación real que debe seguir bloqueada.
+    const asignacionRepo = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "AS-1", profesorId: "PROF-1", periodoId: "PER-1" }),
+      crearAsignacion({ id: "AS-2", profesorId: "PROF-1", periodoId: "PER-1", cursoId: "CUR-2" }),
+    ]);
     const repo = new FakeBloqueHorarioRepositorio([
-      crearBloqueHorario({ id: "BLH-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" }),
-      crearBloqueHorario({ id: "BLH-2", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.VIERNES, horaInicio: "08:00", horaFin: "08:45" }),
+      crearBloqueHorario({ id: "BLH-1", asignacionId: "AS-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" }),
+      crearBloqueHorario({ id: "BLH-2", asignacionId: "AS-2", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.VIERNES, horaInicio: "08:00", horaFin: "08:45" }),
     ]);
 
     const resultado = await moverBloqueHorario(
       { id: "BLH-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.VIERNES, horaInicio: "08:00", horaFin: "08:45" },
       repo,
-      SIN_ASIGNACIONES
+      asignacionRepo
     );
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error.codigo).toBe("BLOQUE_HORARIO_SUPERPUESTO");
   });
 
-  it("no se bloquea a sí mismo al mover dentro del mismo día/hora (excluye el propio bloque de la comprobación)", async () => {
+  it("NO bloquea si el choque es contra un bloque del mismo profesor pero de OTRO periodo (ej. el bimestre siguiente repite el mismo horario semanal)", async () => {
+    const asignacionRepo = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "AS-1", profesorId: "PROF-1", periodoId: "PER-1" }),
+      crearAsignacion({ id: "AS-2", profesorId: "PROF-1", periodoId: "PER-2", cursoId: "CUR-2" }),
+    ]);
     const repo = new FakeBloqueHorarioRepositorio([
-      crearBloqueHorario({ id: "BLH-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" }),
+      crearBloqueHorario({ id: "BLH-1", asignacionId: "AS-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" }),
+      // Mismo día/hora que el destino de BLH-1, pero en PER-2 (otro bimestre) — no debería contar como choque.
+      crearBloqueHorario({ id: "BLH-2", asignacionId: "AS-2", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.VIERNES, horaInicio: "08:00", horaFin: "08:45" }),
+    ]);
+
+    const resultado = await moverBloqueHorario(
+      { id: "BLH-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.VIERNES, horaInicio: "08:00", horaFin: "08:45" },
+      repo,
+      asignacionRepo
+    );
+
+    expect(resultado.ok).toBe(true);
+  });
+
+  it("no se bloquea a sí mismo al mover dentro del mismo día/hora (excluye el propio bloque de la comprobación)", async () => {
+    const asignacionRepo = new FakeAsignacionRepositorio([crearAsignacion({ id: "AS-1", profesorId: "PROF-1", periodoId: "PER-1" })]);
+    const repo = new FakeBloqueHorarioRepositorio([
+      crearBloqueHorario({ id: "BLH-1", asignacionId: "AS-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" }),
     ]);
 
     const resultado = await moverBloqueHorario(
       { id: "BLH-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" },
       repo,
-      SIN_ASIGNACIONES
+      asignacionRepo
     );
 
     expect(resultado.ok).toBe(true);
   });
 
   it("mueve el bloque a un día y horario libres", async () => {
+    const asignacionRepo = new FakeAsignacionRepositorio([crearAsignacion({ id: "AS-1", profesorId: "PROF-1", periodoId: "PER-1" })]);
     const repo = new FakeBloqueHorarioRepositorio([
-      crearBloqueHorario({ id: "BLH-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" }),
+      crearBloqueHorario({ id: "BLH-1", asignacionId: "AS-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.LUNES, horaInicio: "08:00", horaFin: "08:45" }),
     ]);
 
     const resultado = await moverBloqueHorario(
       { id: "BLH-1", profesorId: "PROF-1", diaSemana: DIAS_SEMANA.VIERNES, horaInicio: "10:30", horaFin: "11:15" },
       repo,
-      SIN_ASIGNACIONES
+      asignacionRepo
     );
 
     expect(resultado.ok).toBe(true);

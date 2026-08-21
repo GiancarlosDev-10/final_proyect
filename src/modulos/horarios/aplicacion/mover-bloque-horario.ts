@@ -29,7 +29,19 @@ export async function moverBloqueHorario(
     return err(new BloqueHorarioNoEncontradoError(datos.id));
   }
 
-  const otrosBloques = (await repositorio.listarPorProfesor(datos.profesorId)).filter((b) => b.id !== bloque.id);
+  const asignacion = await asignacionRepositorio.buscarPorId(bloque.asignacionId);
+  const todasAsignaciones = await asignacionRepositorio.listar();
+
+  // El profesor no puede tener dos clases al mismo tiempo DENTRO DEL MISMO
+  // PERIODO (ver crearBloqueHorario para el razonamiento completo — antes
+  // esto comparaba contra todos los bloques del profesor sin importar el
+  // periodo, reportando un choque falso contra bimestres distintos).
+  const asignacionesDelProfesorEnEstePeriodo = asignacion
+    ? todasAsignaciones.filter((a) => a.profesorId === datos.profesorId && a.periodoId === asignacion.periodoId && a.activo)
+    : [];
+  const otrosBloques = (
+    await repositorio.listarPorAsignaciones(asignacionesDelProfesorEnEstePeriodo.map((a) => a.id))
+  ).filter((b) => b.id !== bloque.id);
   const seSuperpone = otrosBloques.some((b) => b.seSuperponeCon(datos.diaSemana, datos.horaInicio, datos.horaFin));
   if (seSuperpone) return err(new BloqueHorarioSuperpuestoError());
 
@@ -38,9 +50,7 @@ export async function moverBloqueHorario(
   // ningún punto de entrada en la UI, pero queda lista para cuando se
   // conecte un "mover" de bloques — sin este chequeo habría reproducido el
   // mismo hueco que ya se corrigió al crear.
-  const asignacion = await asignacionRepositorio.buscarPorId(bloque.asignacionId);
   if (asignacion) {
-    const todasAsignaciones = await asignacionRepositorio.listar();
     const asignacionesDeLaSeccion = todasAsignaciones.filter(
       (a) => a.seccionId === asignacion.seccionId && a.periodoId === asignacion.periodoId && a.activo && a.id !== asignacion.id
     );

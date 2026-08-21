@@ -25,7 +25,17 @@ export async function crearBloqueHorario(
     return err(new AsignacionNoEncontradaError(datos.asignacionId));
   }
 
-  const bloquesDelProfesor = await repositorio.listarPorProfesor(datos.profesorId);
+  // El profesor no puede tener dos clases al mismo tiempo DENTRO DEL MISMO
+  // PERIODO — se compara solo contra sus otras asignaciones activas de este
+  // periodo, no contra bimestres distintos (que nunca coinciden en el
+  // calendario real). Antes esto comparaba contra TODOS los bloques del
+  // profesor sin importar el periodo, lo que reportaba un choque falso al
+  // intentar replicar el mismo horario semanal de un bimestre al siguiente.
+  const todasAsignaciones = await asignacionRepositorio.listar();
+  const asignacionesDelProfesorEnEstePeriodo = todasAsignaciones.filter(
+    (a) => a.profesorId === datos.profesorId && a.periodoId === asignacion.periodoId && a.activo
+  );
+  const bloquesDelProfesor = await repositorio.listarPorAsignaciones(asignacionesDelProfesorEnEstePeriodo.map((a) => a.id));
   const seSuperponeProfesor = bloquesDelProfesor.some((b) => b.seSuperponeCon(datos.diaSemana, datos.horaInicio, datos.horaFin));
   if (seSuperponeProfesor) return err(new BloqueHorarioSuperpuestoError());
 
@@ -33,7 +43,6 @@ export async function crearBloqueHorario(
   // clases distintas al mismo tiempo — se compara contra los bloques de las
   // demás asignaciones activas de esa misma sección y periodo (con
   // profesores distintos, típicamente).
-  const todasAsignaciones = await asignacionRepositorio.listar();
   const asignacionesDeLaSeccion = todasAsignaciones.filter(
     (a) => a.seccionId === asignacion.seccionId && a.periodoId === asignacion.periodoId && a.activo && a.id !== asignacion.id
   );

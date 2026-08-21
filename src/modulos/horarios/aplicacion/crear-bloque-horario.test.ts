@@ -61,6 +61,26 @@ describe("crearBloqueHorario", () => {
     if (!resultado.ok) expect(resultado.error.codigo).toBe("SECCION_OCUPADA_EN_HORARIO");
   });
 
+  it("NO bloquea si el choque es contra un bloque del mismo profesor pero de OTRO periodo (ej. replicar el mismo horario semanal en el bimestre siguiente)", async () => {
+    const repo = new FakeBloqueHorarioRepositorio([
+      crearBloqueHorarioFixture({
+        id: "BLH-OTRO-PERIODO",
+        asignacionId: "AS-PERIODO-VIEJO",
+        diaSemana: DIAS_SEMANA.MARTES,
+        horaInicio: "09:00",
+        horaFin: "09:45",
+      }),
+    ]);
+    const asignacionRepo = new FakeAsignacionRepositorio([
+      crearAsignacion({ id: "AS-1", profesorId: "PROF-1", periodoId: "PER-NUEVO" }),
+      crearAsignacion({ id: "AS-PERIODO-VIEJO", profesorId: "PROF-1", periodoId: "PER-VIEJO", cursoId: "CUR-2" }),
+    ]);
+
+    const resultado = await crearBloqueHorario({ ...DATOS_BASE, asignacionId: "AS-1" }, repo, asignacionRepo);
+
+    expect(resultado.ok).toBe(true);
+  });
+
   it("no bloquea por sección si la clase que se superpone es de otra sección o periodo", async () => {
     const repo = new FakeBloqueHorarioRepositorio([
       crearBloqueHorarioFixture({
