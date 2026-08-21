@@ -11,6 +11,7 @@ import {
   accionEliminarRecordatorio,
 } from "@/app/profesores/dashboard/recordatorios/acciones";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+import { formatearFecha } from "@/compartido/lib/formatear-fecha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -135,7 +136,7 @@ export function MuroRecordatorios({ recordatorios }: Props) {
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="text-xs font-medium text-muted-foreground">
-                  {r.fecha}
+                  {formatearFecha(r.fecha)}
                   {r.horaInicio && r.horaFin ? ` · ${r.horaInicio}-${r.horaFin}` : ""}
                 </span>
                 <div className="flex gap-1">

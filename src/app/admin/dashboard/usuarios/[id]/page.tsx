@@ -9,6 +9,7 @@ import { SeccionRepositorioMongo } from "@/modulos/secciones/infraestructura/sec
 import { PeriodoRepositorioMongo } from "@/modulos/periodos/infraestructura/periodo-repositorio-mongo";
 import { MatriculaRepositorioMongo } from "@/modulos/matriculas/infraestructura/matricula-repositorio-mongo";
 import { NotaRepositorioMongo } from "@/modulos/notas/infraestructura/nota-repositorio-mongo";
+import { formatearFecha } from "@/compartido/lib/formatear-fecha";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -22,12 +23,6 @@ function iniciales(nombreCompleto: string): string {
     .map((p) => p[0])
     .join("")
     .toUpperCase();
-}
-
-function formatearFecha(fechaISO: string): string {
-  const fecha = new Date(fechaISO);
-  if (Number.isNaN(fecha.getTime())) return fechaISO;
-  return fecha.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export default async function DetalleProfesorPage({ params }: { params: Promise<{ id: string }> }) {

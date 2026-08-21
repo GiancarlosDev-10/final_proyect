@@ -13,6 +13,7 @@ import {
   accionGenerarPeriodosAnio,
 } from "@/modulos/periodos/presentacion/acciones";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+import { formatearFecha } from "@/compartido/lib/formatear-fecha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +49,7 @@ function TarjetaPeriodo({
         <div className="min-w-0">
           <p className="truncate font-medium">{periodo.nombre}</p>
           <p className="truncate text-sm text-muted-foreground">Año {periodo.anio}</p>
-          <p className="truncate text-sm text-muted-foreground">{periodo.fechaInicio} — {periodo.fechaFin}</p>
+          <p className="truncate text-sm text-muted-foreground">{formatearFecha(periodo.fechaInicio)} — {formatearFecha(periodo.fechaFin)}</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Acciones" />}>
@@ -230,8 +231,8 @@ export function TablaPeriodos({ periodos }: Props) {
                 <TableRow key={p.id}>
                   <TableCell className="truncate font-medium">{p.nombre}</TableCell>
                   <TableCell className="text-muted-foreground">{p.anio}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.fechaInicio}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.fechaFin}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatearFecha(p.fechaInicio)}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatearFecha(p.fechaFin)}</TableCell>
                   <TableCell className="text-center">
                     {p.estado === "ABIERTO" ? (
                       <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Abierto</Badge>

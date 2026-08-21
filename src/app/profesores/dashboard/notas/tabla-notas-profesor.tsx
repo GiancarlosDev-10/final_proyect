@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TIPOS_NOTA, TipoNota, ETIQUETAS_NIVEL_EDUCATIVO, ORDEN_NIVELES_EDUCATIVOS, NivelEducativo, ETIQUETAS_TIPO_NOTA as ETIQUETAS_TIPO } from "@/config/constantes";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
+import { formatearFecha } from "@/compartido/lib/formatear-fecha";
 import { promediosPorTipo, promedioPonderadoDesdeTipos } from "@/modulos/notas/dominio/promedio-ponderado";
 import { letraDeNota } from "@/modulos/reportes/aplicacion/calcular-consolidado-seccion";
 
@@ -725,7 +726,7 @@ export function TablaNotasProfesor({ asignaciones, estudiantes, periodos, cursos
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 space-y-1">
                     <Badge variant="outline">{ETIQUETAS_TIPO[n.tipo]}</Badge>
-                    <p className="text-xs text-muted-foreground">{n.fecha}</p>
+                    <p className="text-xs text-muted-foreground">{formatearFecha(n.fecha)}</p>
                   </div>
                   <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
                     <span className={`text-lg font-semibold ${n.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>

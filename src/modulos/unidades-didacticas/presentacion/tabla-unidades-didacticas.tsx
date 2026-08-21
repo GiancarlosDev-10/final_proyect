@@ -8,6 +8,7 @@ import { UnidadDidacticaProps } from "@/modulos/unidades-didacticas/dominio/unid
 import { PeriodoProps } from "@/modulos/periodos/dominio/periodo";
 import { CursoProps } from "@/modulos/cursos/dominio/curso";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
+import { formatearFecha } from "@/compartido/lib/formatear-fecha";
 import {
   accionGenerarUnidadesDidacticas,
   accionGenerarUnidadesDidacticasPeriodo,
@@ -38,11 +39,6 @@ interface Props {
 
 const TAMANO_PAGINA = 10;
 const TODOS_LOS_PERIODOS = "TODOS";
-
-function formatearFecha(fecha: string) {
-  const [, mes, dia] = fecha.split("-");
-  return `${dia}/${mes}`;
-}
 
 function TarjetaUnidadDidactica({
   unidad,

@@ -12,6 +12,7 @@ import { UsuarioPublico } from "@/modulos/usuarios/dominio/usuario";
 import { accionListarNotasPorAsignacion } from "@/modulos/notas/presentacion/acciones";
 import { normalizarTexto } from "@/compartido/lib/normalizar-texto";
 import { apellidoNombre } from "@/compartido/lib/formatear-nombre";
+import { formatearFecha } from "@/compartido/lib/formatear-fecha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +40,7 @@ function TarjetaNota({ nota, nombreEstudiante }: { nota: NotaProps; nombreEstudi
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-medium">{nombreEstudiante(nota.estudianteId)}</p>
-          <p className="truncate text-sm text-muted-foreground">{ETIQUETAS_TIPO_NOTA[nota.tipo]} · {nota.fecha}</p>
+          <p className="truncate text-sm text-muted-foreground">{ETIQUETAS_TIPO_NOTA[nota.tipo]} · {formatearFecha(nota.fecha)}</p>
         </div>
         <span className={`shrink-0 text-lg font-semibold ${nota.valor >= 11 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
           {nota.valor}
@@ -229,7 +230,7 @@ export function TablaNotasAdmin({ asignaciones, estudiantes, cursos, secciones, 
                           {n.valor}
                         </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{n.fecha}</TableCell>
+                      <TableCell className="text-muted-foreground">{formatearFecha(n.fecha)}</TableCell>
                     </TableRow>
                   ))}
                   {notasFiltradas.length === 0 && (

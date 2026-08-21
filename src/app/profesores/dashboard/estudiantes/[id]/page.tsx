@@ -13,6 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ETIQUETAS_TIPO_NOTA } from "@/config/constantes";
+import { formatearFecha } from "@/compartido/lib/formatear-fecha";
 import { HistorialEvaluaciones, FilaEvaluacion } from "@/app/profesores/dashboard/estudiantes/[id]/historial-evaluaciones";
 
 const NOTA_APROBATORIA = 11;
@@ -24,12 +25,6 @@ function iniciales(nombreCompleto: string): string {
     .map((p) => p[0])
     .join("")
     .toUpperCase();
-}
-
-function formatearFecha(fechaISO: string): string {
-  const [anio, mes, dia] = fechaISO.split("-");
-  if (!anio || !mes || !dia) return fechaISO;
-  return `${dia}/${mes}/${anio}`;
 }
 
 export default async function DetalleEstudiantePage({ params }: { params: Promise<{ id: string }> }) {
