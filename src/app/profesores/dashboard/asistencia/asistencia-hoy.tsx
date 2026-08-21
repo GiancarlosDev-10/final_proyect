@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ScanFace, Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -45,6 +45,8 @@ function formatoApellidoPrimero(nombreCompleto: string): string {
   return apellidos.length > 0 ? `${apellidos.join(" ")}, ${nombre}` : nombreCompleto;
 }
 
+const HORA_COMPLETA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 function minutosDeHora(hora: string): number {
   const [h, m] = hora.split(":").map(Number);
   return h * 60 + m;
@@ -88,6 +90,11 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
       horaCierre: sesionInicial.horaCierre,
     }
   );
+  // Última "Hora de entrada" completa y válida conocida — el desplazamiento
+  // de Límite/Cierre se calcula contra esto, no contra el valor a medio
+  // escribir (que puede estar incompleto mientras el usuario borra y vuelve
+  // a tipear, ej. "18" antes de llegar a "18:22").
+  const horaEntradaValidaRef = useRef<string | null>(sesionInicial?.horaEntrada ?? null);
   const [guardandoUmbrales, setGuardandoUmbrales] = useState(false);
   const [roster, setRoster] = useState<FilaRoster[]>(rosterInicial);
   const [busqueda, setBusqueda] = useState("");
@@ -140,6 +147,7 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
       horaLimiteTardanza: resultado.sesion.horaLimiteTardanza,
       horaCierre: resultado.sesion.horaCierre,
     });
+    horaEntradaValidaRef.current = resultado.sesion.horaEntrada;
     const filas = await accionListarRoster(resultado.sesion.id);
     setRoster(filas);
     setCargando(false);
@@ -148,7 +156,15 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
   function cambiarHoraEntrada(nuevaEntrada: string) {
     setUmbralesForm((prev) => {
       if (!prev) return prev;
-      const delta = minutosDeHora(nuevaEntrada) - minutosDeHora(prev.horaEntrada);
+      if (!HORA_COMPLETA.test(nuevaEntrada)) {
+        // Todavía a medio escribir (ej. se borró el campo y recién va por
+        // "18") — solo se refleja en pantalla, sin recalcular límite/cierre
+        // con una hora incompleta. Antes esto producía "NaN:NaN".
+        return { ...prev, horaEntrada: nuevaEntrada };
+      }
+      const anterior = horaEntradaValidaRef.current ?? nuevaEntrada;
+      const delta = minutosDeHora(nuevaEntrada) - minutosDeHora(anterior);
+      horaEntradaValidaRef.current = nuevaEntrada;
       return {
         horaEntrada: nuevaEntrada,
         horaLimiteTardanza: horaDesdeMinutos(minutosDeHora(prev.horaLimiteTardanza) + delta),
@@ -159,6 +175,10 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
 
   async function guardarUmbrales() {
     if (!sesion || !umbralesForm) return;
+    if (!HORA_COMPLETA.test(umbralesForm.horaEntrada) || !HORA_COMPLETA.test(umbralesForm.horaLimiteTardanza) || !HORA_COMPLETA.test(umbralesForm.horaCierre)) {
+      toast.error("Completa las 3 horas (HH:MM) antes de guardar.");
+      return;
+    }
     setGuardandoUmbrales(true);
     const resultado = await accionActualizarUmbrales({ sesionId: sesion.id, ...umbralesForm });
     setGuardandoUmbrales(false);
@@ -360,7 +380,17 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
                           onChange={(e) => setUmbralesForm((prev) => prev && { ...prev, horaCierre: e.target.value })}
                         />
                       </div>
-                      <Button className="mt-4 h-11 w-full" onClick={guardarUmbrales} disabled={guardandoUmbrales}>
+                      <Button
+                        className="mt-4 h-11 w-full"
+                        onClick={guardarUmbrales}
+                        disabled={
+                          guardandoUmbrales ||
+                          !umbralesForm ||
+                          !HORA_COMPLETA.test(umbralesForm.horaEntrada) ||
+                          !HORA_COMPLETA.test(umbralesForm.horaLimiteTardanza) ||
+                          !HORA_COMPLETA.test(umbralesForm.horaCierre)
+                        }
+                      >
                         {guardandoUmbrales ? "Guardando..." : "Guardar horario"}
                       </Button>
                     </div>
