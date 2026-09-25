@@ -1,0 +1,64 @@
+# VPS Contabo: n8n + servicio de reconocimiento facial detrás de Caddy (HTTPS
+# automático con Let's Encrypt). El dashboard sigue en Vercel y la BD en
+# MongoDB Atlas; nada de esto se conecta a Mongo, todo pasa por la API de Vercel.
+#
+# Uso (desde esta carpeta): docker compose up -d --build
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      N8N_HOST: ${N8N_HOST}
+      RECONOCIMIENTO_HOST: ${RECONOCIMIENTO_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+      - reconocimiento
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:-stable}
+    restart: unless-stopped
+    environment:
+      N8N_HOST: ${N8N_HOST}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://${N8N_HOST}/
+      N8N_PROXY_HOPS: 1
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      GENERIC_TIMEZONE: America/Lima
+      TZ: America/Lima
+      N8N_RUNNERS_ENABLED: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      # Los workflows leen URL y secretos con $env.X en vez de tenerlos
+      # escritos en el código (ver n8n/sanear-workflows.mjs).
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      DASHBOARD_URL: ${DASHBOARD_URL}
+      TELEGRAM_API_SECRET: ${TELEGRAM_API_SECRET}
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
+      TELEGRAM_BOT_MANUAL_TOKEN: ${TELEGRAM_BOT_MANUAL_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../../n8n/workflows:/workflows:ro
+    expose:
+      - "5678"
+
+  reconocimiento:
+    build: ../../reconocimiento-facial
+    restart: unless-stopped
+    env_file:
+      - ../../reconocimiento-facial/.env
+    expose:
+      - "5000"
+
+volumes:
+  caddy_data:
+  caddy_config:
+  n8n_data:

@@ -1,0 +1,92 @@
+{
+  "name": "Bot Padres - Notificación de Asistencia",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "asistencia-apoderado",
+        "options": {}
+      },
+      "id": "5eedf552-51e7-44c4-885a-b5c252eb39ee",
+      "name": "Webhook: AsistenciaPresente",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "asistencia-apoderado-webhook"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const WEBHOOK_SECRET = $env.N8N_WEBHOOK_SECRET;\n\nconst apiKey = $input.item.json.headers?.['x-api-key'];\n\nif (apiKey !== WEBHOOK_SECRET) {\n  throw new Error('No autorizado: x-api-key inválido');\n}\n\nconst body = $input.item.json.body;\n\nif (!body.chatId || !body.nombreEstudiante || !body.curso || !body.seccion || !body.hora) {\n  throw new Error('Body incompleto: faltan campos requeridos');\n}\n\nreturn { json: body };"
+      },
+      "id": "1d74a1a5-4272-4845-82fb-a1f84cec3e6d",
+      "name": "ValidarSecreto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=✅ Hola {{ $json.nombreApoderado }}, el ingreso de {{ $json.nombreEstudiante }} a clases fue a las {{ $json.hora }}.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c6c0f4c1-6684-491f-853b-64de562940fe",
+      "name": "Telegram: Notificacion",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        0
+      ],
+      "webhookId": "21e28547-fc82-4cbd-81c6-c2e9254a676d",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Padres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: AsistenciaPresente": {
+      "main": [
+        [
+          {
+            "node": "ValidarSecreto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ValidarSecreto": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Notificacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": [],
+  "pinData": {},
+  "active": false
+}

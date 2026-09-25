@@ -1,0 +1,503 @@
+{
+  "name": "Bot Padres - Vinculación",
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "={{ $json.emailApoderado }}",
+        "subject": "Código de verificación - Colegio Juan Velasco Alvarado",
+        "message": "=<div style=\"background-color:#f4f4f5; padding:32px 0; font-family:Arial, Helvetica, sans-serif;\">\n  <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:480px; margin:0 auto; background-color:#ffffff; border-radius:8px; overflow:hidden; border:1px solid #e5e5e5;\">\n\n    <!-- Header -->\n    <tr>\n      <td style=\"background-color:#1a2b4c; padding:24px 32px; text-align:center;\">\n        <span style=\"color:#ffffff; font-size:20px; font-weight:bold; letter-spacing:0.5px;\">\n          Colegio Juan Velasco Alvarado\n        </span>\n      </td>\n    </tr>\n\n    <!-- Body -->\n    <tr>\n      <td style=\"padding:32px;\">\n        <p style=\"font-size:16px; color:#1a1a1a; margin:0 0 4px 0;\">\n          Hola, <strong>{{ $json.nombreApoderado }}</strong>\n        </p>\n        <p style=\"font-size:15px; color:#444444; line-height:1.5; margin:0 0 24px 0;\">\n          Recibimos una solicitud para vincular tu cuenta de Telegram con el/la estudiante\n          <strong>{{ $json.nombreEstudiante }}</strong>. Ingresa este código en el chat del bot para continuar:\n        </p>\n\n        <!-- Código -->\n        <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">\n          <tr>\n            <td style=\"background-color:#f0f2f5; border:1px dashed #1a2b4c; border-radius:6px; padding:20px; text-align:center;\">\n              <span style=\"font-size:34px; font-weight:bold; letter-spacing:8px; color:#1a2b4c;\">\n                {{ $json.codigo }}\n              </span>\n            </td>\n          </tr>\n        </table>\n\n        <p style=\"font-size:13px; color:#888888; margin:20px 0 0 0; text-align:center;\">\n          Este código vence en 15 minutos.\n        </p>\n      </td>\n    </tr>\n\n    <!-- Ayuda -->\n    <tr>\n      <td style=\"padding:0 32px 24px 32px;\">\n        <p style=\"font-size:13px; color:#666666; line-height:1.5; margin:0;\">\n          Si no solicitaste este código, puedes ignorar este correo con tranquilidad.\n        </p>\n      </td>\n    </tr>\n\n    <!-- Footer -->\n    <tr>\n      <td style=\"background-color:#f4f4f5; padding:16px 32px; text-align:center; border-top:1px solid #e5e5e5;\">\n        <span style=\"font-size:12px; color:#999999;\">\n          © 2026 Colegio Juan Velasco Alvarado · Este es un mensaje automático, no respondas a este correo.\n        </span>\n      </td>\n    </tr>\n\n  </table>\n</div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "eb1af77e-1425-40f0-ae1a-3d39fe5090fb",
+      "name": "Gmail: EnviarCodigo",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1104,
+        320
+      ],
+      "webhookId": "cf629120-8d13-49b3-9dcb-3e9cbafffe1e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZAR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "87635d40-2b56-4974-804f-9fba0fc046e3",
+      "name": "Telegram Trigger (Padres)1",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2464,
+        656
+      ],
+      "webhookId": "bot-padres-vinculacion-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Padres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const mensaje = $input.item.json.message;\n\nif (!mensaje) {\n  return { json: { chatId: '', inputText: '', skip: true } };\n}\n\nconst chatId = String(mensaje.chat.id);\nconst texto = mensaje.text ? mensaje.text.trim() : '';\n\nreturn { json: { chatId, inputText: texto, skip: !mensaje.text } };"
+      },
+      "id": "5ae57fbb-3c93-4f63-b5cc-e73c81fad981",
+      "name": "PrepararMensaje1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2256,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "if ($json.skip || !$json.inputText) {\n  return { json: { ...$json, intencion: 'DESCONOCIDO' } };\n}\n\n// Limpiar espacios, saltos de línea y caracteres invisibles\nconst textoLimpio = $json.inputText.replace(/\\s+/g, '').trim();\nlet intencion = 'DESCONOCIDO';\n\nif (/^\\d{8}$/.test(textoLimpio)) {\n  intencion = 'DNI';\n} else if (/^\\d{6}$/.test(textoLimpio)) {\n  intencion = 'CODIGO';\n}\n\n// Debug temporal — bórralo después de confirmar que funciona\nconsole.log('textoLimpio:', textoLimpio, '| longitud:', textoLimpio.length, '| intencion:', intencion);\n\nreturn { json: { ...$json, intencion, inputText: textoLimpio } };"
+      },
+      "id": "faad657a-c7ff-448e-8b44-1c37961517a9",
+      "name": "DetectarIntención1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2032,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "e352def8-6451-4e29-a6fd-cbde4d0b065b",
+                    "leftValue": "={{ $json.intencion }}",
+                    "rightValue": "DNI",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DNI"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "ce26c5a6-300e-463f-a6ad-393f190df657",
+                    "leftValue": "={{ $json.intencion }}",
+                    "rightValue": "CODIGO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CODIGO"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "ac36208f-0cc4-4fbe-babf-53cc092b9e64",
+      "name": "Switch1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -1824,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const BASE_URL = $env.DASHBOARD_URL;\nconst API_SECRET = $env.TELEGRAM_API_SECRET;\n\nconst chatId = $('PrepararMensaje1').item.json.chatId;\nconst dniEstudiante = $json.inputText;\n\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${BASE_URL}/api/telegram/iniciar-vinculacion-apoderado`,\n  headers: { 'x-api-key': API_SECRET, 'Content-Type': 'application/json' },\n  body: { chatId, dniEstudiante },\n  json: true\n});\n\nreturn { json: { ...result, chatId } };"
+      },
+      "id": "4b6a6e2d-c070-405f-8be1-41ce89563982",
+      "name": "Code: IniciarVinculacion1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-ok-dni",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "44dc3e14-e292-4556-a00d-3ff180f1ac30",
+      "name": "IF: ok_dni1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('PrepararMensaje1').item.json.chatId }}",
+        "text": "=Enviamos un código de verificación al correo <code>{{ $('Code: IniciarVinculacion1').item.json.emailEnmascarado }}</code>. Tienes 15 minutos para ingresarlo aquí.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "47ed1f0c-80f9-4bef-8644-5fdd404b7454",
+      "name": "Telegram: CodigoEnviado1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -880,
+        320
+      ],
+      "webhookId": "6ff49cb1-943b-42e7-8e11-b6d28a26f6e2",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Padres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('PrepararMensaje1').item.json.chatId }}",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "869f256b-1000-4e8a-82e7-61718208e446",
+      "name": "Telegram: ErrorDNI1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        480
+      ],
+      "webhookId": "3c2922ec-a7bb-4ad6-ab79-f46168d9ba9d",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Padres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const BASE_URL = $env.DASHBOARD_URL;\nconst API_SECRET = $env.TELEGRAM_API_SECRET;\n\nconst chatId = $('PrepararMensaje1').item.json.chatId;\nconst codigo = $json.inputText;\n\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${BASE_URL}/api/telegram/verificar-codigo-apoderado`,\n  headers: { 'x-api-key': API_SECRET, 'Content-Type': 'application/json' },\n  body: { chatId, codigo },\n  json: true\n});\n\nreturn { json: { ...result, chatId } };"
+      },
+      "id": "1eb1dd6f-9b32-4b5a-bb3e-3b23a87adeb8",
+      "name": "Code: VerificarCodigo1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-ok-codigo",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4c71d166-8be2-4d7f-8118-2c82d636267a",
+      "name": "IF: ok_codigo1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('PrepararMensaje1').item.json.chatId }}",
+        "text": "=✅ Bienvenido/a {{ $json.nombreApoderado }}. Quedaste vinculado/a para recibir notificaciones de asistencia de {{ $json.nombreEstudiante }}. Cada vez que llegue al colegio recibirás un mensaje aquí. 🏫",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7e5f1deb-b0e9-426a-af36-555e159f2990",
+      "name": "Telegram: Vinculado1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        624
+      ],
+      "webhookId": "e150b394-1aa0-4749-b9cf-d40c89ca774a",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Padres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('PrepararMensaje1').item.json.chatId }}",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "bc7c5148-d1c5-4d4a-b2af-3cede31ea4f3",
+      "name": "Telegram: ErrorCodigo1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        800
+      ],
+      "webhookId": "66e9721f-40b8-4c82-9f50-8e4e4a42695b",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Padres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "👋 Hola, soy el bot del Colegio Juan Velasco Alvarado.\n\nPara recibir notificaciones cuando tu hijo/a llegue al colegio, escríbeme su número de DNI (8 dígitos).\n\nEjemplo: 74158877",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "5829024d-fd0b-4ff2-9044-5a2be73b1da4",
+      "name": "Telegram: Bienvenida1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1568,
+        864
+      ],
+      "webhookId": "3e5020bd-5dd6-4020-b9e4-730af7814479",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Padres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gmail: EnviarCodigo": {
+      "main": [
+        [
+          {
+            "node": "Telegram: CodigoEnviado1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger (Padres)1": {
+      "main": [
+        [
+          {
+            "node": "PrepararMensaje1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepararMensaje1": {
+      "main": [
+        [
+          {
+            "node": "DetectarIntención1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DetectarIntención1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Code: IniciarVinculacion1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code: VerificarCodigo1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Bienvenida1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: IniciarVinculacion1": {
+      "main": [
+        [
+          {
+            "node": "IF: ok_dni1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: ok_dni1": {
+      "main": [
+        [
+          {
+            "node": "Gmail: EnviarCodigo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: ErrorDNI1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: VerificarCodigo1": {
+      "main": [
+        [
+          {
+            "node": "IF: ok_codigo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: ok_codigo1": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Vinculado1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: ErrorCodigo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": [],
+  "pinData": {},
+  "active": false
+}

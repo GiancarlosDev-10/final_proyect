@@ -1,0 +1,341 @@
+{
+  "name": "Bot Profesores - Consulta de Notas",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "3a08908c-d1d2-44f7-9ede-51860608beb9",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        64
+      ],
+      "webhookId": "bot-notas-telegram-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Profesores"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const mensaje = $input.item.json.message;\n\nif (!mensaje || !mensaje.text) {\n  return { json: { chatId: '', sessionKey: '', inputText: '', skip: true } };\n}\n\nconst chatId = String(mensaje.chat.id);\nconst texto = mensaje.text.trim();\n\nreturn { json: {\n  chatId,\n  sessionKey: chatId,\n  inputText: texto,\n  skip: false\n} };"
+      },
+      "id": "6187c393-26aa-4980-8bae-3abb971667e3",
+      "name": "PrepararMensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-skip-check",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6769b971-c1b1-43a4-96b0-5d3689f9179e",
+      "name": "¿Tiene texto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $json.inputText }}",
+        "options": {
+          "systemMessage": "Eres un asistente de consulta de notas para el Colegio Juan Velasco Alvarado. Atiendes a profesores por Telegram.\n\n## FLUJO DE AUTENTICACIÓN\n\n1. Si el usuario escribe /start: da la bienvenida y pídele su PIN de Telegram (lo configura en el dashboard web, sección Mi Perfil).\n2. Si recibe un número: llama a la herramienta `autenticar` con ese número como pin.\n   - ok:true → saluda al profesor por nombreProfesor y pide el nombre del alumno a consultar.\n   - ok:false → muestra el mensaje de error tal cual (puede indicar intentos restantes o bloqueo temporal).\n3. Si escribe /logout o /cerrarsesion: llama a `cerrar_sesion` y confirma.\n\n## FLUJO DE CONSULTA (profesor autenticado)\n\n1. Cuando el profesor mencione un nombre de alumno: llama a `buscar_alumno` con ese nombre.\n   - candidatos vacío → pide que intente con nombre y apellido completo.\n   - 1 candidato → llama a `consultar_notas` con ese estudianteId automáticamente sin preguntar.\n   - Varios candidatos → muestra lista numerada y espera que elija.\n2. Cuando elija un número de la lista: llama a `consultar_notas` con el estudianteId correspondiente.\n3. Si el profesor menciona un curso específico (ej: matematicas, comunicacion): pasa cursoNombre en `consultar_notas`.\n4. Si menciona un período (ej: primer bimestre, segundo trimestre): pasa periodoNombre en `consultar_notas`.\n5. Después de mostrar notas, pregunta si desea consultar otro alumno o filtrar por curso/período.\n\n## DETECCIÓN DE ESTADO DE SESIÓN\n\nSi `buscar_alumno` devuelve ok:false con codigo TELEGRAM_CHAT_NO_ENCONTRADO: el profesor no está autenticado. Pídele el PIN.\nSi el profesor no autenticado escribe texto que no es un número: pídele que primero ingrese su PIN o escriba /start.\n\n## FORMATO DE NOTAS\n\nCuando muestres notas, usa este formato:\n\nNotas de [nombre alumno]\n\n[curso] - [etiqueta] ([tipo]): [valor]/20\nPeriodo: [periodo] | Fecha: [fecha]\n\nPromedio: [promedio]/20\n\nSi promedio es null o no hay notas: indica que no hay evaluaciones registradas todavía.\n\n## REGLAS\n- Responde siempre en español, de forma amable y concisa.\n- No inventes datos ni notas.\n- No muestres el chatId al usuario.\n- Ante error inesperado, pide al usuario que escriba /start para reiniciar.",
+          "maxIterations": 10
+        }
+      },
+      "id": "c973e119-84a3-4471-92cb-0282a79d483c",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('PrepararMensaje').item.json.sessionKey }}",
+        "contextWindowLength": 20
+      },
+      "id": "2ca2552d-9f28-4347-bb47-f27d9b7557d9",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1584,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "name": "autenticar",
+        "description": "Autentica al profesor con su PIN de Telegram. Usar cuando el usuario envíe un número como PIN. Parámetro JSON requerido: { \"pin\": \"el_numero_enviado\" }. Devuelve ok:true con nombreProfesor si el PIN es correcto, o ok:false con mensaje de error y código (ej: PIN_INCORRECTO, CHAT_BLOQUEADO).",
+        "jsCode": "const BASE_URL = $env.DASHBOARD_URL;\nconst API_SECRET = $env.TELEGRAM_API_SECRET;\n\nconst chatId = $('PrepararMensaje').item.json.chatId;\nlet params = {};\ntry { params = JSON.parse(query); } catch(e) { params = { pin: query }; }\n\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${BASE_URL}/api/telegram/autenticar`,\n  headers: { 'x-api-key': API_SECRET, 'Content-Type': 'application/json' },\n  body: { chatId, pin: String(params.pin ?? query) },\n  json: true\n});\n\nreturn JSON.stringify(result);"
+      },
+      "id": "dc6336d7-7fad-4599-bc80-8f3e05c173c8",
+      "name": "Tool: autenticar",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1728,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "name": "buscar_alumno",
+        "description": "Busca alumnos por nombre entre los estudiantes asignados al profesor autenticado. Parámetro JSON requerido: { \"nombre\": \"nombre del alumno a buscar\" }. Devuelve lista de candidatos con estudianteId, nombreCompleto y seccion. Si ok:false con codigo TELEGRAM_CHAT_NO_ENCONTRADO el profesor no está autenticado.",
+        "jsCode": "const BASE_URL = $env.DASHBOARD_URL;\nconst API_SECRET = $env.TELEGRAM_API_SECRET;\n\nconst chatId = $('PrepararMensaje').item.json.chatId;\nlet params = {};\ntry { params = JSON.parse(query); } catch(e) { params = { nombre: query }; }\n\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${BASE_URL}/api/telegram/buscar-alumno`,\n  headers: { 'x-api-key': API_SECRET, 'Content-Type': 'application/json' },\n  body: { chatId, nombre: params.nombre ?? query },\n  json: true\n});\n\nreturn JSON.stringify(result);"
+      },
+      "id": "c6ac4815-53f7-4ca4-bc23-33e081d6d0a6",
+      "name": "Tool: buscar_alumno",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1872,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_notas",
+        "description": "Consulta las notas de un alumno específico. Parámetro JSON: { \"estudianteId\": \"id_obtenido_de_buscar_alumno\", \"cursoNombre\": \"opcional_para_filtrar_por_materia\", \"periodoNombre\": \"opcional_para_filtrar_por_periodo\" }. estudianteId es obligatorio. Devuelve alumno, lista de notas con curso/tipo/valor/fecha y promedio general.",
+        "jsCode": "const BASE_URL = $env.DASHBOARD_URL;\nconst API_SECRET = $env.TELEGRAM_API_SECRET;\n\nconst chatId = $('PrepararMensaje').item.json.chatId;\nlet params = {};\ntry { params = JSON.parse(query); } catch(e) {}\n\nconst body = { chatId, estudianteId: params.estudianteId };\nif (params.cursoNombre) body.cursoNombre = params.cursoNombre;\nif (params.periodoNombre) body.periodoNombre = params.periodoNombre;\n\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${BASE_URL}/api/telegram/notas`,\n  headers: { 'x-api-key': API_SECRET, 'Content-Type': 'application/json' },\n  body,\n  json: true\n});\n\nreturn JSON.stringify(result);"
+      },
+      "id": "bace80cf-86f3-4f7b-88a3-5a95952f8369",
+      "name": "Tool: consultar_notas",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "name": "cerrar_sesion",
+        "description": "Cierra la sesión Telegram del profesor actual. No requiere parámetros adicionales. Usar cuando el profesor escriba /logout o /cerrarsesion.",
+        "jsCode": "const BASE_URL = $env.DASHBOARD_URL;\nconst API_SECRET = $env.TELEGRAM_API_SECRET;\n\nconst chatId = $('PrepararMensaje').item.json.chatId;\n\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${BASE_URL}/api/telegram/cerrar-sesion`,\n  headers: { 'x-api-key': API_SECRET, 'Content-Type': 'application/json' },\n  body: { chatId },\n  json: true\n});\n\nreturn JSON.stringify(result);"
+      },
+      "id": "c127633e-6933-4b86-ab6f-feb551cee62f",
+      "name": "Tool: cerrar_sesion",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        2144,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('PrepararMensaje').item.json.chatId }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "0d8ded69-f901-48b8-9f96-5ccc1b0aadcc",
+      "name": "Enviar respuesta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1984,
+        -32
+      ],
+      "webhookId": "c7343bb4-07cf-4b3b-82de-feece8508e41",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR",
+          "name": "Bot Profesores"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "ab05a601-942a-4171-b532-3051d16d396d",
+      "name": "OpenAI gpt-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        288
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REEMPLAZAR",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "PrepararMensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepararMensaje": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene texto?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: autenticar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: buscar_alumno": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: consultar_notas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: cerrar_sesion": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI gpt-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": [],
+  "pinData": {},
+  "active": false
+}

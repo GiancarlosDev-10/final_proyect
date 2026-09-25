@@ -44,8 +44,9 @@ next-env.d.ts
 # claude code local config
 .claude/
 
-# workflow local de n8n (contiene la URL/secreto del bot; no se sube al repo)
-/n8n/
+# exports crudos de n8n (tienen tokens y API keys reales). Lo que se sube es
+# n8n/workflows/, generado sin secretos con n8n/sanear-workflows.mjs
+/n8n/originales/
 
 # python (servicio de reconocimiento facial)
 __pycache__/

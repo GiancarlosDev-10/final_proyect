@@ -1,0 +1,11 @@
+# Los hosts vienen de .env (n8n.<ip>.sslip.io / rostros.<ip>.sslip.io).
+# sslip.io resuelve cualquier "<algo>.<ip-con-guiones>.sslip.io" a esa IP, así
+# que Caddy puede sacar certificado HTTPS real sin tener dominio propio.
+
+{$N8N_HOST} {
+	reverse_proxy n8n:5678
+}
+
+{$RECONOCIMIENTO_HOST} {
+	reverse_proxy reconocimiento:5000
+}
