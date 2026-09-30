@@ -19,7 +19,7 @@ export default auth((req) => {
       return NextResponse.redirect(new URL("/admin/dashboard/usuarios", nextUrl));
     }
     if (isLoggedIn && rol === "PROFESOR") {
-      return NextResponse.redirect(new URL("/profesores/dashboard/notas", nextUrl));
+      return NextResponse.redirect(new URL("/profesores/dashboard/horarios", nextUrl));
     }
     return NextResponse.next();
   }

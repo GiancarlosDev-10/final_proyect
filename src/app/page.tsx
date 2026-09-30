@@ -15,7 +15,7 @@ export default async function RootPage() {
   }
 
   if (rol === "PROFESOR") {
-    redirect("/profesores/dashboard/notas");
+    redirect("/profesores/dashboard/horarios");
   }
 
   redirect("/auth/login");

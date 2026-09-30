@@ -66,6 +66,33 @@ function RelojDigital({ ahora }: { ahora: Date | null }) {
   );
 }
 
+/** Los 4 botones de marcado; se comparten entre la tabla (desktop) y las tarjetas (móvil). */
+function BotonesMarcar({
+  fila,
+  onMarcar,
+  className,
+}: {
+  fila: FilaRoster;
+  onMarcar: (estudianteId: string, estado: EstadoAsistencia) => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <Button size="xs" variant="outline" onClick={() => onMarcar(fila.estudianteId, ESTADOS_ASISTENCIA.PRESENTE)}>Presente</Button>
+      <Button size="xs" variant="outline" onClick={() => onMarcar(fila.estudianteId, ESTADOS_ASISTENCIA.TARDANZA)}>Tardanza</Button>
+      <Button size="xs" variant="outline" onClick={() => onMarcar(fila.estudianteId, ESTADOS_ASISTENCIA.AUSENTE)}>Ausente</Button>
+      <Button
+        size="xs"
+        variant="outline"
+        disabled={fila.estado !== "AUSENTE"}
+        onClick={() => onMarcar(fila.estudianteId, ESTADOS_ASISTENCIA.JUSTIFICADO)}
+      >
+        Justificar
+      </Button>
+    </div>
+  );
+}
+
 interface UmbralesForm {
   horaEntrada: string;
   horaLimiteTardanza: string;
@@ -79,6 +106,10 @@ interface Props {
 }
 
 const TAMANO_PAGINA = 6;
+
+function mismosUmbrales(a: UmbralesForm, b: UmbralesForm): boolean {
+  return a.horaEntrada === b.horaEntrada && a.horaLimiteTardanza === b.horaLimiteTardanza && a.horaCierre === b.horaCierre;
+}
 
 export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) {
   const [bloqueSeleccionado, setBloqueSeleccionado] = useState<BloqueDeHoy | null>(bloques[0] ?? null);
@@ -118,14 +149,44 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
     }
   }, []);
 
-  // Refresca el roster solo (sin recargar la página) mientras la sesión esté
-  // abierta, para que las marcas que haga la cámara aparezcan solas.
+  const sesionRef = useRef(sesion);
+  const umbralesFormRef = useRef(umbralesForm);
+  useEffect(() => {
+    sesionRef.current = sesion;
+    umbralesFormRef.current = umbralesForm;
+  });
+
+  // Si el horario de la sesión se editó desde otro dispositivo (ej. la PC
+  // mientras esta pantalla está abierta en el celular), se adopta el nuevo.
+  // El formulario solo se pisa si no tiene cambios sin guardar.
+  function sincronizarSesion(nueva: SesionAsistenciaProps) {
+    const actual = sesionRef.current;
+    if (!actual || actual.id !== nueva.id || mismosUmbrales(actual, nueva)) return;
+    const form = umbralesFormRef.current;
+    if (!form || mismosUmbrales(form, actual)) {
+      setUmbralesForm({
+        horaEntrada: nueva.horaEntrada,
+        horaLimiteTardanza: nueva.horaLimiteTardanza,
+        horaCierre: nueva.horaCierre,
+      });
+      horaEntradaValidaRef.current = nueva.horaEntrada;
+    }
+    setSesion(nueva);
+  }
+
+  // Refresca el roster y el horario de la sesión solos (sin recargar la
+  // página) mientras la sesión esté abierta, para que las marcas que haga la
+  // cámara y los cambios hechos en otro dispositivo aparezcan solos.
   useEffect(() => {
     const sesionId = sesion?.id;
     if (!sesionId || !bloqueSeleccionado) return;
     const intervalo = setInterval(async () => {
-      const filas = await accionListarRoster(sesionId);
+      const [filas, resultadoSesion] = await Promise.all([
+        accionListarRoster(sesionId),
+        accionAbrirSesion(bloqueSeleccionado.bloqueHorarioId),
+      ]);
       setRoster(filas);
+      if (resultadoSesion.ok) sincronizarSesion(resultadoSesion.sesion);
     }, 2000);
     return () => clearInterval(intervalo);
   }, [sesion?.id, bloqueSeleccionado]);
@@ -271,47 +332,61 @@ export function AsistenciaHoy({ bloques, sesionInicial, rosterInicial }: Props) 
                 />
               </div>
 
-              <Table className="table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-64">Alumno</TableHead>
-                    <TableHead className="w-28 text-center">Estado</TableHead>
-                    <TableHead className="text-center">Marcar</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rosterPagina.map((fila) => (
-                    <TableRow key={fila.estudianteId}>
-                      <TableCell className="truncate font-medium">{formatoApellidoPrimero(fila.nombreCompleto)}</TableCell>
-                      <TableCell className="text-center">
-                        <StatusBadge variant={ESTADO_INFO[fila.estado].variant}>{ESTADO_INFO[fila.estado].label}</StatusBadge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap justify-center gap-1">
-                          <Button size="xs" variant="outline" onClick={() => marcar(fila.estudianteId, ESTADOS_ASISTENCIA.PRESENTE)}>Presente</Button>
-                          <Button size="xs" variant="outline" onClick={() => marcar(fila.estudianteId, ESTADOS_ASISTENCIA.TARDANZA)}>Tardanza</Button>
-                          <Button size="xs" variant="outline" onClick={() => marcar(fila.estudianteId, ESTADOS_ASISTENCIA.AUSENTE)}>Ausente</Button>
-                          <Button
-                            size="xs"
-                            variant="outline"
-                            disabled={fila.estado !== "AUSENTE"}
-                            onClick={() => marcar(fila.estudianteId, ESTADOS_ASISTENCIA.JUSTIFICADO)}
-                          >
-                            Justificar
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {rosterFiltrado.length === 0 && !cargando && (
+              {/* Móvil: una tarjeta por alumno (nombre + estado arriba, los 4 botones
+                  en una sola fila abajo). La tabla de 3 columnas no entra en ~360px; sin
+                  padding lateral para que "Justificar" quepa entero en cada celda. */}
+              <ul className="divide-y border-y md:hidden">
+                {rosterPagina.map((fila) => (
+                  <li key={fila.estudianteId} className="space-y-2 py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 text-sm font-medium break-words">{formatoApellidoPrimero(fila.nombreCompleto)}</p>
+                      <StatusBadge variant={ESTADO_INFO[fila.estado].variant}>{ESTADO_INFO[fila.estado].label}</StatusBadge>
+                    </div>
+                    <BotonesMarcar
+                      fila={fila}
+                      onMarcar={marcar}
+                      className="grid grid-cols-4 gap-1 [&>button]:h-8 [&>button]:w-full [&>button]:min-w-0 [&>button]:px-0.5"
+                    />
+                  </li>
+                ))}
+                {rosterFiltrado.length === 0 && !cargando && (
+                  <li className="py-6 text-center text-sm text-muted-foreground">
+                    {roster.length === 0 ? "No hay alumnos matriculados en esta sección." : "Ningún alumno coincide con la búsqueda."}
+                  </li>
+                )}
+              </ul>
+
+              <div className="hidden md:block">
+                <Table className="table-fixed">
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={3} className="h-20 text-center text-muted-foreground">
-                        {roster.length === 0 ? "No hay alumnos matriculados en esta sección." : "Ningún alumno coincide con la búsqueda."}
-                      </TableCell>
+                      <TableHead className="w-64">Alumno</TableHead>
+                      <TableHead className="w-28 text-center">Estado</TableHead>
+                      <TableHead className="text-center">Marcar</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {rosterPagina.map((fila) => (
+                      <TableRow key={fila.estudianteId}>
+                        <TableCell className="truncate font-medium">{formatoApellidoPrimero(fila.nombreCompleto)}</TableCell>
+                        <TableCell className="text-center">
+                          <StatusBadge variant={ESTADO_INFO[fila.estado].variant}>{ESTADO_INFO[fila.estado].label}</StatusBadge>
+                        </TableCell>
+                        <TableCell>
+                          <BotonesMarcar fila={fila} onMarcar={marcar} className="flex flex-wrap justify-center gap-1" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {rosterFiltrado.length === 0 && !cargando && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="h-20 text-center text-muted-foreground">
+                          {roster.length === 0 ? "No hay alumnos matriculados en esta sección." : "Ningún alumno coincide con la búsqueda."}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
 
               {rosterFiltrado.length > 0 && (
                 <div className="flex flex-wrap items-center justify-between gap-3">
