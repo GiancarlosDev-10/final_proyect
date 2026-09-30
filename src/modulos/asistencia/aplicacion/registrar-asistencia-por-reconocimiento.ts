@@ -54,40 +54,44 @@ export async function registrarAsistenciaPorReconocimiento(
     const matricula = await deps.matriculaRepo.buscarPorEstudianteYAnio(estudianteId, anio);
     if (!matricula || !matricula.activo) return err(new MatriculaActivaNoEncontradaError(estudianteId));
 
-    const hoy = diaSemanaDeHoy();
-    if (!hoy) return err(new SinClaseEnCursoError(estudianteId));
-
     const asignaciones = (await deps.asignacionRepo.listar()).filter(
       (a) => a.activo && a.seccionId === matricula.seccionId
     );
     if (asignaciones.length === 0) return err(new SinClaseEnCursoError(estudianteId));
 
-    const bloques = (await deps.bloqueRepo.listarPorAsignaciones(asignaciones.map((a) => a.id))).filter(
-      (b) => b.diaSemana === hoy
-    );
-    if (bloques.length === 0) return err(new SinClaseEnCursoError(estudianteId));
+    const bloquesSeccion = await deps.bloqueRepo.listarPorAsignaciones(asignaciones.map((a) => a.id));
+    if (bloquesSeccion.length === 0) return err(new SinClaseEnCursoError(estudianteId));
 
+    const hoy = diaSemanaDeHoy();
     const ahora = horaActualHHMM();
     const fecha = fechaDeHoyISO();
 
-    // Si el profesor ya abrió la sesión de este bloque hoy y editó sus
-    // umbrales manualmente (ej. para que coincidan con la hora real de una
-    // demo fuera del horario normal), esa ventana editada manda sobre el
-    // horario original del bloque a la hora de decidir si "hay clase ahora".
+    // Si el profesor ya abrió hoy la sesión de un bloque de la sección y
+    // editó sus umbrales manualmente (ej. para que coincidan con la hora real
+    // de una demo fuera del horario normal), esa ventana editada manda sobre
+    // el horario original de los bloques a la hora de decidir si "hay clase
+    // ahora". Se consideran bloques de cualquier día porque "Mi Horario"
+    // permite abrir hoy la asistencia de un bloque de otro día.
+    const sesionesHoy = await deps.sesionRepo.listarPorBloquesYFecha(bloquesSeccion.map((b) => b.id), fecha);
+    const bloquesConSesion = new Set(sesionesHoy.map((s) => s.bloqueHorarioId));
+
     let bloqueActivo: BloqueHorario | null = null;
     let sesionExistente: SesionAsistencia | null = null;
-    for (const bloque of bloques) {
-      const sesion = await deps.sesionRepo.buscarPorBloqueYFecha(bloque.id, fecha);
-      if (sesion) {
-        if (sesion.horaEntrada <= ahora && ahora <= sesion.horaCierre) {
-          bloqueActivo = bloque;
-          sesionExistente = sesion;
-          break;
-        }
-      } else if (bloque.horaInicio <= ahora && ahora <= bloque.horaFin) {
-        bloqueActivo = bloque;
+    for (const sesion of sesionesHoy) {
+      if (sesion.horaEntrada <= ahora && ahora <= sesion.horaCierre) {
+        bloqueActivo = bloquesSeccion.find((b) => b.id === sesion.bloqueHorarioId) ?? null;
+        sesionExistente = sesion;
         break;
       }
+    }
+    // Sin sesión editada que cubra la hora actual, se cae al horario original
+    // de los bloques de hoy que todavía no tienen sesión abierta.
+    if (!bloqueActivo && hoy) {
+      bloqueActivo =
+        bloquesSeccion.find(
+          (b) => b.diaSemana === hoy && !bloquesConSesion.has(b.id) && b.horaInicio <= ahora && ahora <= b.horaFin
+        ) ?? null;
+      sesionExistente = null;
     }
     if (!bloqueActivo) return err(new SinClaseEnCursoError(estudianteId));
 

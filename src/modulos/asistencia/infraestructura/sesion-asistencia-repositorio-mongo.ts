@@ -31,6 +31,12 @@ export class SesionAsistenciaRepositorioMongo implements ISesionAsistenciaReposi
     return doc ? aDominio(doc) : null;
   }
 
+  async listarPorBloquesYFecha(bloqueHorarioIds: string[], fecha: string): Promise<SesionAsistencia[]> {
+    await conectarMongoDB();
+    const docs = await SesionAsistenciaModel.find({ bloqueHorarioId: { $in: bloqueHorarioIds }, fecha }).lean();
+    return docs.map(aDominio);
+  }
+
   async crear(sesion: SesionAsistencia): Promise<void> {
     await conectarMongoDB();
     await SesionAsistenciaModel.create({
