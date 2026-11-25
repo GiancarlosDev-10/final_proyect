@@ -16,7 +16,7 @@ const fuenteSans = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard Colegio",
+  title: "EduConecta",
   description: "Sistema de gestión académica escolar",
 };
 

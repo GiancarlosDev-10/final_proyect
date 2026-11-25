@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import logoColegio from "@/assets/juanvelasco.png";
+import { LogoEduConecta } from "@/compartido/ui/logo-educonecta";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -54,9 +53,9 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm shadow-lg shadow-foreground/5">
       <CardHeader className="items-center gap-3 pb-2 text-center">
-        <Image src={logoColegio} alt="Colegio Juan Velasco Alvarado" className="mx-auto size-24 object-contain" priority />
+        <LogoEduConecta className="mx-auto size-20" />
         <div className="space-y-1">
-          <h1 className="font-heading text-xl font-semibold">Colegio Juan Velasco Alvarado</h1>
+          <h1 className="font-heading text-xl font-semibold">EduConecta</h1>
           <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
         </div>
       </CardHeader>
